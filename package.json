@@ -1,0 +1,77 @@
+{
+  "name": "zksync-account",
+  "description": "ZKsync Smart Account SDK",
+  "version": "0.0.0-development",
+  "license": "MIT",
+  "author": "Matter Labs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matter-labs/zksync-account-sdk.git"
+  },
+  "scripts": {
+    "build": "npm run clean && npm run build:esm+types",
+    "build:esm+types": "tsc --project tsconfig.build.json --outDir ./dist/esm --declaration --declarationMap --declarationDir ./dist/types",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test:build": "publint --strict && attw --pack --ignore-rules cjs-resolves-to-esm",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@wagmi/core": "2.x",
+    "viem": "2.x"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.1.0"
+  },
+  "files": [
+    "dist/**",
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts"
+  ],
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "typings": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/esm/index.js"
+    },
+    "./connector": {
+      "types": "./dist/types/connector/index.d.ts",
+      "default": "./dist/esm/connector/index.js"
+    },
+    "./core/message": {
+      "types": "./dist/types/core/message/index.d.ts",
+      "default": "./dist/esm/core/message/index.js"
+    },
+    "./core/provider": {
+      "types": "./dist/types/core/provider/index.d.ts",
+      "default": "./dist/esm/core/provider/index.js"
+    },
+    "./core/communicator": {
+      "types": "./dist/types/core/communicator/index.d.ts",
+      "default": "./dist/esm/core/communicator/index.js"
+    },
+    "./core/error": {
+      "types": "./dist/types/core/error/index.d.ts",
+      "default": "./dist/esm/core/error/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "keywords": [
+    "zksync",
+    "smart",
+    "account",
+    "eth",
+    "ethereum",
+    "wallet",
+    "web3"
+  ]
+}
