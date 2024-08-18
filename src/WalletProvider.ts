@@ -8,12 +8,11 @@ import type {
   RequestArguments,
   Session,
 } from './core/provider/interface.js';
-import { AddressString, type Chain, IntNumber } from './core/type/index.js';
-import { areAddressArraysEqual, hexStringFromIntNumber } from './core/type/util.js';
-import { checkErrorForInvalidRequestArgs, fetchRPCRequest } from './util/provider.js';
+import { checkErrorForInvalidRequestArgs, fetchRPCRequest } from './utils/provider.js';
 import { PopupCommunicator } from './core/communicator/PopupCommunicator.js';
 import { determineMethodCategory } from './core/provider/method.js';
 import { Signer } from './signer/Signer.js';
+import type { Address } from 'viem';
 
 const DEFAULT_GATEWAY_URL = 'http://localhost:3001/confirm';
 
@@ -29,17 +28,17 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
 
   constructor({ metadata, session, gatewayUrl }: {
     metadata: AppMetadata;
-    session?: () => Session | Promise<Session>;
+    session?: Session | (() => Session | Promise<Session>);
     gatewayUrl?: string
   }) {
     super();
-    const communicator = new PopupCommunicator(gatewayUrl || DEFAULT_GATEWAY_URL)
+    const communicator = new PopupCommunicator(gatewayUrl || DEFAULT_GATEWAY_URL);
     this.signer = new Signer({
       metadata,
       updateListener: this.updateListener,
       communicator: communicator,
-      session,
-    })
+      session: typeof session === 'object' ? () => session : session,
+    });
   }
 
   protected get chain() {
@@ -63,15 +62,15 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
 
   protected readonly handlers = {
     // eth_requestAccounts
-    handshake: async (_: RequestArguments): Promise<AddressString[]> => {
+    handshake: async (_: RequestArguments): Promise<Address[]> => {
       if (this.connected) {
-        this.emit('connect', { chainId: hexStringFromIntNumber(IntNumber(this.chain.id)) });
+        this.emit('connect', { chainId: this.chain.id });
         return this.signer.accounts;
       }
 
       const accounts = await this.signer.handshake();
 
-      this.emit('connect', { chainId: hexStringFromIntNumber(IntNumber(this.chain.id)) });
+      this.emit('connect', { chainId: this.chain.id });
       return accounts;
     },
 
@@ -84,10 +83,15 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
       return await this.signer.request(request);
     },
 
-    fetch: (request: RequestArguments) => fetchRPCRequest(request, this.chain),
+    fetch: (request: RequestArguments) => {
+      if (!('rpcUrl' in this.chain)) {
+        throw new Error('Chain is not set up or not supported');
+      }
+      return fetchRPCRequest(request, this.chain.rpcUrl);
+    },
 
     state: (request: RequestArguments) => {
-      const getConnectedAccounts = (): AddressString[] => {
+      const getConnectedAccounts = (): Address[] => {
         if (this.connected) return this.signer.accounts;
         throw standardErrors.provider.unauthorized(
           "Must call 'eth_requestAccounts' before other methods"
@@ -95,7 +99,6 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
       };
       switch (request.method) {
         case 'eth_chainId':
-          return hexStringFromIntNumber(IntNumber(this.chain.id));
         case 'net_version':
           return this.chain.id;
         case 'eth_accounts':
@@ -119,29 +122,17 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
     if (e.code === standardErrorCodes.provider.unauthorized) this.disconnect();
   }
 
-  /** @deprecated Use `.request({ method: 'eth_requestAccounts' })` instead. */
-  public async enable(): Promise<unknown> {
-    console.warn(
-      `.enable() has been deprecated. Please use .request({ method: "eth_requestAccounts" }) instead.`
-    );
-    return await this.request({
-      method: 'eth_requestAccounts',
-    });
-  }
-
   async disconnect(): Promise<void> {
     this.signer.disconnect();
     this.emit('disconnect', standardErrors.provider.disconnected('User initiated disconnection'));
   }
 
   protected readonly updateListener = {
-    onAccountsUpdate: (accounts: AddressString[]) => {
-      if (areAddressArraysEqual(this.signer.accounts, accounts)) return;
-      this.emit('accountsChanged', this.signer.accounts);
+    onAccountsUpdate: (accounts: Address[]) => {
+      this.emit('accountsChanged', accounts);
     },
-    onChainUpdate: (chain: Chain) => {
-      if (chain.id === this.chain.id && chain.rpcUrl === this.chain.rpcUrl) return;
-      this.emit('chainChanged', hexStringFromIntNumber(IntNumber(chain.id)));
+    onChainUpdate: (chainId: number) => {
+      this.emit('chainChanged', chainId);
     },
   };
 }

@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Copyright (c) 2018-2023 Coinbase, Inc. <https://www.coinbase.com/>
 
+import type { Address } from 'viem';
 import { standardErrors } from '../error/index.js';
-import { AddressString, HexString, IntNumber } from './index.js';
+import { HexString, IntNumber } from './index.js';
 
 const INT_STRING_REGEX = /^[0-9]*$/;
 const HEXADECIMAL_STRING_REGEX = /^[a-f0-9]*$/;
@@ -84,6 +85,6 @@ export function getFavicon(): string | null {
   return `${protocol}//${host}${href}`;
 }
 
-export function areAddressArraysEqual(arr1: AddressString[], arr2: AddressString[]): boolean {
+export function areAddressArraysEqual(arr1: Address[], arr2: Address[]): boolean {
   return arr1.length === arr2.length && arr1.every((value, index) => value === arr2[index]);
 }

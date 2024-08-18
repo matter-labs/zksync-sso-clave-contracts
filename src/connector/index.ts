@@ -4,20 +4,18 @@ import {
   type Connector,
 } from '@wagmi/core'
 import {
-  type AddEthereumChainParameter,
+  type Address,
   type Hex,
-  type ProviderRpcError,
   SwitchChainError,
   UserRejectedRequestError,
   getAddress,
-  numberToHex,
 } from 'viem'
 import { WalletProvider, type ProviderInterface, type Session, type AppMetadata } from '../index.js';
 import { getFavicon } from '../core/type/util.js';
 
 export type ZksyncAccountConnectorOptions = {
   metadata: Partial<AppMetadata> & { appName: string };
-  session?: () => Session | Promise<Session>;
+  session?: Session | (() => Session | Promise<Session>);
   gatewayUrl?: string;
 }
 
@@ -78,13 +76,11 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
 
         // Switch to chain if provided
         let walletChainId = await this.getChainId()
-        console.log({walletChainId, chainId})
         if (chainId && walletChainId !== chainId) {
           const chain = await this.switchChain!({ chainId }).catch((error) => {
-            console.log({error});
             if (error.code === UserRejectedRequestError.code) throw error
             return { id: walletChainId }
-          })
+          });
           walletChainId = chain?.id ?? walletChainId
         }
 
@@ -108,7 +104,7 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
     async getAccounts() {
       const provider = await this.getProvider()
       return (
-        await provider.request<string[]>({
+        await provider.request<Address[]>({
           method: 'eth_accounts',
         })
       ).map((x) => getAddress(x))
@@ -117,7 +113,8 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
       const provider = await this.getProvider()
       const chainId = await provider.request<Hex>({
         method: 'eth_chainId',
-      })
+      });
+      if (!chainId) return config.chains[0].id
       return Number(chainId)
     },
     async getProvider() {
@@ -142,58 +139,18 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
         return false
       }
     },
-    async switchChain({ addEthereumChainParameter, chainId }) {
-      const chain = config.chains.find((chain) => chain.id === chainId)
-      if (!chain) throw new SwitchChainError(new ChainNotConfiguredError())
-
-      const provider = await this.getProvider()
+    async switchChain({ chainId }) {
+      const chain = config.chains.find((chain) => chain.id === chainId);
+      if (!chain) throw new SwitchChainError(new ChainNotConfiguredError());
 
       try {
-        console.log("Request switch chain", chain);
-        await provider.request({
+        const provider = await this.getProvider()
+        await provider.request<null | undefined>({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: numberToHex(chain.id) }],
-        })
+          params: [{ chainId: chainId }],
+        });
         return chain;
       } catch (error) {
-        // Indicates chain is not added to provider
-        if ((error as ProviderRpcError).code === 4902) {
-          try {
-            let blockExplorerUrls: string[] | undefined
-            if (addEthereumChainParameter?.blockExplorerUrls)
-              blockExplorerUrls = addEthereumChainParameter.blockExplorerUrls
-            else
-              blockExplorerUrls = chain.blockExplorers?.default.url
-                ? [chain.blockExplorers?.default.url]
-                : []
-
-            let rpcUrls: readonly string[]
-            if (addEthereumChainParameter?.rpcUrls?.length)
-              rpcUrls = addEthereumChainParameter.rpcUrls
-            else rpcUrls = [chain.rpcUrls.default?.http[0] ?? '']
-
-            const addEthereumChain = {
-              blockExplorerUrls,
-              chainId: numberToHex(chainId),
-              chainName: addEthereumChainParameter?.chainName ?? chain.name,
-              iconUrls: addEthereumChainParameter?.iconUrls,
-              nativeCurrency:
-                addEthereumChainParameter?.nativeCurrency ??
-                chain.nativeCurrency,
-              rpcUrls,
-            } satisfies AddEthereumChainParameter
-
-            await provider.request({
-              method: 'wallet_addEthereumChain',
-              params: [addEthereumChain],
-            })
-
-            return chain
-          } catch (error) {
-            throw new UserRejectedRequestError(error as Error)
-          }
-        }
-
         throw new SwitchChainError(error as Error)
       }
     },

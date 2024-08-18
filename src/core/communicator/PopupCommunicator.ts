@@ -1,7 +1,6 @@
 import { LIB_VERSION } from '../../version.js';
 import type { ConfigMessage, Message, MessageID } from '../message/index.js';
 import { standardErrors } from '../error/index.js';
-import { closePopup, openPopup } from '../../util/web.js';
 import type { Communicator } from './index.js';
 
 export class PopupCommunicator implements Communicator {
@@ -48,7 +47,13 @@ export class PopupCommunicator implements Communicator {
 
   private disconnect = () => {
     // Note: gateway popup handles closing itself. this is a fallback.
-    closePopup(this.popup);
+    try {
+      if (this.popup && !this.popup.closed) {
+        this.popup.close();
+      }
+    } catch (error) {
+      console.warn('Failed to close popup', error);
+    }
     this.popup = null;
 
     this.listeners.forEach(({ reject }, listener) => {
@@ -57,6 +62,28 @@ export class PopupCommunicator implements Communicator {
     });
     this.listeners.clear();
   };
+
+  openPopup = () => {
+    const width = 420;
+    const height = 600;
+
+    const url = new URL(this.url.toString());
+    url.searchParams.set('origin', window.location.origin);
+
+    const left = (window.innerWidth - width) / 2 + window.screenX;
+    const top = (window.innerHeight - height) / 2 + window.screenY;
+
+    const popup = window.open(
+      url,
+      'ZKsync Account',
+      `width=${width}, height=${height}, left=${left}, top=${top}`
+    );
+    popup?.focus();
+    if (!popup) {
+      throw standardErrors.rpc.internal('Pop up window failed to open');
+    }
+    return popup;
+  }
 
   /**
    * Waits for the popup window to fully load and then send a version message.
@@ -68,9 +95,7 @@ export class PopupCommunicator implements Communicator {
       return this.popup;
     }
 
-    const url = new URL(this.url.toString());
-    url.searchParams.set('origin', window.location.origin);
-    this.popup = openPopup(url);
+    this.popup = this.openPopup();
 
     this.onMessage<ConfigMessage>(({ event }) => event === 'PopupUnload')
       .then(this.disconnect)

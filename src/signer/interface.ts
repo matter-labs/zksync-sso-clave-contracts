@@ -1,6 +1,6 @@
-import type { AddressString, Chain } from '../core/type/index.js';
+import type { Address } from 'viem';
 
 export interface StateUpdateListener {
-  onAccountsUpdate: (_: AddressString[]) => void;
-  onChainUpdate: (_: Chain) => void;
+  onAccountsUpdate: (_: Address[]) => void;
+  onChainUpdate: (_: number) => void;
 }

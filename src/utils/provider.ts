@@ -1,16 +1,13 @@
 import { standardErrors } from '../core/error/index.js';
 import type { RequestArguments } from '../core/provider/interface.js';
-import type { Chain } from '../core/type/index.js';
 
-export async function fetchRPCRequest(request: RequestArguments, chain?: Chain) {
-  if (!chain?.rpcUrl) throw standardErrors.rpc.internal('No RPC URL set for chain');
-
+export async function fetchRPCRequest(request: RequestArguments, rpcUrl: string) {
   const requestBody = {
     ...request,
     jsonrpc: '2.0',
     id: crypto.randomUUID(),
   };
-  const res = await window.fetch(chain.rpcUrl, {
+  const res = await window.fetch(rpcUrl, {
     method: 'POST',
     body: JSON.stringify(requestBody),
     mode: 'cors',

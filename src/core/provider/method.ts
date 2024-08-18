@@ -23,9 +23,7 @@ export const mapping = {
     'eth_accounts',
     'net_version',
   ],
-  deprecated: ['eth_sign', 'eth_signTypedData_v2'],
-  unsupported: ['eth_subscribe', 'eth_unsubscribe'],
-  fetch: [],
+  deprecated: [],
 } as const;
 
 export type MethodCategory = keyof typeof mapping;

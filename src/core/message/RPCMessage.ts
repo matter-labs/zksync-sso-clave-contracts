@@ -1,24 +1,20 @@
 import type { Message, MessageID } from './Message.js';
-import type { RPCResponse } from './RPCResponse.js';
-import type { SerializedEthereumRpcError } from '../error/index.js';
+import type { RPCResponseError, RPCResponseSuccessful } from './RPCResponse.js';
 
-interface RPCMessage extends Message {
+interface RPCMessage<T = unknown> extends Message {
   id: MessageID;
-  content: unknown;
+  content: T;
   timestamp: Date;
 }
 
-export interface RPCRequestMessage extends RPCMessage {
-  content: {
-    data: unknown;
-  };
-}
+export interface RPCRequestMessage<T = unknown> extends RPCMessage<T> {}
 
-export interface RPCResponseMessage<T = unknown> extends RPCMessage {
+export interface RPCResponseMessageSuccessful<T = unknown> extends RPCMessage<RPCResponseSuccessful<T>> {
   requestId: MessageID;
-  content:
-    | RPCResponse<T>
-    | {
-        failure: SerializedEthereumRpcError;
-      };
+  content: RPCResponseSuccessful<T>;
 }
+export interface RPCResponseMessageFailure extends RPCMessage<RPCResponseError> {
+  requestId: MessageID;
+  content: RPCResponseError;
+}
+export type RPCResponseMessage<T = unknown> = RPCResponseMessageSuccessful<T> | RPCResponseMessageFailure;

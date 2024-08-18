@@ -1,8 +1,8 @@
 import { EventEmitter } from 'eventemitter3';
 
 import type { Method } from './method.js';
-import { AddressString, type Chain } from '../type/index.js';
-import type { Hash } from 'viem';
+import type { ChainData } from '../type/index.js';
+import type { Address, Hash } from 'viem';
 
 export interface RequestArguments {
   readonly method: Method | string;
@@ -35,9 +35,9 @@ export interface ProviderInterface extends EventEmitter {
 }
 
 export interface SignerInterface {
-  accounts: AddressString[];
-  chain: Chain;
-  handshake(): Promise<AddressString[]>;
+  accounts: Address[];
+  chain: ChainData | { id: number };
+  handshake(): Promise<Address[]>;
   request<T>(request: RequestArguments): Promise<T>;
   disconnect: () => Promise<void>;
 }
@@ -53,15 +53,11 @@ export interface AppMetadata {
 
 export interface Session {
   validUntil: Date;
-  spendLimit: { [tokenAddress: string]: string }; // tokenAddress => amount
+  spendLimit: { [tokenAddress: Address]: string }; // tokenAddress => amount
 }
 
 export interface SessionData extends Session {
-  address: Hash;
+  address: Address;
   chainId: number;
   sessionKey: Hash;
-}
-
-export interface Preference {
-  gatewayUrl?: string;
 }

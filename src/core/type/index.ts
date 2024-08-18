@@ -1,3 +1,5 @@
+import type { Address } from "viem";
+
 // Copyright (c) 2018-2024 Coinbase, Inc. <https://www.coinbase.com/>
 interface Tag<T extends string, RealType> {
   __tag__: T;
@@ -13,15 +15,17 @@ export function OpaqueType<T extends Tag<string, unknown>>() {
 export type HexString = OpaqueType<'HexString', string>;
 export const HexString = OpaqueType<HexString>();
 
-export type AddressString = OpaqueType<'AddressString', string>;
-export const AddressString = OpaqueType<AddressString>();
-
 export type IntNumber = OpaqueType<'IntNumber', number>;
 export function IntNumber(num: number): IntNumber {
   return Math.floor(num) as IntNumber;
 }
 
-export type Chain = {
+export type ChainData = {
   id: number;
-  rpcUrl?: string;
+  name: string;
+  rpcUrl: string;
+  capabilities: Record<string, unknown>;
+  contracts: {
+    session: Address; // Session, spend limit, etc.
+  }
 };

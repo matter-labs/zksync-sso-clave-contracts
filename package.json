@@ -47,6 +47,10 @@
       "types": "./dist/types/connector/index.d.ts",
       "default": "./dist/esm/connector/index.js"
     },
+    "./account": {
+      "types": "./dist/types/account/index.d.ts",
+      "default": "./dist/esm/account/index.js"
+    },
     "./core/message": {
       "types": "./dist/types/core/message/index.d.ts",
       "default": "./dist/esm/core/message/index.js"
