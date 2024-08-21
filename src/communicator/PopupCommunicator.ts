@@ -1,5 +1,5 @@
 import { LIB_VERSION } from '../version.js';
-import type { Message, MessageID } from '../gateway-client/message.js';
+import type { Message, MessageID } from '../client-gateway/message.js';
 import { standardErrors } from '../errors/index.js';
 import type { Communicator } from './index.js';
 

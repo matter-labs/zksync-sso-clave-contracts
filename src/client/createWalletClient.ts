@@ -1,12 +1,12 @@
-import { createClient, getAddress, publicActions, type Account, type Address, type Chain, type Client, type Hash, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, type WalletClientConfig, type WalletRpcSchema } from 'viem'
+import { createClient, getAddress, publicActions, type Account, type Address, type Chain, type Client, type Hash, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts';
 
-import type { SessionData, SessionParameters } from '../gateway-client/index.js';
-import { zksyncAccountWalletActions } from './decorators/wallet.js';
+import type { SessionData, SessionPreferences } from '../client-gateway/index.js';
+import { zksyncAccountWalletActions, type ZksyncAccountWalletActions } from './decorators/wallet.js';
 
 export type ZksyncAccountContracts = {
   session: Address; // Session, spend limit, etc.
-  accountFactory?: Address; // Account creation
+  accountFactory?: Address; // For account creation
 }
 
 export type ClientWithZksyncAccountData<
@@ -30,9 +30,10 @@ export type ZksyncAccountWalletClient<
     rpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema],
-    WalletActions<chain, Account>
+      ZksyncAccountWalletActions<chain, Account>
   > & {
-    session: SessionData,
+    session: SessionData;
+    contracts: ZksyncAccountContracts;
   }
 >
 
@@ -43,7 +44,7 @@ export interface ZksyncAccountWalletClientConfig<
 > extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, 'account'> {
   chain: NonNullable<chain>;
   address: Address;
-  session: SessionParameters & {
+  session: SessionPreferences & {
     sessionKey: Hash;
   };
   contracts: ZksyncAccountContracts;

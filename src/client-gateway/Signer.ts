@@ -2,7 +2,7 @@ import { hexToNumber, http, type Address, type Chain, type Hash, type Transport 
 import { privateKeyToAccount } from 'viem/accounts';
 
 import type { HandshakeResponse, RPCRequestMessage, RPCResponseMessage, RPCResponseMessageSuccessful } from './message.js';
-import type { AppMetadata, RequestArguments, SessionParameters, SessionData } from './interface.js';
+import type { AppMetadata, RequestArguments, SessionPreferences, SessionData } from './interface.js';
 import type { Method } from './method.js';
 import type { Communicator } from '../communicator/index.js';
 import { StorageItem } from '../utils/storage.js';
@@ -33,7 +33,7 @@ type SignerConstructorParams = {
   updateListener: UpdateListener;
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
-  session?: () => SessionParameters | Promise<SessionParameters>;
+  session?: () => SessionPreferences | Promise<SessionPreferences>;
 }
 
 type ChainsInfo = HandshakeResponse["result"]["chainsInfo"];
@@ -44,7 +44,7 @@ export class Signer implements SignerInterface {
   private readonly updateListener: UpdateListener;
   private readonly chains: readonly Chain[];
   private readonly transports: Record<number, Transport> = {};
-  private readonly sessionParameters?: () => SessionParameters | Promise<SessionParameters>;
+  private readonly sessionParameters?: () => SessionPreferences | Promise<SessionPreferences>;
 
   private _account: StorageItem<Account | null>;
   private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey('chainsInfo'), []);
@@ -112,7 +112,7 @@ export class Signer implements SignerInterface {
   }
 
   async handshake(): Promise<Address[]> {
-    let session: SessionParameters | undefined;
+    let session: SessionPreferences | undefined;
     if (this.sessionParameters) {
       try {
         session = await this.sessionParameters();

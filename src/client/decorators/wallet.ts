@@ -1,28 +1,24 @@
 import { decodeFunctionData, erc20Abi, getAddress, type Account, type Address, type Chain, type Hash, type Transport, type WalletActions } from 'viem'
 import { sendTransaction, signTransaction } from 'viem/zksync';
-import { deployContract, getAddresses, getChainId, prepareTransactionRequest, requestAddresses, requestPermissions, sendRawTransaction, signTypedData, signMessage, writeContract } from 'viem/actions';
+import { deployContract, getAddresses, getChainId, prepareTransactionRequest, sendRawTransaction, signTypedData, signMessage, writeContract } from 'viem/actions';
 
 import type { ClientWithZksyncAccountData } from '../createWalletClient.js';
+
+export type ZksyncAccountWalletActions<chain extends Chain, account extends Account> = Omit<
+  WalletActions<chain, account>, 'addChain' | 'getPermissions' | 'requestAddresses' | 'requestPermissions' | 'switchChain' | 'watchAsset'
+>;
 
 export function zksyncAccountWalletActions<
   transport extends Transport,
   chain extends Chain,
   account extends Account,
->(client: ClientWithZksyncAccountData<transport, chain, account>): WalletActions<chain, account> {
+>(client: ClientWithZksyncAccountData<transport, chain, account>): ZksyncAccountWalletActions<chain, account> {
   return {
-    addChain: () => {
-      throw new Error('Chain adding is not supported');
-    },
     deployContract: (args) => deployContract(client, args),
     getAddresses: () => getAddresses(client),
     getChainId: () => getChainId(client),
-    getPermissions: () => {
-      throw new Error('Permissions are not supported');
-    },
     prepareTransactionRequest: (args) =>
       prepareTransactionRequest(client, args),
-    requestAddresses: () => requestAddresses(client),
-    requestPermissions: (args) => requestPermissions(client, args),
     sendRawTransaction: (args) => sendRawTransaction(client, args),
     sendTransaction: async (args) => {
       const tx = client.chain.formatters?.transaction?.format(args) || args;
@@ -41,12 +37,6 @@ export function zksyncAccountWalletActions<
     signMessage: (args) => signMessage(client, args),
     signTransaction: (args) => signTransaction(client, args as any),
     signTypedData: (args) => signTypedData(client, args),
-    switchChain: () => {
-      throw new Error('Chain switching is not supported');
-    },
-    watchAsset: () => {
-      throw new Error('Asset watching is not supported');
-    },
     writeContract: (args) => writeContract(client, args),
   }
 }

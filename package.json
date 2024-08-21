@@ -46,9 +46,9 @@
       "types": "./dist/types/connector/index.d.ts",
       "default": "./dist/esm/connector/index.js"
     },
-    "./gateway-client": {
-      "types": "./dist/types/gateway-client/index.d.ts",
-      "default": "./dist/esm/gateway-client/index.js"
+    "./client-gateway": {
+      "types": "./dist/types/client-gateway/index.d.ts",
+      "default": "./dist/esm/client-gateway/index.js"
     },
     "./client": {
       "types": "./dist/types/client/index.d.ts",

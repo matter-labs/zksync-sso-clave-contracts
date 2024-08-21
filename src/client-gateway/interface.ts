@@ -38,12 +38,12 @@ export interface AppMetadata {
   icon: string | null;
 }
 
-export interface SessionParameters {
+export interface SessionPreferences {
   validUntil: Date;
   spendLimit: { [tokenAddress: Address]: string }; // tokenAddress => amount
 }
 
-export interface SessionData extends SessionParameters {
+export interface SessionData extends SessionPreferences {
   address: Address;
   chainId: number;
   sessionKey: Hash;

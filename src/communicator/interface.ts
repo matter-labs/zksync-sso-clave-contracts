@@ -1,4 +1,4 @@
-import type { Message } from "../gateway-client/message.js";
+import type { Message } from "../client-gateway/message.js";
 
 export interface Communicator {
   postMessage: (_: Message) => void;

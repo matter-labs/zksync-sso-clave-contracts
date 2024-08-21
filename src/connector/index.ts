@@ -10,12 +10,12 @@ import {
   UserRejectedRequestError,
   getAddress,
 } from 'viem'
-import { WalletProvider, type ProviderInterface, type SessionParameters, type AppMetadata } from '../index.js';
+import { WalletProvider, type ProviderInterface, type SessionPreferences, type AppMetadata } from '../index.js';
 import { getFavicon, getWebsiteName } from '../utils/helpers.js';
 
 export type ZksyncAccountConnectorOptions = {
   metadata?: Partial<AppMetadata>;
-  session?: SessionParameters | (() => SessionParameters | Promise<SessionParameters>);
+  session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
   gatewayUrl?: string;
 }
 

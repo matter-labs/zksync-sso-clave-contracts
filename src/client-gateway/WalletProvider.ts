@@ -6,7 +6,7 @@ import type {
   AppMetadata,
   ProviderInterface,
   RequestArguments,
-  SessionParameters,
+  SessionPreferences,
 } from './interface.js';
 import { checkErrorForInvalidRequestArgs, fetchRPCRequest } from '../utils/provider.js';
 import { PopupCommunicator } from '../communicator/PopupCommunicator.js';
@@ -20,7 +20,7 @@ export type WalletProviderConstructorOptions = {
   metadata: AppMetadata;
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
-  session?: SessionParameters | (() => SessionParameters | Promise<SessionParameters>);
+  session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
   gatewayUrl?: string;
 };
 

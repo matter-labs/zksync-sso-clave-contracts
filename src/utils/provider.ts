@@ -1,5 +1,5 @@
 import { standardErrors } from '../errors/index.js';
-import type { RequestArguments } from '../gateway-client/interface.js';
+import type { RequestArguments } from '../client-gateway/interface.js';
 
 export async function fetchRPCRequest(request: RequestArguments, rpcUrl: string) {
   const requestBody = {
