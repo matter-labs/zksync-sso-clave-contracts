@@ -3,7 +3,7 @@ import type { Message, MessageID } from '../gateway-client/message.js';
 import { standardErrors } from '../errors/index.js';
 import type { Communicator } from './index.js';
 
-export interface ConfigMessage extends Message {
+export interface PopupConfigMessage extends Message {
   event: 'PopupLoaded' | 'PopupUnload';
 }
 
@@ -101,11 +101,11 @@ export class PopupCommunicator implements Communicator {
 
     this.popup = this.openPopup();
 
-    this.onMessage<ConfigMessage>(({ event }) => event === 'PopupUnload')
+    this.onMessage<PopupConfigMessage>(({ event }) => event === 'PopupUnload')
       .then(this.disconnect)
       .catch(() => {});
 
-    return this.onMessage<ConfigMessage>(({ event }) => event === 'PopupLoaded')
+    return this.onMessage<PopupConfigMessage>(({ event }) => event === 'PopupLoaded')
       .then((message) => {
         this.postMessage({
           requestId: message.id,

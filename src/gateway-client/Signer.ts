@@ -11,7 +11,7 @@ import { createZksyncWalletClient, type ZksyncAccountWalletClient } from '../cli
 type Account = {
   address: Address;
   activeChainId: Chain["id"];
-  session?: SessionData;
+  session?: SessionData | undefined;
 }
 
 interface SignerInterface {

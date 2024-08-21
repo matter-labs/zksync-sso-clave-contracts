@@ -1,4 +1,4 @@
-import { LIB_VERSION } from '../../version.js';
+import { LIB_VERSION } from '../version.js';
 import { standardErrorCodes } from './constants.js';
 import { serialize, type SerializedEthereumRpcError } from './utils.js';
 

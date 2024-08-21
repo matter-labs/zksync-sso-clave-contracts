@@ -59,7 +59,7 @@
       "types": "./dist/types/communicator/index.d.ts",
       "default": "./dist/esm/communicator/index.js"
     },
-    "./error": {
+    "./errors": {
       "types": "./dist/types/errors/index.d.ts",
       "default": "./dist/esm/errors/index.js"
     },
