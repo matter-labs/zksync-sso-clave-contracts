@@ -1,71 +1,94 @@
+import { hexToNumber, http, type Address, type Chain, type Hash, type Transport } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { http, type Address } from 'viem';
 
-import type { StateUpdateListener } from './interface.js';
-import type { HandshakeResponse, RPCRequestMessage, RPCResponseMessage, RPCResponseMessageSuccessful } from '../core/message/index.js';
-import type { AppMetadata, RequestArguments, Session, SessionData, SignerInterface } from '../core/provider/interface.js';
-import type { Method } from '../core/provider/method.js';
-import { ensureIntNumber } from '../core/type/util.js';
-import type { Communicator } from '../core/communicator/index.js';
-import { createZksyncWalletClient } from '../account/index.js';
+import type { HandshakeResponse, RPCRequestMessage, RPCResponseMessage, RPCResponseMessageSuccessful } from './message.js';
+import type { AppMetadata, RequestArguments, SessionParameters, SessionData } from './interface.js';
+import type { Method } from './method.js';
+import type { Communicator } from '../communicator/index.js';
 import { StorageItem } from '../utils/storage.js';
-import type { ZksyncWalletClient } from '../account/zksync-account.js';
-import type { ChainData } from '../core/type/index.js';
+import { createZksyncWalletClient, type ZksyncAccountWalletClient } from '../client/index.js';
 
 type Account = {
   address: Address;
-  activeChain: ChainData["id"];
+  activeChainId: Chain["id"];
   session?: SessionData;
+}
+
+interface SignerInterface {
+  accounts: Address[];
+  chain: Chain;
+  handshake(): Promise<Address[]>;
+  request<T>(request: RequestArguments): Promise<T>;
+  disconnect: () => Promise<void>;
+}
+
+type UpdateListener = {
+  onAccountsUpdate: (_: Address[]) => void;
+  onChainUpdate: (_: number) => void;
+}
+
+type SignerConstructorParams = {
+  metadata: AppMetadata;
+  communicator: Communicator;
+  updateListener: UpdateListener;
+  chains: readonly Chain[];
+  transports?: Record<number, Transport>;
+  session?: () => SessionParameters | Promise<SessionParameters>;
 }
 
 export class Signer implements SignerInterface {
   private readonly metadata: AppMetadata;
   private readonly communicator: Communicator;
-  private readonly sessionParameters?: () => Session | Promise<Session>;
-  private readonly updateListener: StateUpdateListener;
+  private readonly updateListener: UpdateListener;
+  private readonly chains: readonly Chain[];
+  private readonly transports: Record<number, Transport> = {};
+  private readonly sessionParameters?: () => SessionParameters | Promise<SessionParameters>;
 
-  private readonly getScopeKey = (key: string) => `ZKAccount::${key}`;
-  private _chains: StorageItem<ChainData[]>;
   private _account: StorageItem<Account | null>;
-  private walletClient: ZksyncWalletClient | undefined;
+  private walletClient: ZksyncAccountWalletClient | undefined;
 
-  constructor(params: {
-    metadata: AppMetadata;
-    communicator: Communicator;
-    updateListener: StateUpdateListener;
-    session?: () => Session | Promise<Session>;
-  }) {
-    if (!params.metadata.appChainIds.length) throw new Error('At least one chain id must be provided');
+  constructor({ metadata, communicator, updateListener, session, chains, transports }: SignerConstructorParams) {
+    if (!chains.length) throw new Error('At least one chain must be included in the config');
 
-    this.metadata = params.metadata;
-    this.communicator = params.communicator;
-    this.sessionParameters = params.session;
-    this.updateListener = params.updateListener;
+    this.metadata = metadata;
+    this.communicator = communicator;
+    this.updateListener = updateListener;
+    this.sessionParameters = session;
+    this.chains = chains;
+    this.transports = transports || {};
 
-    this._account = new StorageItem<Account | null>(this.getScopeKey('account'), null, {
+    this._account = new StorageItem<Account | null>(StorageItem.scopedStorageKey('account'), null, {
       onChange: (newValue) => {
         if (newValue) {
           this.updateListener.onAccountsUpdate([newValue.address]);
-          this.updateListener.onChainUpdate(newValue.activeChain);
+          this.updateListener.onChainUpdate(newValue.activeChainId);
+          this.createWalletClient();
         } else {
           this.updateListener.onAccountsUpdate([]);
         }
       }
     });
-    this._chains = new StorageItem<ChainData[]>(this.getScopeKey('chains'), []);
+    if (this.account) this.createWalletClient();
   }
 
-  private get chains() { return this._chains.get() }
-  private get account() { return this._account.get() }
-  public get accounts() { return this.account ? [this.account.address] : [] }
-  private get session() { return this.account?.session }
-  public get chain() {
-    const chainId = this.account?.activeChain || this.metadata.appChainIds[0];
-    return Object.entries(this.chains).find(([_, chain]) => chain.id === chainId)?.[1] || { id: chainId! };
+  private get account(): Account | null {
+    const account = this._account.get();
+    if (!account) return null;
+    const chain = this.chains.find(e => e.id === account.activeChainId);
+    return {
+      ...account,
+      activeChainId: chain?.id || this.chains[0]!.id,
+    }
   }
+  private get session() { return this.account?.session }
   private readonly clearState = () => {
-    this._chains.remove();
     this._account.remove();
+  }
+  
+  public get accounts() { return this.account ? [this.account.address] : [] }
+  public get chain() {
+    const chainId = this.account?.activeChainId || this.chains[0]!.id;
+    return this.chains.find(e => e.id === chainId)!;
   }
 
   createWalletClient() {
@@ -75,22 +98,14 @@ export class Signer implements SignerInterface {
     if (!('name' in chain)) throw new Error('Chains not set up or not supported');
     this.walletClient = createZksyncWalletClient({
       address: privateKeyToAccount(session.sessionKey).address,
+      chain,
+      transport: this.transports[chain.id] || http(),
       session: session,
-      chain: {
-        id: chain.id,
-        name: chain.name,
-        rpcUrls: { default: { http: [chain.rpcUrl] } },
-        contracts: Object.fromEntries(Object.entries(chain.contracts).map(
-          ([key, address]) => [key, { address }]
-        )),
-        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-      },
-      transport: http(),
-    }); 
+    } as any) as any; 
   }
 
   async handshake(): Promise<Address[]> {
-    let session: Session | undefined;
+    let session: SessionParameters | undefined;
     if (this.sessionParameters) {
       try {
         session = await this.sessionParameters();
@@ -107,13 +122,12 @@ export class Signer implements SignerInterface {
     });
     const response = responseMessage.content as HandshakeResponse;
 
-    this._chains.set(response.result.chains);
+    /* this._chains.set(response.result.chains); */
     this._account.set({
       address: response.result.account.address,
-      activeChain: response.result.chains[0]!.id,
+      activeChainId: response.result.account.session?.chainId || this.chain.id,
       session: response.result.account.session,
     });
-    this.createWalletClient();
     return this.accounts;
   }
 
@@ -124,7 +138,7 @@ export class Signer implements SignerInterface {
 
     this._account.set({
       ...this.account!,
-      activeChain: chain.id,
+      activeChainId: chain.id,
     });
     return true;
   }
@@ -146,20 +160,19 @@ export class Signer implements SignerInterface {
     switch (request.method as Method) {
       case 'eth_sendTransaction':
         if (!this.walletClient || !this.session) return undefined;
-        console.log(params[0]);
         const res = await this.walletClient.sendTransaction(params[0]);
         return res as T;
 
       case 'wallet_switchEthereumChain': {
-        const chainId = ensureIntNumber(params[0].chainId);
-        const switched = this.switchChain(chainId);
+        const chainId = params[0].chainId;
+        const switched = this.switchChain(typeof chainId === 'string' ? hexToNumber(chainId as Hash) : chainId);
         // "return null if the request was successful"
         // https://eips.ethereum.org/EIPS/eip-3326#wallet_switchethereumchain
         return switched ? (null as T) : undefined;
       }
       case 'wallet_getCapabilities': {
-        if (!this.chains.length) throw new Error('Chains are not set');
-        return Object.fromEntries(this.chains.map((e) => [e.id, e.capabilities])) as T;
+        // return Object.fromEntries(this.chains.map((e) => [e.id, e.capabilities])) as T;
+        return {} as T;
       }
       default:
         return undefined;

@@ -47,25 +47,21 @@
       "types": "./dist/types/connector/index.d.ts",
       "default": "./dist/esm/connector/index.js"
     },
-    "./account": {
-      "types": "./dist/types/account/index.d.ts",
-      "default": "./dist/esm/account/index.js"
+    "./gateway-client": {
+      "types": "./dist/types/gateway-client/index.d.ts",
+      "default": "./dist/esm/gateway-client/index.js"
     },
-    "./core/message": {
-      "types": "./dist/types/core/message/index.d.ts",
-      "default": "./dist/esm/core/message/index.js"
+    "./client": {
+      "types": "./dist/types/client/index.d.ts",
+      "default": "./dist/esm/client/index.js"
     },
-    "./core/provider": {
-      "types": "./dist/types/core/provider/index.d.ts",
-      "default": "./dist/esm/core/provider/index.js"
+    "./communicator": {
+      "types": "./dist/types/communicator/index.d.ts",
+      "default": "./dist/esm/communicator/index.js"
     },
-    "./core/communicator": {
-      "types": "./dist/types/core/communicator/index.d.ts",
-      "default": "./dist/esm/core/communicator/index.js"
-    },
-    "./core/error": {
-      "types": "./dist/types/core/error/index.d.ts",
-      "default": "./dist/esm/core/error/index.js"
+    "./error": {
+      "types": "./dist/types/errors/index.d.ts",
+      "default": "./dist/esm/errors/index.js"
     },
     "./package.json": "./package.json"
   },

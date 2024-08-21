@@ -52,6 +52,8 @@ export class StorageItem<T> {
     }
   }
 
+  static scopedStorageKey = (key: string) => `ZKAccount::${key}`;
+
   get(): T {
     const storedValue = this.storage.getItem(this.key);
     if (storedValue !== null) {

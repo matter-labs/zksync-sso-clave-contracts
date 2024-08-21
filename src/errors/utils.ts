@@ -2,7 +2,7 @@ import { errorValues, standardErrorCodes } from './constants.js';
 
 const FALLBACK_MESSAGE = 'Unspecified error message.';
 
-export const JSON_RPC_SERVER_ERROR_MESSAGE = 'Unspecified server error.';
+const JSON_RPC_SERVER_ERROR_MESSAGE = 'Unspecified server error.';
 
 type ErrorValueKey = keyof typeof errorValues;
 

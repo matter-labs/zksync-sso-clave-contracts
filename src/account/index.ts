@@ -1,1 +1,0 @@
-export { createZksyncWalletClient } from "./zksync-account.js";

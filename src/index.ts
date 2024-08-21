@@ -1,3 +1,2 @@
-// Copyright (c) 2018-2024 Coinbase, Inc. <https://www.coinbase.com/>
-export { WalletProvider, type WalletProviderConstructorOptions } from './WalletProvider.js';
-export type { AppMetadata, Session, SessionData, ProviderInterface } from './core/provider/interface.js';
+export { WalletProvider, type WalletProviderConstructorOptions } from './gateway-client/WalletProvider.js';
+export type { AppMetadata, SessionParameters, SessionData, ProviderInterface } from './gateway-client/interface.js';

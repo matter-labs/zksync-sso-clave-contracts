@@ -1,7 +1,11 @@
-import { LIB_VERSION } from '../../version.js';
-import type { ConfigMessage, Message, MessageID } from '../message/index.js';
-import { standardErrors } from '../error/index.js';
+import { LIB_VERSION } from '../version.js';
+import type { Message, MessageID } from '../gateway-client/message.js';
+import { standardErrors } from '../errors/index.js';
 import type { Communicator } from './index.js';
+
+export interface ConfigMessage extends Message {
+  event: 'PopupLoaded' | 'PopupUnload';
+}
 
 export class PopupCommunicator implements Communicator {
   private readonly url: URL;

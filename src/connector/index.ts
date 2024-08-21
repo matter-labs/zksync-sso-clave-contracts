@@ -10,12 +10,12 @@ import {
   UserRejectedRequestError,
   getAddress,
 } from 'viem'
-import { WalletProvider, type ProviderInterface, type Session, type AppMetadata } from '../index.js';
-import { getFavicon } from '../core/type/util.js';
+import { WalletProvider, type ProviderInterface, type SessionParameters, type AppMetadata } from '../index.js';
+import { getFavicon, getWebsiteName } from '../utils/helpers.js';
 
 export type ZksyncAccountConnectorOptions = {
-  metadata: Partial<AppMetadata> & { appName: string };
-  session?: Session | (() => Session | Promise<Session>);
+  metadata?: Partial<AppMetadata>;
+  session?: SessionParameters | (() => SessionParameters | Promise<SessionParameters>);
   gatewayUrl?: string;
 }
 
@@ -121,12 +121,13 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
       if (!walletProvider) {
         walletProvider = new WalletProvider({
           metadata: {
-            appName: parameters.metadata.appName,
-            appLogoUrl: parameters.metadata.appLogoUrl || getFavicon(),
-            appChainIds: parameters.metadata.appChainIds ?? config.chains.map((chain) => chain.id),
+            name: parameters.metadata?.name || getWebsiteName() || "Unknown DApp",
+            icon: parameters.metadata?.icon || getFavicon(),
           },
           gatewayUrl: parameters.gatewayUrl,
           session: parameters.session,
+          transports: config.transports,
+          chains: config.chains,
         })
       }
       return walletProvider;
@@ -147,7 +148,7 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
         const provider = await this.getProvider()
         await provider.request<null | undefined>({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: chainId }],
+          params: [{ chainId }],
         });
         return chain;
       } catch (error) {
@@ -156,14 +157,12 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
     },
     onAccountsChanged(accounts) {
       if (accounts.length === 0) this.onDisconnect()
-      else
-        config.emitter.emit('change', {
-          accounts: accounts.map((x) => getAddress(x)),
-        })
+      else config.emitter.emit('change', {
+        accounts: accounts.map((x) => getAddress(x)),
+      })
     },
     onChainChanged(chain) {
-      const chainId = Number(chain)
-      config.emitter.emit('change', { chainId })
+      config.emitter.emit('change', { chainId: Number(chain) })
     },
     async onDisconnect(_error) {
       config.emitter.emit('disconnect')

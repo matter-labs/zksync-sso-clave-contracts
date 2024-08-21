@@ -1,24 +1,26 @@
 import { EventEmitter } from 'eventemitter3';
 
-import { standardErrorCodes, standardErrors } from './core/error/index.js';
-import { serializeError } from './core/error/serialize.js';
+import { standardErrorCodes, standardErrors } from '../errors/index.js';
+import { serializeError } from '../errors/serialize.js';
 import type {
   AppMetadata,
   ProviderInterface,
   RequestArguments,
-  Session,
-} from './core/provider/interface.js';
-import { checkErrorForInvalidRequestArgs, fetchRPCRequest } from './utils/provider.js';
-import { PopupCommunicator } from './core/communicator/PopupCommunicator.js';
-import { determineMethodCategory } from './core/provider/method.js';
-import { Signer } from './signer/Signer.js';
-import type { Address } from 'viem';
+  SessionParameters,
+} from './interface.js';
+import { checkErrorForInvalidRequestArgs, fetchRPCRequest } from '../utils/provider.js';
+import { PopupCommunicator } from '../communicator/PopupCommunicator.js';
+import { determineMethodCategory } from './method.js';
+import { Signer } from './Signer.js';
+import type { Address, Chain, Transport } from 'viem';
 
 const DEFAULT_GATEWAY_URL = 'http://localhost:3001/confirm';
 
 export type WalletProviderConstructorOptions = {
   metadata: AppMetadata;
-  session?: () => Session | Promise<Session>;
+  chains: readonly Chain[];
+  transports?: Record<number, Transport>;
+  session?: SessionParameters | (() => SessionParameters | Promise<SessionParameters>);
   gatewayUrl?: string;
 };
 
@@ -26,17 +28,15 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
   readonly isZksyncAccount = true;
   private signer: Signer;
 
-  constructor({ metadata, session, gatewayUrl }: {
-    metadata: AppMetadata;
-    session?: Session | (() => Session | Promise<Session>);
-    gatewayUrl?: string
-  }) {
+  constructor({ metadata, chains, transports, session, gatewayUrl }: WalletProviderConstructorOptions) {
     super();
     const communicator = new PopupCommunicator(gatewayUrl || DEFAULT_GATEWAY_URL);
     this.signer = new Signer({
       metadata,
       updateListener: this.updateListener,
       communicator: communicator,
+      chains,
+      transports,
       session: typeof session === 'object' ? () => session : session,
     });
   }
@@ -84,10 +84,7 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
     },
 
     fetch: (request: RequestArguments) => {
-      if (!('rpcUrl' in this.chain)) {
-        throw new Error('Chain is not set up or not supported');
-      }
-      return fetchRPCRequest(request, this.chain.rpcUrl);
+      return fetchRPCRequest(request, this.chain.rpcUrls.default.http[0]!);
     },
 
     state: (request: RequestArguments) => {
