@@ -4,11 +4,19 @@ import { privateKeyToAccount } from 'viem/accounts';
 import type { SessionData, SessionParameters } from '../gateway-client/index.js';
 import { zksyncAccountWalletActions } from './decorators/wallet.js';
 
-export type ClientWithZksyncAccountSession<
+export type ZksyncAccountContracts = {
+  session: Address; // Session, spend limit, etc.
+  accountFactory?: Address; // Account creation
+}
+
+export type ClientWithZksyncAccountData<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
   account extends Account = Account,
-> = Client<transport, chain, account> & { session: SessionData };
+> = Client<transport, chain, account> & {
+  session: SessionData;
+  contracts: ZksyncAccountContracts;
+};
 
 export type ZksyncAccountWalletClient<
   transport extends Transport = Transport,
@@ -32,15 +40,15 @@ export interface ZksyncAccountWalletClientConfig<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
   rpcSchema extends RpcSchema | undefined = undefined
-> extends WalletClientConfig<transport, chain, Account, rpcSchema> {
+> extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, 'account'> {
   chain: NonNullable<chain>;
   address: Address;
   session: SessionParameters & {
     sessionKey: Hash;
-  }
+  };
+  contracts: ZksyncAccountContracts;
   key?: string;
   name?: string;
-  account: never;
 }
 
 export function createZksyncWalletClient<
@@ -64,7 +72,8 @@ export function createZksyncWalletClient<
       sessionKey: _parameters.session.sessionKey,
       spendLimit: _parameters.session.spendLimit ?? {},
       validUntil: _parameters.session.validUntil,
-    }
+    },
+    contracts: _parameters.contracts,
   };
   
   const account = privateKeyToAccount(parameters.session.sessionKey);
@@ -73,7 +82,10 @@ export function createZksyncWalletClient<
     account,
     type: 'walletClient',
   })
-    .extend(() => ({ session: parameters.session }))
+    .extend(() => ({
+      session: parameters.session,
+      contracts: parameters.contracts,
+    }))
     .extend(publicActions)
     .extend(zksyncAccountWalletActions);
   return client;

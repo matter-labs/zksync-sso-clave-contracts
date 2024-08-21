@@ -1,7 +1,8 @@
 import type { UUID } from 'crypto';
-import type { SerializedEthereumRpcError } from '../errors/index.js';
 import type { Address } from 'viem';
 import type { SessionData } from './interface.js';
+import type { SerializedEthereumRpcError } from '../errors/index.js';
+import type { ZksyncAccountContracts } from '../client/createWalletClient.js';
 
 export type MessageID = UUID;
 
@@ -35,11 +36,10 @@ export type RPCResponseError = { error: SerializedEthereumRpcError };
 export type RPCResponse<T> = RPCResponseSuccessful<T> | RPCResponseError;
 export type HandshakeResponse = {
   result: {
-    chains: {
+    chainsInfo: {
+      id: number;
       capabilities: Record<string, unknown>;
-      contracts: {
-        session: Address; // Session, spend limit, etc.
-      }
+      contracts: ZksyncAccountContracts
     }[];
     account: {
       address: Address;

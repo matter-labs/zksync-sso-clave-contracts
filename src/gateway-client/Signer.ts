@@ -36,6 +36,8 @@ type SignerConstructorParams = {
   session?: () => SessionParameters | Promise<SessionParameters>;
 }
 
+type ChainsInfo = HandshakeResponse["result"]["chainsInfo"];
+
 export class Signer implements SignerInterface {
   private readonly metadata: AppMetadata;
   private readonly communicator: Communicator;
@@ -45,6 +47,7 @@ export class Signer implements SignerInterface {
   private readonly sessionParameters?: () => SessionParameters | Promise<SessionParameters>;
 
   private _account: StorageItem<Account | null>;
+  private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey('chainsInfo'), []);
   private walletClient: ZksyncAccountWalletClient | undefined;
 
   constructor({ metadata, communicator, updateListener, session, chains, transports }: SignerConstructorParams) {
@@ -81,8 +84,10 @@ export class Signer implements SignerInterface {
     }
   }
   private get session() { return this.account?.session }
+  private get chainsInfo() { return this._chainsInfo.get() }
   private readonly clearState = () => {
     this._account.remove();
+    this._chainsInfo.remove();
   }
   
   public get accounts() { return this.account ? [this.account.address] : [] }
@@ -94,14 +99,16 @@ export class Signer implements SignerInterface {
   createWalletClient() {
     const session = this.session;
     const chain = this.chain;
+    const chainInfo = this.chainsInfo.find(e => e.id === chain.id);
     if (!session) throw new Error('Session is not set');
-    if (!('name' in chain)) throw new Error('Chains not set up or not supported');
+    if (!chainInfo) throw new Error(`Chain info for ${chain} wasn't set during handshake`);
     this.walletClient = createZksyncWalletClient({
       address: privateKeyToAccount(session.sessionKey).address,
+      contracts: chainInfo.contracts,
       chain,
       transport: this.transports[chain.id] || http(),
       session: session,
-    } as any) as any; 
+    }); 
   }
 
   async handshake(): Promise<Address[]> {
@@ -122,18 +129,26 @@ export class Signer implements SignerInterface {
     });
     const response = responseMessage.content as HandshakeResponse;
 
-    /* this._chains.set(response.result.chains); */
     this._account.set({
       address: response.result.account.address,
       activeChainId: response.result.account.session?.chainId || this.chain.id,
       session: response.result.account.session,
     });
+    this._chainsInfo.set(response.result.chainsInfo);
     return this.accounts;
   }
 
   switchChain(chainId: number): boolean {
     const chain = this.chains.find((chain) => chain.id === chainId);
-    if (!chain) return false;
+    const chainInfo = this.chainsInfo.find(e => e.id === chainId);
+    if (!chainInfo) {
+      console.error(`Chain ${chainId} is not supported or chain info was not set during handshake`);
+      return false;
+    };
+    if (!chain) {
+      console.error(`Chain ${chainId} is missing in the configuration`);
+      return false;
+    };
     if (chain.id === this.chain.id) return true;
 
     this._account.set({
@@ -171,8 +186,9 @@ export class Signer implements SignerInterface {
         return switched ? (null as T) : undefined;
       }
       case 'wallet_getCapabilities': {
-        // return Object.fromEntries(this.chains.map((e) => [e.id, e.capabilities])) as T;
-        return {} as T;
+        const chainInfo = this.chainsInfo.find(e => e.id === this.chain.id);
+        if (!chainInfo) throw new Error('Chain info is not set');
+        return { [this.chain.id]: chainInfo.capabilities } as T;
       }
       default:
         return undefined;

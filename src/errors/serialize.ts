@@ -10,8 +10,6 @@ type ErrorResponse = {
 
 /**
  * Serializes an error to a format that is compatible with the Ethereum JSON RPC error format.
- * See https://docs.cloud.coinbase.com/wallet-sdk/docs/errors
- * for more information.
  */
 export function serializeError(
   error: unknown,

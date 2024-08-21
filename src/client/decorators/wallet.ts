@@ -2,13 +2,13 @@ import { decodeFunctionData, erc20Abi, getAddress, type Account, type Address, t
 import { sendTransaction, signTransaction } from 'viem/zksync';
 import { deployContract, getAddresses, getChainId, prepareTransactionRequest, requestAddresses, requestPermissions, sendRawTransaction, signTypedData, signMessage, writeContract } from 'viem/actions';
 
-import type { ClientWithZksyncAccountSession } from '../createWalletClient.js';
+import type { ClientWithZksyncAccountData } from '../createWalletClient.js';
 
 export function zksyncAccountWalletActions<
   transport extends Transport,
   chain extends Chain,
   account extends Account,
->(client: ClientWithZksyncAccountSession<transport, chain, account>): WalletActions<chain, account> {
+>(client: ClientWithZksyncAccountData<transport, chain, account>): WalletActions<chain, account> {
   return {
     addChain: () => {
       throw new Error('Chain adding is not supported');
@@ -109,7 +109,7 @@ const verifyTransactionData = async (
     maxFeePerGas?: bigint,
     maxPriorityFeePerGas?: bigint,
   },
-  client: ClientWithZksyncAccountSession
+  client: ClientWithZksyncAccountData
 ) => {
   const session = client.session;
   /* Verify chain id */
