@@ -2,8 +2,8 @@ import { toHex, encodeAbiParameters, createClient, getAddress, publicActions, wa
 import { toSmartAccount } from 'viem/zksync';
 
 import type { ZksyncAccountContracts } from './common.js';
-import { requestPasskeySignature } from '../actions/passkey.js';
-import { unwrapEC2Signature } from '../../utils/passkey.js';
+import { requestPasskeyAuthentication } from '../actions/passkey.js';
+import { base64UrlToUint8Array, unwrapEC2Signature } from '../../utils/passkey.js';
 
 export function createZksyncPasskeyClient<
   transport extends Transport,
@@ -24,15 +24,13 @@ export function createZksyncPasskeyClient<
   const account = toSmartAccount({
     address: parameters.address,
     sign: async ({ hash }) => {
-      const passkeySignature = await requestPasskeySignature({
-        userName: parameters.userName,
-        userDisplayName: parameters.userDisplayName,
+      const passkeySignature = await requestPasskeyAuthentication({
         challenge: hash,
       });
       console.log("Passkey signature", passkeySignature);
-      const authData = passkeySignature.passkeyRegistrationResponse.response.authenticatorData!;
-      const clientDataJson = passkeySignature.passkeyRegistrationResponse.response.clientDataJSON!;
-      const signature = unwrapEC2Signature(passkeySignature.passkeyPublicKey);
+      const authData = passkeySignature.passkeyAuthenticationResponse.response.authenticatorData;
+      const clientDataJson = passkeySignature.passkeyAuthenticationResponse.response.clientDataJSON;
+      const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeySignature.passkeyAuthenticationResponse.response.signature));
       console.log("unwrapped signature", signature);
       const fatSignature = encodeAbiParameters(
         [

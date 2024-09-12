@@ -1,9 +1,10 @@
 import { type Account, type Address, type Chain, type Client, type Hash, type Transport } from 'viem'
 import { writeContract } from 'viem/actions';
-import { type PublicKeyCredentialCreationOptionsJSON, type RegistrationResponseJSON, type PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/types";
-import { startRegistration } from '@simplewebauthn/browser';
-import { generateAuthenticationOptions, generateRegistrationOptions, verifyRegistrationResponse, type GenerateAuthenticationOptionsOpts, type GenerateRegistrationOptionsOpts } from '@simplewebauthn/server';
+import { type PublicKeyCredentialCreationOptionsJSON, type RegistrationResponseJSON, type PublicKeyCredentialRequestOptionsJSON, type AuthenticationResponseJSON } from "@simplewebauthn/types";
+import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
+import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse, type GenerateAuthenticationOptionsOpts, type GenerateRegistrationOptionsOpts } from '@simplewebauthn/server';
 
+let pubKey: Uint8Array = new Uint8Array();
 export type GeneratePasskeyRegistrationOptionsArgs = Partial<GenerateRegistrationOptionsOpts> & { userName: string; userDisplayName: string };
 export type GeneratePasskeyRegistrationOptionsReturnType = PublicKeyCredentialCreationOptionsJSON;
 export const generatePasskeyRegistrationOptions = async (args: GeneratePasskeyRegistrationOptionsArgs): Promise<GeneratePasskeyRegistrationOptionsReturnType> => {
@@ -81,10 +82,42 @@ export const requestPasskeySignature = async (args: RequestPasskeySignatureArgs)
     expectedOrigin: window.location.origin,
   });
   if (!verification.verified || !verification.registrationInfo) throw new Error("Passkey validation failed"); 
+  pubKey = verification.registrationInfo.credentialPublicKey;
   return {
     passkeyRegistrationResponse: registrationResponse,
     passkeyRegistrationOptions,
     passkeyPublicKey: verification.registrationInfo.credentialPublicKey,
+  };
+}
+
+export type RequestPasskeyAuthenticationArgs = { passkeyAuthenticationOptions: PublicKeyCredentialRequestOptionsJSON } | GeneratePasskeyAuthenticationOptionsArgs;
+export type RequestPasskeyAuthenticationReturnType = {
+  passkeyAuthenticationResponse: AuthenticationResponseJSON;
+  passkeyAuthenticationOptions: PublicKeyCredentialRequestOptionsJSON;
+  passkeyPublicKey: Uint8Array;
+}
+export const requestPasskeyAuthentication = async (args: RequestPasskeyAuthenticationArgs): Promise<RequestPasskeyAuthenticationReturnType> => {
+  const passkeyAuthenticationOptions = 'passkeyAuthenticationOptions' in args ? args.passkeyAuthenticationOptions : await generatePasskeyAuthenticationOptions(args);
+  const authenticationResponse: AuthenticationResponseJSON = await startAuthentication(passkeyAuthenticationOptions);
+  console.log({authenticationResponse});
+  console.log(1);
+  const verification = await verifyAuthenticationResponse({
+    response: authenticationResponse,
+    expectedChallenge: passkeyAuthenticationOptions.challenge,
+    expectedOrigin: "https://x.com",
+    expectedRPID: "x.com",
+    authenticator: {
+      credentialPublicKey: pubKey,
+      credentialID: authenticationResponse.id,
+      counter: 0, // just needs to be lower than the current counter?
+    },
+  });
+  console.log(2, {verification});
+  if (!verification.verified || !verification.authenticationInfo) throw new Error("Passkey validation failed"); 
+  return {
+    passkeyAuthenticationResponse: authenticationResponse,
+    passkeyAuthenticationOptions,
+    passkeyPublicKey: pubKey,
   };
 }
 

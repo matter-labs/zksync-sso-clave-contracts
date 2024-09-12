@@ -28,7 +28,6 @@ export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8
  */
 export function unwrapEC2Signature(signature: Uint8Array): { r: Uint8Array; s: Uint8Array } {
   const parsedSignature = AsnParser.parse(signature, ECDSASigValue);
-  console.log("parsedSignature", parsedSignature);
   let rBytes = new Uint8Array(parsedSignature.r);
   let sBytes = new Uint8Array(parsedSignature.s);
 
@@ -56,3 +55,69 @@ export function unwrapEC2Signature(signature: Uint8Array): { r: Uint8Array; s: U
 function shouldRemoveLeadingZero(bytes: Uint8Array): boolean {
   return bytes[0] === 0x0 && (bytes[1] & (1 << 7)) !== 0;
 }
+
+/**
+ * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
+ * credential ID from a JSON string to an ArrayBuffer, like in allowCredentials or
+ * excludeCredentials.
+ *
+ * @param buffer Value to decode from base64
+ * @param to (optional) The decoding to use, in case it's desirable to decode from base64 instead
+ */
+export function base64UrlToUint8Array(base64urlString: string): Uint8Array {
+  const _buffer = toArrayBuffer(base64urlString);
+  return new Uint8Array(_buffer);
+}
+
+function toArrayBuffer (data: string) {
+	// Regular base64 characters
+	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+	// Base64url characters
+	const charsUrl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+	const genLookup = (target: string) => {
+		const lookupTemp = typeof Uint8Array === "undefined" ? [] : new Uint8Array(256);
+		const len = chars.length;
+		for (let i = 0; i < len; i++) {
+			lookupTemp[target.charCodeAt(i)] = i;
+		}
+		return lookupTemp;
+	};
+
+	const lookupUrl = genLookup(charsUrl); 
+
+	const len = data.length;
+	let bufferLength = data.length * 0.75,
+		i,
+		p = 0,
+		encoded1,
+		encoded2,
+		encoded3,
+		encoded4;
+
+	if (data[data.length - 1] === "=") {
+		bufferLength--;
+		if (data[data.length - 2] === "=") {
+			bufferLength--;
+		}
+	}
+
+	const 
+		arraybuffer = new ArrayBuffer(bufferLength),
+		bytes = new Uint8Array(arraybuffer),
+		target = lookupUrl;
+
+	for (i = 0; i < len; i += 4) {
+		encoded1 = target[data.charCodeAt(i)];
+		encoded2 = target[data.charCodeAt(i + 1)];
+		encoded3 = target[data.charCodeAt(i + 2)];
+		encoded4 = target[data.charCodeAt(i + 3)];
+
+		bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+		bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+		bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
+	}
+
+	return arraybuffer;
+};
