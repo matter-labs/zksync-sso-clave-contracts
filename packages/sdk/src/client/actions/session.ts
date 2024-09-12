@@ -60,7 +60,7 @@ export const createSessionWithPasskey = async <
     address: args.contracts.session,
     args: [args.sessionKeyPublicAddress, args.passkeyRegistrationResponse, args.spendLimit, args.validUntil],
     abi: [] as const,
-    functionName: "USE_ACTUAL_METHOD_HERE",
+    functionName: "USE_ACTUAL_METHOD_HERE2222",
   } as any);
   return transactionHash;
 }

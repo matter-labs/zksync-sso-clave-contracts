@@ -115,6 +115,7 @@
     "web3"
   ],
   "dependencies": {
-    "cbor": "^9.0.2"
+    "buffer": "^6.0.3",
+    "cbor-web": "^9.0.2"
   }
 }

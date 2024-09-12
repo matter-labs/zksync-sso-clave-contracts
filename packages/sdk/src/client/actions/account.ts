@@ -1,9 +1,11 @@
 import { zeroAddress, decodeEventLog, decodeAbiParameters, encodeAbiParameters, type Prettify, type Account, type Address, type Chain, type Client, type Hash, type TransactionReceipt, type Transport } from 'viem'
 import { waitForTransactionReceipt, writeContract } from 'viem/actions';
+import { toHex, http } from 'viem';
 
 import { FactoryAbi } from '../../abi/Factory.js';
 import { getPublicKeyBytesFromPasskeySignature } from '../../utils/passkey.js';
 import { requestPasskeySignature, type RequestPasskeySignatureArgs } from './passkey.js';
+import { createZksyncPasskeyClient } from '../clients/passkey.js';
 
 /* TODO: try to get rid of most of the contract params like accountImplementation, validator, initialModule */
 /* it should come from factory, not passed manually each time */
@@ -37,26 +39,6 @@ export const deployAccount = async <
     throw new Error("Either initialModuleData or initialSpendLimit can be provided, not both");
   }
 
-  /* Format spendlimit to initialModuleData if initialSpendLimit was provided */
-  if (args.initialSpendLimit?.length) {
-    /* TODO: why is it missing session time limit? */
-    const tokenConfigTypes = [
-      { type: 'address', name: 'token' },
-      { type: 'address', name: 'sessionPublicKey' },
-      { type: 'uint256', name: 'limit' }
-    ] as const;
-    args.initialModuleData = encodeAbiParameters(
-      [{ type: 'tuple[]', components: tokenConfigTypes }], 
-      [
-        args.initialSpendLimit.map(({ token, sessionPublicKey, amount }) => ({
-          token,
-          sessionPublicKey,
-          limit: BigInt(amount)
-        }))
-      ]
-    )
-  }
-
   if (!args.salt) {
     args.salt = crypto.getRandomValues(new Uint8Array(32));
   }
@@ -70,24 +52,78 @@ export const deployAccount = async <
   }
 
   const passkeyPublicKey = await getPublicKeyBytesFromPasskeySignature(passkeySignature);
+
+   /* Format spendlimit to initialModuleData if initialSpendLimit was provided */
+   if (args.initialSpendLimit?.length) {
+    /* TODO: why is it missing session time limit? */
+    const tokenConfigTypes = [
+      { type: 'address', name: 'token' },
+      { type: 'bytes', name: 'publicKey' },
+      { type: 'uint256', name: 'limit' }
+    ] as const;
+    args.initialModuleData = encodeAbiParameters(
+      [{ type: 'tuple[]', components: tokenConfigTypes }], 
+      [
+        args.initialSpendLimit.map(({ token, amount }) => ({
+          token,
+          publicKey: toHex(passkeyPublicKey),
+          limit: BigInt(amount)
+        }))
+      ]
+    )
+  }
   
   const transactionHash = await writeContract(client, {
     address: args.factory,
     abi: FactoryAbi,
     functionName: "deployProxy7579Account",
     args: [
-      args.salt,
+      toHex(args.salt),
       args.accountImplementation,
-      passkeyPublicKey,
+      toHex(passkeyPublicKey),
       args.validator,
       args.initialModule,
       args.initialModuleData || "0x",
     ],
+    gas: BigInt(1_000_000_000),
   } as any);
   if (args.onTransactionSent) {
     try { args.onTransactionSent(transactionHash) }
     catch {}
   }
+
+  const newAddress = "0x2eaa0539795be5eb8d72a7900dfe297fb6a54b41";
+
+  const passkeyClient = createZksyncPasskeyClient({
+    address: newAddress,
+    chain: client.chain,
+    transport: http(),
+    userName: "mexicanace",
+    userDisplayName: "mexicanace",
+    contracts: {
+      session: "0x"
+    }
+  })
+
+  await writeContract(passkeyClient, {
+    address: args.factory,
+    abi: FactoryAbi,
+    functionName: "addSessionKey",
+    args: [
+      // address publicKey
+      // address token,
+      // uint256 expiration,
+      args.initialSpendLimit![0].sessionPublicKey,
+      args.initialSpendLimit![0].token,
+      BigInt(1726162649) //Thursday, 12 September 2024 17:37:29
+    ],
+    gas: BigInt(1_000_000_000),
+  } as any);
+  if (args.onTransactionSent) {
+    try { args.onTransactionSent(transactionHash) }
+    catch {}
+  }
+  
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
   
   /* TODO: use or remove this */

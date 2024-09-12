@@ -29,6 +29,10 @@ export function createZksyncPasskeyClient<
         challenge: hash,
       });
       console.debug("Passkey signature", passkeySignature);
+      const authData = passkeySignature.passkeyRegistrationResponse.response.authenticatorData!;
+      const clientDataJson = passkeySignature.passkeyRegistrationResponse.response.clientDataJSON!;
+
+      
       /* TODO: do something with that signature */
       return hash;
     },

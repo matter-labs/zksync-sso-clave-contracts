@@ -1,4 +1,5 @@
-import { decode } from 'cbor';
+import { decode } from 'cbor-web';
+import { Buffer } from 'buffer';
 
 enum COSEKEYS {
   kty = 1,  // Key Type
