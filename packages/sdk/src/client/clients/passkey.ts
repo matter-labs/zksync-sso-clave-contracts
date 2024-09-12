@@ -32,13 +32,14 @@ export function createZksyncPasskeyClient<
       const clientDataJson = passkeySignature.passkeyAuthenticationResponse.response.clientDataJSON;
       const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeySignature.passkeyAuthenticationResponse.response.signature));
       console.log("unwrapped signature", signature);
+      console.log({clientDataJson, converted: base64UrlToUint8Array(clientDataJson)});
       const fatSignature = encodeAbiParameters(
         [
           { type: 'bytes' }, // authData
           { type: 'bytes' }, // clientDataJson
           { type: 'bytes32[2]' }, // signature (two elements)
         ],
-        [toHex(authData), toHex(clientDataJson), [toHex(signature.r), toHex(signature.s)]]
+        [toHex(authData), toHex(base64UrlToUint8Array(clientDataJson)), [toHex(signature.r), toHex(signature.s)]]
       )
       console.log("fat signature", fatSignature);
       const validator = "0xCeAB1fc2693930bbad33024D270598c620D7A52B";
