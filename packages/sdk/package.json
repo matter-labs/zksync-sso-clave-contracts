@@ -115,6 +115,8 @@
     "web3"
   ],
   "dependencies": {
+    "@peculiar/asn1-ecc": "^2.3.13",
+    "@peculiar/asn1-schema": "^2.3.13",
     "buffer": "^6.0.3",
     "cbor-web": "^9.0.2"
   }

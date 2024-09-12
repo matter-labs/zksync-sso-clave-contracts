@@ -1,5 +1,7 @@
 import { decode } from 'cbor-web';
 import { Buffer } from 'buffer';
+import { AsnParser } from '@peculiar/asn1-schema';
+import { ECDSASigValue } from '@peculiar/asn1-ecc';
 
 enum COSEKEYS {
   kty = 1,  // Key Type
@@ -17,4 +19,39 @@ export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8
   const y = cosePublicKey.get(COSEKEYS.y);
 
   return Buffer.concat([Buffer.from(x), Buffer.from(y)]);
+}
+
+/**
+ * Return 2 32byte words for the R & S for the EC2 signature, 0 l-trimmed
+ * @param signature 
+ * @returns r & s bytes sequentially
+ */
+export function unwrapEC2Signature(signature: Uint8Array): { r: Uint8Array; s: Uint8Array } {
+  const parsedSignature = AsnParser.parse(signature, ECDSASigValue);
+  let rBytes = new Uint8Array(parsedSignature.r);
+  let sBytes = new Uint8Array(parsedSignature.s);
+
+  if (shouldRemoveLeadingZero(rBytes)) {
+    rBytes = rBytes.slice(1);
+  }
+
+  if (shouldRemoveLeadingZero(sBytes)) {
+    sBytes = sBytes.slice(1);
+  }
+
+  return {
+    r: rBytes,
+    s: sBytes,
+  }
+}
+
+/**
+ * Determine if the DER-specific `00` byte at the start of an ECDSA signature byte sequence
+ * should be removed based on the following logic:
+ *
+ * "If the leading byte is 0x0, and the the high order bit on the second byte is not set to 0,
+ * then remove the leading 0x0 byte"
+ */
+function shouldRemoveLeadingZero(bytes: Uint8Array): boolean {
+  return bytes[0] === 0x0 && (bytes[1] & (1 << 7)) !== 0;
 }

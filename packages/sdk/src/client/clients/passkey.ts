@@ -1,8 +1,9 @@
-import { createClient, getAddress, publicActions, walletActions, type Account, type Address, type Chain, type Client, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from 'viem'
+import { toHex, encodeAbiParameters, createClient, getAddress, publicActions, walletActions, type Account, type Address, type Chain, type Client, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from 'viem'
 import { toSmartAccount } from 'viem/zksync';
 
 import type { ZksyncAccountContracts } from './common.js';
 import { requestPasskeySignature } from '../actions/passkey.js';
+import { unwrapEC2Signature } from '../../utils/passkey.js';
 
 export function createZksyncPasskeyClient<
   transport extends Transport,
@@ -31,10 +32,28 @@ export function createZksyncPasskeyClient<
       console.debug("Passkey signature", passkeySignature);
       const authData = passkeySignature.passkeyRegistrationResponse.response.authenticatorData!;
       const clientDataJson = passkeySignature.passkeyRegistrationResponse.response.clientDataJSON!;
+      const signature = unwrapEC2Signature(passkeySignature.passkeyPublicKey);
 
+      const fatSignature = encodeAbiParameters(
+        [
+          { type: 'bytes' }, // authData
+          { type: 'bytes' }, // clientDataJson
+          { type: 'bytes32[2]' }, // signature (two elements)
+        ],
+        [toHex(authData), toHex(clientDataJson), [toHex(signature.r), toHex(signature.s)]]
+      )
+      console.log("fat signature", fatSignature);
+      const fullFormattedSig = encodeAbiParameters(
+        [
+          { type: 'bytes' }, // fat signature
+          { type: 'address' }, // expensiveVerifierAddress
+          { type: 'bytes[]' }, // expensiveVerifierHookData
+        ],
+        [toHex(fatSignature), "0x", []]
+      );
+      console.log("full formatted sig", fullFormattedSig);
       
-      /* TODO: do something with that signature */
-      return hash;
+      return fullFormattedSig;
     },
   });
   const client = createClient<transport, chain, Account, rpcSchema>({
