@@ -1,4 +1,4 @@
-import { toHex, encodeAbiParameters, createClient, getAddress, publicActions, walletActions, type Account, type Address, type Chain, type Client, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from 'viem'
+import { toBytes, toHex, encodeAbiParameters, createClient, getAddress, publicActions, walletActions, type Account, type Address, type Chain, type Client, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from 'viem'
 import { toSmartAccount } from 'viem/zksync';
 
 import type { ZksyncAccountContracts } from './common.js';
@@ -25,7 +25,7 @@ export function createZksyncPasskeyClient<
     address: parameters.address,
     sign: async ({ hash }) => {
       const passkeySignature = await requestPasskeyAuthentication({
-        challenge: hash,
+        challenge: toBytes(hash),
       });
       console.log("Passkey signature", passkeySignature);
       const authData = passkeySignature.passkeyAuthenticationResponse.response.authenticatorData;

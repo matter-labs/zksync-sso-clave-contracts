@@ -55,9 +55,9 @@ export const generatePasskeyAuthenticationOptions = async (args: GeneratePasskey
   const defaultOptions: GenerateAuthenticationOptionsOpts = {
     rpID: rpID,
   };
-  const params: GenerateAuthenticationOptionsOpts = Object.assign({}, defaultOptions, args)
+  const params: GenerateAuthenticationOptionsOpts = Object.assign({}, defaultOptions, args);
+  console.log({params});
   const options = await generateAuthenticationOptions(params);
-  options.challenge = options.challenge.slice(0, 32);
   if ('pubKeyCredParams' in options) {
     options.pubKeyCredParams = (
       options.pubKeyCredParams as Array<{ alg: number; type: string }>
@@ -101,6 +101,7 @@ export const requestPasskeyAuthentication = async (args: RequestPasskeyAuthentic
   const authenticationResponse: AuthenticationResponseJSON = await startAuthentication(passkeyAuthenticationOptions);
   console.log({authenticationResponse});
   console.log(1);
+  console.log({"passkeyAuthenticationOptions": passkeyAuthenticationOptions.challenge, original: (args as any).challenge});
   const verification = await verifyAuthenticationResponse({
     response: authenticationResponse,
     expectedChallenge: passkeyAuthenticationOptions.challenge,
