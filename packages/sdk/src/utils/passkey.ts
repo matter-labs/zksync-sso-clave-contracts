@@ -28,6 +28,7 @@ export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8
  */
 export function unwrapEC2Signature(signature: Uint8Array): { r: Uint8Array; s: Uint8Array } {
   const parsedSignature = AsnParser.parse(signature, ECDSASigValue);
+  console.log("parsedSignature", parsedSignature);
   let rBytes = new Uint8Array(parsedSignature.r);
   let sBytes = new Uint8Array(parsedSignature.s);
 

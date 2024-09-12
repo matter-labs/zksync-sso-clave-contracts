@@ -29,11 +29,11 @@ export function createZksyncPasskeyClient<
         userDisplayName: parameters.userDisplayName,
         challenge: hash,
       });
-      console.debug("Passkey signature", passkeySignature);
+      console.log("Passkey signature", passkeySignature);
       const authData = passkeySignature.passkeyRegistrationResponse.response.authenticatorData!;
       const clientDataJson = passkeySignature.passkeyRegistrationResponse.response.clientDataJSON!;
       const signature = unwrapEC2Signature(passkeySignature.passkeyPublicKey);
-
+      console.log("unwrapped signature", signature);
       const fatSignature = encodeAbiParameters(
         [
           { type: 'bytes' }, // authData
@@ -43,13 +43,14 @@ export function createZksyncPasskeyClient<
         [toHex(authData), toHex(clientDataJson), [toHex(signature.r), toHex(signature.s)]]
       )
       console.log("fat signature", fatSignature);
+      const validator = "0xCeAB1fc2693930bbad33024D270598c620D7A52B";
       const fullFormattedSig = encodeAbiParameters(
         [
           { type: 'bytes' }, // fat signature
-          { type: 'address' }, // expensiveVerifierAddress
-          { type: 'bytes[]' }, // expensiveVerifierHookData
+          { type: 'address' }, // validator address
+          { type: 'bytes[]' }, // validator data
         ],
-        [toHex(fatSignature), "0x", []]
+        [toHex(fatSignature), validator, []]
       );
       console.log("full formatted sig", fullFormattedSig);
       

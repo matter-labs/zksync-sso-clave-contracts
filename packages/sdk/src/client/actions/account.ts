@@ -1,5 +1,5 @@
-import { zeroAddress, decodeEventLog, decodeAbiParameters, encodeAbiParameters, type Prettify, type Account, type Address, type Chain, type Client, type Hash, type TransactionReceipt, type Transport } from 'viem'
-import { waitForTransactionReceipt, writeContract } from 'viem/actions';
+import { zeroAddress, encodeAbiParameters, type Prettify, type Account, type Address, type Chain, type Client, type Hash, type TransactionReceipt, type Transport } from 'viem'
+import { waitForTransactionReceipt, writeContract, sendTransaction } from 'viem/actions';
 import { toHex, http } from 'viem';
 
 import { FactoryAbi } from '../../abi/Factory.js';
@@ -92,56 +92,80 @@ export const deployAccount = async <
     catch {}
   }
 
-  const newAddress = "0x2eaa0539795be5eb8d72a7900dfe297fb6a54b41";
-
-  const passkeyClient = createZksyncPasskeyClient({
-    address: newAddress,
-    chain: client.chain,
-    transport: http(),
-    userName: "mexicanace",
-    userDisplayName: "mexicanace",
-    contracts: {
-      session: "0x"
-    }
-  })
-
-  await writeContract(passkeyClient, {
-    address: args.factory,
-    abi: FactoryAbi,
-    functionName: "addSessionKey",
-    args: [
-      // address publicKey
-      // address token,
-      // uint256 expiration,
-      args.initialSpendLimit![0].sessionPublicKey,
-      args.initialSpendLimit![0].token,
-      BigInt(1726162649) //Thursday, 12 September 2024 17:37:29
-    ],
-    gas: BigInt(1_000_000_000),
-  } as any);
-  if (args.onTransactionSent) {
-    try { args.onTransactionSent(transactionHash) }
-    catch {}
-  }
-  
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
-  
-  /* TODO: use or remove this */
-  console.debug("Figure out if we can get address properly from this data", decodeEventLog({
-    abi: FactoryAbi,
-    data: transactionReceipt.logs[0].data,
-    topics: transactionReceipt.logs[0].topics,
-  }));
-
-  const proxyAccountAddress = decodeAbiParameters(
-    [{ type: 'address', name: 'accountAddress' }],
-    transactionReceipt.logs[0].data
-  )[0];
-
+  const proxyAccountAddress = transactionReceipt.contractAddress;
+  console.log("Deployed account to - ", proxyAccountAddress);
+  if (!proxyAccountAddress) {
+    throw new Error("No contract address in transaction receipt");
+  }
   /* TODO: figure out if this check is really needed, most likely not */
   if (proxyAccountAddress === zeroAddress) {
     throw new Error("Received zero address from account deployment");
   }
+
+  console.log("Funding account with 10 ETH");
+  const transactionHashFund = await sendTransaction(client, {
+    to: proxyAccountAddress,
+    value: BigInt(10 * 10**18),
+  } as any);
+  const transactionReceiptFund = await waitForTransactionReceipt(client, { hash: transactionHashFund });
+  console.log("Account funded", {transactionReceiptFund});
+
+
+  const passkeyClient = createZksyncPasskeyClient({
+    address: proxyAccountAddress,
+    chain: client.chain,
+    transport: http(),
+    userName: "1438197563170099206",
+    userDisplayName: "BotJackHamer09",
+    contracts: {
+      session: "0x"
+    }
+  });
+
+  const transactionHash2 = await writeContract(passkeyClient, {
+    address: args.initialModule,
+    abi: [
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "publicKey",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expiration",
+            "type": "uint256"
+          }
+        ],
+        "name": "addSessionKey",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ] as const,
+    functionName: "addSessionKey",
+    args: [
+      args.initialSpendLimit![0].sessionPublicKey,
+      args.initialSpendLimit![0].token,
+      BigInt(Math.ceil(new Date().getTime() / 1000) + (1000 * 60 * 5)) // now + 5 minutes
+    ],
+    gas: BigInt(1_000_000_000),
+  } as any);
+  console.log("transactionHash2", transactionHash2);
+  if (args.onTransactionSent) {
+    try { args.onTransactionSent(transactionHash) }
+    catch {}
+  }
+
+  const receipt2 = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash2 });
+  console.log(receipt2);
 
   return {
     address: proxyAccountAddress,
