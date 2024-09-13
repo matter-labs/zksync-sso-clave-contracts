@@ -42,10 +42,11 @@
     "@nomad-xyz/excessively-safe-call": "^0.0.1-rc.1",
     "@openzeppelin/contracts": "4.9.6",
     "@openzeppelin/contracts-upgradeable": "4.9",
+    "cbor-web": "^9.0.2",
     "hardhat": "^2.22.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4",
-    "viem": "^2.21.2",
+    "viem": "^2.21.6",
     "zksync-account": "file:../sdk"
   }
 }

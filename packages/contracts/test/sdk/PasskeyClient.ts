@@ -1,9 +1,7 @@
-import { toBytes, toHex, encodeAbiParameters, createClient, getAddress, publicActions, walletActions, type Account, type Address, type Chain, type Client, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from 'viem'
+import { toBytes, toHex, encodeAbiParameters, createClient, getAddress, publicActions, walletActions, type Account, type Address, type Chain, type Client, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema, Hash } from 'viem'
 import { toSmartAccount } from 'viem/zksync';
 
-import type { ZksyncAccountContracts } from './common.js';
-import { requestPasskeyAuthentication } from '../actions/passkey.js';
-import { base64UrlToUint8Array, unwrapEC2Signature } from '../../utils/passkey.js';
+import { base64UrlToUint8Array, unwrapEC2Signature } from './utils/passkey';
 
 export function createZksyncPasskeyClient<
   transport extends Transport,
@@ -24,9 +22,11 @@ export function createZksyncPasskeyClient<
   const account = toSmartAccount({
     address: parameters.address,
     sign: async ({ hash }) => {
-      const passkeySignature = await requestPasskeyAuthentication({
-        challenge: toBytes(hash),
-      });
+      const passkeySignature = {
+        passkeyAuthenticationResponse: {
+          response: await parameters.signHash()
+        }
+      };
       console.log("Passkey signature", passkeySignature);
       const authData = passkeySignature.passkeyAuthenticationResponse.response.authenticatorData;
       const clientDataJson = passkeySignature.passkeyAuthenticationResponse.response.clientDataJSON;
@@ -47,7 +47,7 @@ export function createZksyncPasskeyClient<
           { type: 'address' }, // validator address
           { type: 'bytes[]' }, // validator data
         ],
-        [fatSignature, validator, []]
+        [toHex(fatSignature), validator, []]
       );
       console.log("full formatted sig", fullFormattedSig);
       
@@ -62,7 +62,6 @@ export function createZksyncPasskeyClient<
     .extend(() => ({
       userName: parameters.userName,
       userDisplayName: parameters.userDisplayName,
-      contracts: parameters.contracts,
     }))
     .extend(publicActions)
     .extend(walletActions)
@@ -72,7 +71,6 @@ export function createZksyncPasskeyClient<
 type ZksyncAccountPasskeyData = {
   userName: string;
   userDisplayName: string;
-  contracts: ZksyncAccountContracts;
 }
 
 export type ClientWithZksyncAccountPasskeyData<
@@ -106,7 +104,11 @@ export interface ZksyncAccountPasskeyClientConfig<
   address: Address;
   userName: string;
   userDisplayName: string;
-  contracts: ZksyncAccountContracts;
+  signHash: () => Promise<{
+    authenticatorData: string;
+    clientDataJSON: string;
+    signature: string;
+  }>;
   key?: string;
   name?: string;
 }

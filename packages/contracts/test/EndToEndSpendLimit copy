@@ -1,19 +1,18 @@
 
 import { SmartAccount, types, utils } from "zksync-ethers";
 import { deployFactory } from "./AccountAbstraction"
-import { formatEther, parseEther, randomBytes, Wallet } from 'ethers';
+import { parseEther, randomBytes, Wallet } from 'ethers';
 import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import { it } from "mocha";
 import { getWallet, getProvider, create2 } from "./utils";
 import { assert, expect } from "chai";
 import { concat, getPublicKeyBytes, toBuffer, toHash, unwrapEC2Signature } from "./PasskeyModule";
 
-import { Address, encodeAbiParameters, Hash, http, toHex } from "viem";
+import { Address, http } from "viem";
 import { readFileSync } from "fs";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
-import { base64UrlToUint8Array, unwrapEC2Signature as unwrapEC2Signature2 } from "./sdk/utils/passkey";
-import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
+import { waitForTransactionReceipt, writeContract } from "viem/actions";
 
 export const convertObjArrayToUint8Array = (objArray: {
   [key: string]: number;
@@ -261,55 +260,12 @@ describe.only("Spend limit validation", function () {
             const proxyAccountReciept = await proxyAccount.wait();
             proxyAccountAddress = proxyAccountReciept.contractAddress;
             assert.notEqual(proxyAccountAddress, undefined, "no address set")
-            console.log(formatEther(await fixtures.wallet.getBalance()));
             await (
                 await fixtures.wallet.sendTransaction({
                     to: proxyAccountAddress,
-                    value: parseEther('0.07'),
+                    value: parseEther('100'),
                 })
             ).wait();
-        }
-
-        const authDataBuffer = toBuffer(fixtures.authenticatorData);
-        const clientDataBuffer = toBuffer(fixtures.clientData);
-        // the validator needs to perform the following steps so it can validate the raw client data
-        // performing this client side is just a helpful check to ensure the contract is following
-        const clientDataHash = await toHash(clientDataBuffer);
-
-        const rs = unwrapEC2Signature2(base64UrlToUint8Array(fixtures.b64SignedChallenge));
-        // steps to get the data for this test
-        // 1. build the transaction here in the test (aaTx)
-        // 2. use this sample signer to get the transaction hash of a realistic transaction
-        // 3. take that transaction hash to another app, and sign it (as the challange)
-        // 4. bring that signed hash back here and have it returned as the signer
-        const isTestMode = false;
-        const extractSigningHash = (hash: string, secretKey, provider) => {
-            const b64Hash = ethers.encodeBase64(hash)
-            console.log("signing payload hash (hex, b64, byte array)", hash, b64Hash, ethers.decodeBase64(b64Hash));
-            if (isTestMode) {
-                return Promise.resolve<string>(b64Hash);
-            } else {
-                const fatSignature = encodeAbiParameters(
-                    [
-                      { type: 'bytes' }, // authData
-                      { type: 'bytes' }, // clientDataJson
-                      { type: 'bytes32[2]' }, // signature (two elements)
-                    ],
-                    [toHex(base64UrlToUint8Array(fixtures.authenticatorData)), toHex(base64UrlToUint8Array(fixtures.clientData)), [toHex(rs.r), toHex(rs.s)]]
-                )
-                console.log("fat sig", fatSignature, "length", fatSignature.length)
-                // clave expects sigature + validator address + validator hook data
-                const fullFormattedSig2 = encodeAbiParameters(
-                    [
-                        { type: 'bytes' }, // fat signature
-                        { type: 'address' }, // validator address
-                        { type: 'bytes[]' }, // validator data
-                    ],
-                    [fatSignature, expensiveVerifierAddress as Address, []]
-                );
-
-                return Promise.resolve(fullFormattedSig2);
-            }
         }
 
         const passkeyClient = createZksyncPasskeyClient({
@@ -326,17 +282,50 @@ describe.only("Spend limit validation", function () {
             userDisplayName: "",
             userName: "",
         });
-        
-        // smart account secret isn't stored in javascript (because it's a passkey)
-        // but we do have sessionkey secret
-        const ethersTestSmartAccount = new SmartAccount({
-            payloadSigner: extractSigningHash,
-            address: proxyAccountAddress,
-            secret: fixtures.sessionKeyWallet.privateKey
-        }, getProvider())
-        
-        const callData = moduleContract.interface.encodeFunctionData('addSessionKey', [fixtures.sessionKeyWallet.address, tokenConfig.token, 100]);
-        
+
+        /* const transactionHash2 = await writeContract(passkeyClient, {
+            address: moduleAddress as Address,
+            account: (passkeyClient as any).account,
+            chain: (passkeyClient as any).chain,
+            abi: [
+              {
+                "inputs": [
+                  {
+                    "internalType": "address",
+                    "name": "publicKey",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "token",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "expiration",
+                    "type": "uint256"
+                  }
+                ],
+                "name": "addSessionKey",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+              }
+            ] as const,
+            functionName: "addSessionKey",
+            args: [
+                fixtures.sessionKeyWallet.address as Address,
+                tokenConfig.token as Address,
+                BigInt(100)
+            ],
+            gas: BigInt(10_000_000_000),
+        });
+
+        console.log({transactionHash2});
+        const receipt2 = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash2 });
+        console.log({receipt2}); */
+
+        /* const callData = moduleContract.interface.encodeFunctionData('addSessionKey', [fixtures.sessionKeyWallet.address, tokenConfig.token, 100]);
         const aaTx = {
             type: 113,
             from: proxyAccountAddress,
@@ -352,24 +341,9 @@ describe.only("Spend limit validation", function () {
 
         aaTx['gasLimit'] = await provider.estimateGas(aaTx);
 
-        const transactionHash2 = await sendTransaction(passkeyClient, {
-            address: moduleAddress as Address,
-            account: (passkeyClient as any).account,
-            chain: zksyncInMemoryNode,
-            to: moduleAddress as Address,
-            nonce: aaTx['nonce'],
-            kzg: undefined as any,
-            data: callData as Hash,
-            /* gas: BigInt(aaTx['gasLimit']),
-            gasPrice: BigInt(aaTx['gasPrice']),
-            gasPerPubdata: BigInt(utils.DEFAULT_GAS_PER_PUBDATA_LIMIT), */
-        });
-
-        console.log({transactionHash2});
-        const receipt2 = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash2 });
-        console.log({receipt2});
-
-        /* const signedTransaction = await ethersTestSmartAccount.signTransaction(aaTx);
+        console.log(1);
+        const signedTransaction = await (client as any).account.sign(aaTx);
+        console.log(2);
         assert(signedTransaction != null, "valid transaction to sign")
 
         await provider.broadcastTransaction(signedTransaction) */
