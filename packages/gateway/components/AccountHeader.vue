@@ -1,15 +1,19 @@
 <template>
-  <div class="flex items-center -mx-4 -mt-4 border-b border-neutral-900 p-4 mb-4">
-    <div class="text-sm flex items-center">
+  <div class="flex items-center gap-4 -mx-4 -mt-4 border-b border-neutral-900 p-4 mb-4">
+    <div class="text-sm flex items-center whitespace-nowrap truncate">
       <span class="text-neutral-400">{{ message }}&nbsp;</span>
       <Web3Avatar
         :address="address!"
         class="w-4 h-4 rounded-full"
       />
-      <span class="font-medium">&nbsp;{{ shortenAddress(address!) }}</span>
+      <span
+        class="font-medium"
+        :title="address!"
+      >&nbsp;{{ shortenAddress(address!) }}</span>
       <span
         v-if="requestChain"
-        class="text-neutral-400"
+        :title="requestChain.name"
+        class="text-neutral-400 truncate"
       >&nbsp;on {{ requestChain.name }}</span>
     </div>
     <button

@@ -76,13 +76,7 @@ import { type SerializedEthereumRpcError } from "zksync-account/errors";
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();
 const { responseInProgress, request } = storeToRefs(useRequestsStore());
-const { getWalletClient } = useAccountStore();
-
-const fetchTokens = async () => {
-  const client = getWalletClient({ chainId: request.value!.request.chainId });
-  const tokens = await client.getTokens();
-  return tokens;
-};
+const { getClient } = useClientStore();
 
 const tokenAndAmount = computed(() => {
   const defaultValue = { amount: "0", token: { symbol: "ETH", decimals: 18, iconUrl: "/img/eth.svg" } };
@@ -110,11 +104,12 @@ const totalFee = computed<bigint | null>(() => {
 
 const confirmTransaction = async () => {
   respond(async () => {
-    const client = getWalletClient({ chainId: request.value!.request.chainId });
+    const client = getClient({ chainId: request.value!.request.chainId });
     const params = request.value!.request.action.params;
     const transactionParams: { from: Hash; to: Hash; gas: Hash; gasPrice: Hash; type: Hash; value: Hash } = params[0];
     try {
       const transactionHash = await client.sendTransaction({
+        chain: client.chain,
         gas: BigInt(transactionParams.gas),
         gasPrice: BigInt(transactionParams.gasPrice),
         to: transactionParams.to,

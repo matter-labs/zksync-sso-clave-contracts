@@ -6,7 +6,7 @@ import type { AppMetadata, RequestArguments, SessionPreferences, SessionData } f
 import type { Method } from './method.js';
 import type { Communicator } from '../communicator/index.js';
 import { StorageItem } from '../utils/storage.js';
-import { createZksyncWalletClient, type ZksyncAccountWalletClient } from '../client/index.js';
+import { createZksyncSessionClient, type ZksyncAccountSessionClient } from '../client/index.js';
 
 type Account = {
   address: Address;
@@ -48,7 +48,7 @@ export class Signer implements SignerInterface {
 
   private _account: StorageItem<Account | null>;
   private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey('chainsInfo'), []);
-  private walletClient: ZksyncAccountWalletClient | undefined;
+  private walletClient: ZksyncAccountSessionClient | undefined;
 
   constructor({ metadata, communicator, updateListener, session, chains, transports }: SignerConstructorParams) {
     if (!chains.length) throw new Error('At least one chain must be included in the config');
@@ -102,7 +102,7 @@ export class Signer implements SignerInterface {
     const chainInfo = this.chainsInfo.find(e => e.id === chain.id);
     if (!session) throw new Error('Session is not set');
     if (!chainInfo) throw new Error(`Chain info for ${chain} wasn't set during handshake`);
-    this.walletClient = createZksyncWalletClient({
+    this.walletClient = createZksyncSessionClient({
       address: privateKeyToAccount(session.sessionKey).address,
       contracts: chainInfo.contracts,
       chain,

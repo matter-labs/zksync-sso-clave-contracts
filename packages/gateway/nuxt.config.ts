@@ -5,6 +5,9 @@ export default defineNuxtConfig({
   modules: ["@nuxt/eslint", "@pinia/nuxt", "@nuxtjs/tailwindcss", "@nuxtjs/google-fonts"],
 
   ssr: false,
+  devServer: {
+    port: 3002,
+  },
   css: ["@/assets/css/tailwind.css", "@/assets/css/style.scss", "web3-avatar-vue/dist/style.css"],
   googleFonts: {
     families: {

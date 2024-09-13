@@ -2,7 +2,7 @@ import type { UUID } from 'crypto';
 import type { Address } from 'viem';
 import type { SessionData } from './interface.js';
 import type { SerializedEthereumRpcError } from '../errors/index.js';
-import type { ZksyncAccountContracts } from '../client/createWalletClient.js';
+import type { ZksyncAccountContracts } from '../client/index.js';
 
 export type MessageID = UUID;
 

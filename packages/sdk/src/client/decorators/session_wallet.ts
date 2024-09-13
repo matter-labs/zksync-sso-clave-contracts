@@ -2,8 +2,8 @@ import { decodeFunctionData, erc20Abi, getAddress, type Account, type Address, t
 import { sendTransaction, signTransaction } from 'viem/zksync';
 import { deployContract, getAddresses, getChainId, prepareTransactionRequest, sendRawTransaction, signTypedData, signMessage, writeContract } from 'viem/actions';
 
-import type { ClientWithZksyncAccountData } from '../createWalletClient.js';
-import { getTokenSpendLimit } from './session.js';
+import type { ClientWithZksyncAccountSessionData } from '../clients/session.js';
+import { getTokenSpendLimit } from '../actions/session.js';
 
 export class SpendLimitError extends Error {
   public tokenAddress: Address;
@@ -24,7 +24,7 @@ export function zksyncAccountWalletActions<
   transport extends Transport,
   chain extends Chain,
   account extends Account,
->(client: ClientWithZksyncAccountData<transport, chain, account>): ZksyncAccountWalletActions<chain, account> {
+>(client: ClientWithZksyncAccountSessionData<transport, chain, account>): ZksyncAccountWalletActions<chain, account> {
   return {
     deployContract: (args) => deployContract(client, args),
     getAddresses: () => getAddresses(client),
@@ -106,7 +106,7 @@ const verifyTransactionData = async (
     maxFeePerGas?: bigint,
     maxPriorityFeePerGas?: bigint,
   },
-  client: ClientWithZksyncAccountData
+  client: ClientWithZksyncAccountSessionData
 ) => {
   if (!client.sessionKey) throw new Error('Session key is not set');
 

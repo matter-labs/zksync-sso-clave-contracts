@@ -14,7 +14,7 @@ import { determineMethodCategory } from './method.js';
 import { Signer } from './Signer.js';
 import type { Address, Chain, Transport } from 'viem';
 
-const DEFAULT_GATEWAY_URL = 'http://localhost:3001/confirm';
+const DEFAULT_GATEWAY_URL = 'http://localhost:3002/confirm';
 
 export type WalletProviderConstructorOptions = {
   metadata: AppMetadata;

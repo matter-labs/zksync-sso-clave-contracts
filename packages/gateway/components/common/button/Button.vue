@@ -8,7 +8,7 @@
   >
     <span
       class="icon-container"
-      :class="{ 'icon-visible': $slots.icon || loading }"
+      :class="{ 'icon-visible': $slots.icon || loading, 'icon-only': !$slots.default }"
     >
       <transition
         v-bind="TransitionOpacity"
@@ -26,7 +26,7 @@
 </template>
 
 <script lang="ts" setup>
-export type ButtonVariant = "primary" | "neutral";
+export type ButtonVariant = "primary" | "neutral" | "transparent";
 
 defineProps({
   as: {
@@ -94,14 +94,25 @@ defineProps({
       &[aria-disabled="true"] {
         @apply bg-opacity-50;
       }
-
-      .icon-container.icon-visible {
-        @apply w-6 -translate-x-2 transform;
+    }
+    &transparent {
+      @apply bg-transparent text-neutral-400;
+      &:enabled,
+      &:is(a, label) {
+        &:not([aria-disabled="true"]) {
+          @apply hover:bg-neutral-900 hover:text-white;
+        }
       }
     }
   }
   .icon-container {
     @apply flex-shrink-0 inline-flex w-0 items-center overflow-hidden transition-all will-change-[width,transform];
+    &.icon-visible {
+      @apply w-6;
+    }
+    &:not(.icon-only) {
+      @apply -translate-x-2;
+    }
 
     svg {
       @apply block h-6 w-6;

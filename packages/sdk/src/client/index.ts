@@ -1,3 +1,3 @@
-export * from "./createWalletClient.js";
-export * from "./decorators/wallet.js";
-export * from "./decorators/session.js";
+export * from "./clients/common.js";
+export * from "./clients/session.js";
+export * from "./clients/passkey.js";

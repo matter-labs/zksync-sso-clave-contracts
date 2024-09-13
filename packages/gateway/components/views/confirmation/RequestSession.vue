@@ -110,7 +110,7 @@ const props = defineProps({
 const { appMeta, origin } = useAppMeta();
 const { respond, deny } = useRequestsStore();
 const { request, responseInProgress, requestChain } = storeToRefs(useRequestsStore());
-const { getWalletClient, createSessionKey } = useAccountStore();
+const { getClient } = useClientStore();
 
 const domain = computed(() => new URL(origin.value).host);
 const sessionExpiresIn = useTimeAgo(props.session.validUntil);
@@ -170,9 +170,8 @@ const totalUsd = computed(() => (spendLimitTokens.value || []).reduce((acc, item
 
 const confirmConnection = async () => {
   respond(async () => {
-    const client = getWalletClient({ chainId: request.value!.request.chainId });
-    const sessionData: SessionData = {
-      sessionKey: await createSessionKey(),
+    const client = getClient({ chainId: request.value!.request.chainId });
+    const sessionData: Omit<SessionData, "sessionKey"> = {
       validUntil: props.session.validUntil,
       spendLimit: props.session.spendLimit
         ? Object.fromEntries(Object.entries(props.session.spendLimit).map(
@@ -183,12 +182,16 @@ const confirmConnection = async () => {
         ))
         : {},
     };
+    const session = await client.requestSession(sessionData);
     const response: HandshakeResponse = {
       result: {
         account: {
           address: client.account.address,
           activeChainId: client.chain.id,
-          session: sessionData,
+          session: {
+            ...sessionData,
+            sessionKey: session.sessionKey,
+          },
         },
         chainsInfo: supportedChains.map((chain) => ({
           id: chain.id,

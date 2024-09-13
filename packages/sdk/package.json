@@ -60,6 +60,16 @@
       "import": "./dist/esm/client/index.js",
       "require": "./dist/cjs/client/index.js"
     },
+    "./client/actions": {
+      "types": "./dist/types/client/actions/index.d.ts",
+      "import": "./dist/esm/client/actions/index.js",
+      "require": "./dist/cjs/client/actions/index.js"
+    },
+    "./client/decorators": {
+      "types": "./dist/types/client/decorators/index.d.ts",
+      "import": "./dist/esm/client/decorators/index.js",
+      "require": "./dist/cjs/client/decorators/index.js"
+    },
     "./communicator": {
       "types": "./dist/types/communicator/index.d.ts",
       "import": "./dist/esm/communicator/index.js",
@@ -74,8 +84,23 @@
   },
   "typesVersions": {
     "*": {
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
       "client": [
         "./dist/types/client/index.d.ts"
+      ],
+      "client-gateway": [
+        "./dist/types/client-gateway/index.d.ts"
+      ],
+      "communicator": [
+        "./dist/types/communicator/index.d.ts"
+      ],
+      "connector": [
+        "./dist/types/connector/index.d.ts"
+      ],
+      "errors": [
+        "./dist/types/errors/index.d.ts"
       ]
     }
   },
@@ -87,5 +112,11 @@
     "ethereum",
     "wallet",
     "web3"
-  ]
+  ],
+  "dependencies": {
+    "@peculiar/asn1-ecc": "^2.3.13",
+    "@peculiar/asn1-schema": "^2.3.13",
+    "buffer": "^6.0.3",
+    "cbor-web": "^9.0.2"
+  }
 }

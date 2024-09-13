@@ -58,12 +58,10 @@
 import Web3Avatar from "web3-avatar-vue";
 import { CheckIcon } from "@heroicons/vue/24/outline";
 
-const { appMeta, origin } = useAppMeta();
+const { appMeta, domain } = useAppMeta();
 const { respond, deny } = useRequestsStore();
 const { responseInProgress } = storeToRefs(useRequestsStore());
 const { address } = storeToRefs(useAccountStore());
-
-const domain = computed(() => new URL(origin.value).host);
 
 const confirmConnection = () => {
   respond(() => ({
