@@ -22,6 +22,8 @@ export function createZksyncPasskeyClient<
   const account = toSmartAccount({
     address: parameters.address,
     sign: async ({ hash }) => {
+      const binaryHash = toBytes(hash)
+      console.log("signing payload hash (hex, byte array)", hash, binaryHash);
       const passkeySignature = {
         passkeyAuthenticationResponse: {
           response: await parameters.signHash()
@@ -39,7 +41,7 @@ export function createZksyncPasskeyClient<
         ],
         [toHex(base64UrlToUint8Array(authData)), toHex(base64UrlToUint8Array(clientDataJson)), [toHex(signature.r), toHex(signature.s)]]
       )
-      console.log("fat signature", fatSignature);
+      console.log("fatSignature(PasskeyClient)", fatSignature, fatSignature.length);
       const validator = "0x4c85Ce243E07D52C8e9DBB50ff41e6f6f1e33a60";
       const fullFormattedSig = encodeAbiParameters(
         [
@@ -47,9 +49,9 @@ export function createZksyncPasskeyClient<
           { type: 'address' }, // validator address
           { type: 'bytes[]' }, // validator data
         ],
-        [toHex(fatSignature), validator, []]
+        [fatSignature, validator, []]
       );
-      console.log("full formatted sig", fullFormattedSig);
+      console.log("fullFormattedSig(PasskeyClient)", fullFormattedSig, fullFormattedSig.length);
       
       return fullFormattedSig;
     },
