@@ -17,7 +17,7 @@ export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8
   const cosePublicKey = await decode(publicPasskey); // Decodes CBOR-encoded COSE key
   const x = cosePublicKey.get(COSEKEYS.x);
   const y = cosePublicKey.get(COSEKEYS.y);
-
+	
   return Buffer.concat([Buffer.from(x), Buffer.from(y)]);
 }
 
@@ -64,60 +64,64 @@ function shouldRemoveLeadingZero(bytes: Uint8Array): boolean {
  * @param buffer Value to decode from base64
  * @param to (optional) The decoding to use, in case it's desirable to decode from base64 instead
  */
-export function base64UrlToUint8Array(base64urlString: string): Uint8Array {
-  const _buffer = toArrayBuffer(base64urlString);
+export function base64UrlToUint8Array(base64urlString: string, isUrl: boolean = true): Uint8Array {
+  const _buffer = toArrayBuffer(base64urlString, isUrl);
   return new Uint8Array(_buffer);
 }
 
-function toArrayBuffer (data: string) {
-	// Regular base64 characters
-	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+function toArrayBuffer (data: string, isUrl: boolean) {
+	const 
+		// Regular base64 characters
+		chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
 
-	// Base64url characters
-	const charsUrl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+		// Base64url characters
+		charsUrl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
 
-	const genLookup = (target: string) => {
-		const lookupTemp = typeof Uint8Array === "undefined" ? [] : new Uint8Array(256);
-		const len = chars.length;
-		for (let i = 0; i < len; i++) {
-			lookupTemp[target.charCodeAt(i)] = i;
-		}
-		return lookupTemp;
-	};
-
-	const lookupUrl = genLookup(charsUrl); 
-
-	const len = data.length;
-	let bufferLength = data.length * 0.75,
-		i,
-		p = 0,
-		encoded1,
-		encoded2,
-		encoded3,
-		encoded4;
-
-	if (data[data.length - 1] === "=") {
-		bufferLength--;
-		if (data[data.length - 2] === "=") {
-			bufferLength--;
-		}
-	}
+		genLookup = (target: string) => {
+			const lookupTemp = typeof Uint8Array === "undefined" ? [] : new Uint8Array(256);
+			const len = chars.length;
+			for (let i = 0; i < len; i++) {
+				lookupTemp[target.charCodeAt(i)] = i;
+			}
+			return lookupTemp;
+		},
+	  
+		// Use a lookup table to find the index.
+		lookup = genLookup(chars),
+		lookupUrl = genLookup(charsUrl); 
 
 	const 
-		arraybuffer = new ArrayBuffer(bufferLength),
-		bytes = new Uint8Array(arraybuffer),
-		target = lookupUrl;
+			len = data.length;
+		let bufferLength = data.length * 0.75,
+			i,
+			p = 0,
+			encoded1,
+			encoded2,
+			encoded3,
+			encoded4;
 
-	for (i = 0; i < len; i += 4) {
-		encoded1 = target[data.charCodeAt(i)];
-		encoded2 = target[data.charCodeAt(i + 1)];
-		encoded3 = target[data.charCodeAt(i + 2)];
-		encoded4 = target[data.charCodeAt(i + 3)];
+		if (data[data.length - 1] === "=") {
+			bufferLength--;
+			if (data[data.length - 2] === "=") {
+				bufferLength--;
+			}
+		}
 
-		bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
-		bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
-		bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
-	}
+		const 
+			arraybuffer = new ArrayBuffer(bufferLength),
+			bytes = new Uint8Array(arraybuffer),
+			target = isUrl ? lookupUrl : lookup;
 
-	return arraybuffer;
+		for (i = 0; i < len; i += 4) {
+			encoded1 = target[data.charCodeAt(i)];
+			encoded2 = target[data.charCodeAt(i + 1)];
+			encoded3 = target[data.charCodeAt(i + 2)];
+			encoded4 = target[data.charCodeAt(i + 3)];
+
+			bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+			bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+			bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
+		}
+
+		return arraybuffer;
 };

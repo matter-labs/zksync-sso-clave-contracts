@@ -85,7 +85,7 @@ export const deployAccount = async <
       args.initialModule,
       args.initialModuleData || "0x",
     ],
-    gas: BigInt(1_000_000_000),
+    gas: BigInt(10_000_000_000),
   } as any);
   if (args.onTransactionSent) {
     try { args.onTransactionSent(transactionHash) }
@@ -106,7 +106,7 @@ export const deployAccount = async <
   console.log("Funding account with 10 ETH");
   const transactionHashFund = await sendTransaction(client, {
     to: proxyAccountAddress,
-    value: BigInt(10 * 10**18),
+    value: BigInt(1000 * 10**18),
   } as any);
   const transactionReceiptFund = await waitForTransactionReceipt(client, { hash: transactionHashFund });
   console.log("Account funded", {transactionReceiptFund});
@@ -156,7 +156,7 @@ export const deployAccount = async <
       args.initialSpendLimit![0].token,
       BigInt(Math.ceil(new Date().getTime() / 1000) + (1000 * 60 * 5)) // now + 5 minutes
     ],
-    gas: BigInt(1_000_000_000),
+    gas: BigInt(10_000_000_000),
   } as any);
   console.log("transactionHash2", transactionHash2);
   if (args.onTransactionSent) {

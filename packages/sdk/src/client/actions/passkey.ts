@@ -100,7 +100,6 @@ export const requestPasskeyAuthentication = async (args: RequestPasskeyAuthentic
   const passkeyAuthenticationOptions = 'passkeyAuthenticationOptions' in args ? args.passkeyAuthenticationOptions : await generatePasskeyAuthenticationOptions(args);
   const authenticationResponse: AuthenticationResponseJSON = await startAuthentication(passkeyAuthenticationOptions);
   console.log({authenticationResponse});
-  console.log(1);
   console.log({"passkeyAuthenticationOptions": passkeyAuthenticationOptions.challenge, original: (args as any).challenge});
   const verification = await verifyAuthenticationResponse({
     response: authenticationResponse,
