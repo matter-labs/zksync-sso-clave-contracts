@@ -75,13 +75,23 @@ export const create2 = async (contractName: string, wallet: Wallet, salt: ethers
   const deployingContract = await (args ? deployer.deploy(...args, { customData: { salt } }) : deployer.deploy({ customData: { salt } }))
   const deployedContract = await deployingContract.waitForDeployment();
   const deployedContractAddress = await deployedContract.getAddress();
+  logInfo(`"${contractName}" was successfully deployed to ${deployedContractAddress}`);
+
   if (standardCreate2Address != deployedContractAddress) {
-    // clearly something with the salt is misconfigured during the deploy if create2 doesn't match
-    console.log("addressFromCreate2", standardCreate2Address, "deployedContractAddress", deployedContractAddress)
+    logWarning("Unexpected Create2 address, perhaps salt is misconfigured?");
+    logWarning(`addressFromCreate2: ${standardCreate2Address}`);
+    logWarning(`deployedContractAddress: ${deployedContractAddress}`);
   }
 
-  const contract = new ethers.Contract(deployedContractAddress, contractArtifact.abi, wallet);
-  return contract;
+  return new ethers.Contract(deployedContractAddress, contractArtifact.abi, wallet);
+}
+
+export function logInfo(message: string) {
+  console.log('\x1b[36m%s\x1b[0m', message);
+}
+
+export function logWarning(message: string) {
+  console.log('\x1b[33m%s\x1b[0m', message);
 }
 
 type DeployContractOptions = {

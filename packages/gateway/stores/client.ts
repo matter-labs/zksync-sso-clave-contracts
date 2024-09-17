@@ -1,6 +1,6 @@
 import { http, createPublicClient } from "viem";
 import { zksync, zksyncSepoliaTestnet, zksyncInMemoryNode } from "viem/chains";
-import { createZksyncWalletClient, type ZksyncAccountContracts } from "zksync-account/client";
+import { createZksyncSessionClient, type ZksyncAccountContracts } from "zksync-account/client";
 
 export const supportedChains = [zksync, zksyncSepoliaTestnet, zksyncInMemoryNode];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
@@ -27,14 +27,14 @@ export const contractsByChain: Record<SupportedChainId, ZksyncAccountContracts> 
 export const useClientStore = defineStore("client", () => {
   /* const { subscribeOnAddressChange } = useAccountStore(); */
   const { address } = storeToRefs(useAccountStore());
-  /* let client: ZksyncAccountWalletClient | undefined;
+  /* let client: ZksyncAccountSessionClient | undefined;
 
   const createClient = async ({ chainId }: { chainId: number }) => {
     if (!address.value) throw new Error("Address is not set");
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
 
-    client = createZksyncWalletClient({
+    client = createZksyncSessionClient({
       address: address.value,
       chain,
       contracts,
@@ -67,7 +67,7 @@ export const useClientStore = defineStore("client", () => {
       which makes it use same packages from different folders
       types are too complex to compare so it fails
     */
-    const client = createZksyncWalletClient({
+    const client = createZksyncSessionClient({
       address: address.value,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       chain: chain as any,

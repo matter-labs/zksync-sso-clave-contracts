@@ -2,6 +2,7 @@ import { utils, Wallet, Provider, ContractFactory } from "zksync-ethers";
 import * as ethers from "ethers";
 import { assert, should } from 'chai';
 import { promises } from "fs";
+import { logInfo, logWarning } from "./utils";
 
 export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<ethers.ethers.Contract> {
     const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, 'utf8'))
@@ -12,12 +13,11 @@ export async function deployFactory(factoryName: string, wallet: Wallet, expecte
     const factory = await deployer.deploy(utils.hashBytecode(testAaArtifact.bytecode), utils.hashBytecode(proxyAaArtifact.bytecode));
     const factoryAddress = await factory.getAddress();
 
-    console.log(`\n"${factoryName}" was successfully deployed:`);
-    console.log(` - Contract address: ${factoryAddress}`);
+    logInfo(`"${factoryName}" was successfully deployed to ${factoryAddress}`);
 
     if (expectedAddress && factoryAddress != expectedAddress) {
-        console.warn(`${factoryName}.sol address is not the expected default address (${expectedAddress}).`);
-        console.warn(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
+        logWarning(`${factoryName}.sol address is not the expected default address (${expectedAddress}).`);
+        logWarning(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
         return new ethers.Contract(expectedAddress, factoryArtifact.abi, wallet);
     }
 

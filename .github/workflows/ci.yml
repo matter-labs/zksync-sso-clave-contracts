@@ -21,9 +21,6 @@ jobs:
     # Start node
     - name: Era Test Node Action
       uses: dutterbutter/era-test-node-action@v1
-      # with:
-      #   mode: 'fork'
-      #   network: 'sepolia-testnet'
 
     # NPM install for contracts/gateway/sdk
     - name: Use latest Node.js
@@ -35,9 +32,9 @@ jobs:
     - name: Install contracts dependencies
       working-directory: ./packages/contracts
       run: npm ci
-    # - name: Install gateway dependencies
-    #   working-directory: ./packages/gateway
-    #   run: npm ci
+    - name: Install gateway dependencies
+      working-directory: ./packages/gateway
+      run: npm ci
     - name: Install sdk dependencies
       working-directory: ./packages/sdk
       run: npm ci
@@ -47,35 +44,28 @@ jobs:
       working-directory: ./packages/sdk
       run: npm run build:cjs
 
-    # # Link SDK to other packages
-    # - name: Link SDK to contracts
-    #   run: |
-    #     cd packages/sdk
-    #     npm link
-    #     cd ../contracts
-    #     npm link zksync-account
-    # - name: Link SDK to gateway
-    #   run: |
-    #     cd packages/sdk
-    #     npm link
-    #     cd ../gateway
-    #     npm link zksync-account
+    # Link SDK to other packages
+    - name: Link SDK to contracts
+      run: |
+        cd packages/sdk
+        npm link
+        cd ../contracts
+        npm link zksync-account
+    - name: Link SDK to gateway
+      run: |
+        cd packages/sdk
+        npm link
+        cd ../gateway
+        npm link zksync-account
 
-    # # Start the Gateway
-    # - name: Run Gateway in the background
-    #   working-directory: ./packages/gateway
-    #   run: |
-    #     npm run dev &
-    #     for attempt in {1..20}; do sleep 1; if (curl localhost:3000| head -n1 | grep -Ev 'Nuxt Dev server is starting...|Starting Nuxt...'); then echo ready; break; fi; echo waiting...; done
-    
-    # # Running a hardhat deploy command before running deployments in ethers tests appears
-    # # to fix something related to the transaction (related? https://github.com/matter-labs/tutorials/issues/25)
-    # - name: Initialize smart contracts on node
-    #   working-directory: ./packages/contracts
-    #   run: |
-    #     npm run build
-    #     npm run deployFactoryAccount
+    # Start the Gateway
+    - name: Run Gateway in the background
+      working-directory: ./packages/gateway
+      run: |
+        npm run dev -- --port 3002 &
+        for attempt in {1..20}; do sleep 1; if (curl localhost:3002| head -n1 | grep -Ev 'Nuxt Dev server is starting...|Starting Nuxt...'); then echo ready; break; fi; echo waiting...; done
 
+    # Run e2e tests
     - name: Run e2e test
       working-directory: ./packages/contracts
       run: npm run test
