@@ -1,4 +1,4 @@
-import { zeroAddress, encodeAbiParameters, type Prettify, type Account, type Address, type Chain, type Client, type Hash, type TransactionReceipt, type Transport } from 'viem'
+import { createPublicClient, zeroAddress, encodeAbiParameters, type Prettify, type Account, type Address, type Chain, type Client, type Hash, type TransactionReceipt, type Transport } from 'viem'
 import { waitForTransactionReceipt, writeContract, sendTransaction } from 'viem/actions';
 import { toHex, http } from 'viem';
 
@@ -106,7 +106,7 @@ export const deployAccount = async <
   console.log("Funding account with 10 ETH");
   const transactionHashFund = await sendTransaction(client, {
     to: proxyAccountAddress,
-    value: BigInt(1000 * 10**18),
+    value: BigInt(10_000 * 10**18),
   } as any);
   const transactionReceiptFund = await waitForTransactionReceipt(client, { hash: transactionHashFund });
   console.log("Account funded", {transactionReceiptFund});
@@ -123,7 +123,41 @@ export const deployAccount = async <
     }
   });
 
-  const transactionHash2 = await writeContract(passkeyClient, {
+  console.log("params", {
+    sessionPublicKey: args.initialSpendLimit![0].sessionPublicKey,
+    token: args.initialSpendLimit![0].token,
+    time: BigInt(Math.ceil(new Date().getTime() / 1000) + (1000 * 60 * 5)) // now + 5 minutes
+  });
+  // const callData = moduleContract.interface.encodeFunctionData('addSessionKey', [fixtures.sessionKeyWallet.address, tokenConfig.token, 100]);
+  const callData = encodeAbiParameters(
+    [
+      { type: 'address', name: 'publicKey' },
+      { type: 'address', name: 'token' },
+      { type: 'uint256', name: 'expiration' }
+    ] as const,
+    [
+      args.initialSpendLimit![0].sessionPublicKey,
+      args.initialSpendLimit![0].token,
+      BigInt(Math.ceil(new Date().getTime() / 1000) + (1000 * 60 * 5)) // now + 5 minutes
+    ]
+  );
+  const transactionHash2 = await sendTransaction(passkeyClient, {
+      address: args.initialModule,
+      account: passkeyClient.account,
+      chain: passkeyClient.chain,
+      to: args.initialModule,
+      nonce: await createPublicClient({
+        chain: passkeyClient.chain,
+        transport: http(),
+      }).getTransactionCount({ address: passkeyClient.account.address }),
+      kzg: undefined as any,
+      data: callData as Hash,
+      gas: BigInt(10_000_000_000),
+      /* gas: BigInt(aaTx['gasLimit']),
+      gasPrice: BigInt(aaTx['gasPrice']),
+      gasPerPubdata: BigInt(utils.DEFAULT_GAS_PER_PUBDATA_LIMIT), */
+  } as any);
+  /* const transactionHash2 = await writeContract(passkeyClient, {
     address: args.initialModule,
     abi: [
       {
@@ -157,7 +191,7 @@ export const deployAccount = async <
       BigInt(Math.ceil(new Date().getTime() / 1000) + (1000 * 60 * 5)) // now + 5 minutes
     ],
     gas: BigInt(10_000_000_000),
-  } as any);
+  } as any); */
   console.log("transactionHash2", transactionHash2);
   if (args.onTransactionSent) {
     try { args.onTransactionSent(transactionHash) }
