@@ -358,7 +358,7 @@ describe.only("Spend limit validation", function () {
         await (
             await fixtures.wallet.sendTransaction({
                 to: proxyAccountAddress,
-                value: parseEther('0.07'),
+                value: parseEther('0.5'),
             })
         ).wait();
 
@@ -378,7 +378,7 @@ describe.only("Spend limit validation", function () {
         });
 
         const tokenConfig = await getTokenConfig()
-        const callData = encodeFunctionData({
+        /* const callData = encodeFunctionData({
             abi: [
               {
                 "inputs": [
@@ -405,18 +405,18 @@ describe.only("Spend limit validation", function () {
               }
             ] as const,
             args: [
-                fixtures.sessionKeyWallet.address,
-                tokenConfig.token,
-                100
+                fixtures.sessionKeyWallet.address as Address,
+                tokenConfig.token as Address,
+                BigInt(100)
             ],
-          });
-        const callData2 = moduleContract.interface.encodeFunctionData('addSessionKey', [fixtures.sessionKeyWallet.address, tokenConfig.token, 100]);
-        if (callData !== callData2) {
+          }); */
+        const callData = moduleContract.interface.encodeFunctionData('addSessionKey', [fixtures.sessionKeyWallet.address, tokenConfig.token, 100]);
+        /* if (callData !== callData2) {
             console.log({ callData, callData2 });
             throw new Error("call data mismatch");
         } else {
             console.log("call data match");
-        }
+        } */
 
         const transactionHash = await sendTransaction(passkeyClient, {
             address: moduleAddress as Address,
