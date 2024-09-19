@@ -365,7 +365,7 @@ describe.only("Spend limit validation", function () {
         await waitForTransactionReceipt(richWallet as any, {
             hash: await richWallet.sendTransaction({
                 to: proxyAccountAddress,
-                value: parseEther("0.5"),
+                value: BigInt(parseEther("0.5")),
             } as any)
         });
 
