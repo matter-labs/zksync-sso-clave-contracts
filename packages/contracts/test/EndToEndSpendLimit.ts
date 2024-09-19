@@ -7,11 +7,12 @@ import { logInfo, getWallet, getProvider, create2, deployFactory, RecordedRespon
 import { assert, expect } from "chai";
 import { concat, toHash } from "./PasskeyModule";
 
-import { Address, Hash, http, encodeFunctionData, formatEther, createPublicClient } from "viem";
+import { Address, Hash, http, encodeFunctionData, formatEther, createPublicClient, createWalletClient } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
 import { sendTransaction, waitForTransactionReceipt } from "viem/actions";
+import { privateKeyToAccount } from "viem/accounts";
 
 
 
@@ -360,14 +361,17 @@ describe.only("Spend limit validation", function () {
             chain: zksyncInMemoryNode,
             transport: http(),
         });
-
         console.log("Wallet balance - ", formatEther(await fixtures.wallet.getBalance()));
-        const receipt = await (
-            await fixtures.wallet.sendTransaction({
-                to: proxyAccountAddress,
-                value: parseEther('0.5'),
-            })
-        ).wait();
+        const richWallet = createWalletClient({
+            account: privateKeyToAccount(fixtures.wallet.privateKey as Hash),
+            chain: zksyncInMemoryNode,
+            transport: http(),
+        });
+        const receipt = await waitForTransactionReceipt(richWallet as any, await richWallet.sendTransaction({
+            to: proxyAccountAddress,
+            value: parseEther('0.5'),
+        } as any) as any);
+        console.log("Wallet balance after transaction - ", formatEther(await fixtures.wallet.getBalance()));
         console.log("Fund account receipt", JSON.stringify(receipt, null, 2));
         console.log("ZK Account Balance - ", formatEther(await publicClient.getBalance({
             address: proxyAccountAddress,
