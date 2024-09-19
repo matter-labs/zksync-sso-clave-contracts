@@ -7,7 +7,7 @@ import { logInfo, getWallet, getProvider, create2, deployFactory, RecordedRespon
 import { assert, expect } from "chai";
 import { concat, toHash } from "./PasskeyModule";
 
-import { Address, Hash, http, encodeFunctionData, formatEther } from "viem";
+import { Address, Hash, http, encodeFunctionData, formatEther, createPublicClient } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
@@ -362,6 +362,10 @@ describe.only("Spend limit validation", function () {
             })
         ).wait();
 
+        const publicClient = createPublicClient({
+            chain: zksyncInMemoryNode,
+            transport: http(),
+        });
         const passkeyClient = createZksyncPasskeyClient({
             address: proxyAccountAddress as Address,
             chain: zksyncInMemoryNode,
@@ -377,7 +381,7 @@ describe.only("Spend limit validation", function () {
             userName: "",
         });
 
-        console.log("ZK Account Balance - ", formatEther(await (passkeyClient as any).getBalance()));
+        console.log("ZK Account Balance - ", formatEther(await publicClient.getBalance((passkeyClient as any).address)));
 
         const tokenConfig = await getTokenConfig()
         const callData = encodeFunctionData({
