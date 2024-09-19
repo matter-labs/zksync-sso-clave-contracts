@@ -374,7 +374,7 @@ describe.only("Spend limit validation", function () {
             } as any)
         });
         console.log("Wallet balance after transaction - ", formatEther(await fixtures.wallet.getBalance()));
-        console.log("Fund account receipt", JSON.stringify(receipt, null, 2));
+        console.log("Fund account receipt", receipt);
         console.log("ZK Account Balance - ", formatEther(await publicClient.getBalance({
             address: proxyAccountAddress,
         })));
