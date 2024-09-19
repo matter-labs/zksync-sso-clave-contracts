@@ -7,7 +7,7 @@ import { logInfo, getWallet, getProvider, create2, deployFactory, RecordedRespon
 import { assert, expect } from "chai";
 import { concat, toHash } from "./PasskeyModule";
 
-import { Address, Hash, http } from "viem";
+import { Address, Hash, http, encodeFunctionData } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
@@ -378,7 +378,45 @@ describe.only("Spend limit validation", function () {
         });
 
         const tokenConfig = await getTokenConfig()
-        const callData = moduleContract.interface.encodeFunctionData('addSessionKey', [fixtures.sessionKeyWallet.address, tokenConfig.token, 100]);
+        const callData = encodeFunctionData({
+            abi: [
+              {
+                "inputs": [
+                  {
+                    "internalType": "address",
+                    "name": "publicKey",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "token",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "expiration",
+                    "type": "uint256"
+                  }
+                ],
+                "name": "addSessionKey",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+              }
+            ] as const,
+            args: [
+                fixtures.sessionKeyWallet.address,
+                tokenConfig.token,
+                100
+            ],
+          });
+        const callData2 = moduleContract.interface.encodeFunctionData('addSessionKey', [fixtures.sessionKeyWallet.address, tokenConfig.token, 100]);
+        if (callData !== callData2) {
+            console.log({ callData, callData2 });
+            throw new Error("call data mismatch");
+        } else {
+            console.log("call data match");
+        }
 
         const transactionHash = await sendTransaction(passkeyClient, {
             address: moduleAddress as Address,
