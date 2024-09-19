@@ -1,3 +1,5 @@
+import { readFileSync } from "fs";
+
 import { ContractFactory, Provider, Wallet, utils } from "zksync-ethers";
 import * as hre from "hardhat";
 import { Deployer } from "@matterlabs/hardhat-zksync";
@@ -8,6 +10,8 @@ import { IContractDeployer__factory } from "zksync-ethers/build/typechain";
 
 import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
 import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
+import { promises } from "fs";
+import { getPublicKeyBytesFromPasskeySignature } from "./sdk/utils/passkey";
 
 // Load env file
 dotenv.config();
@@ -20,6 +24,26 @@ export const getProvider = () => {
   const provider = new Provider(rpcUrl);
 
   return provider;
+}
+
+export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<ethers.Contract> {
+    const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, 'utf8'))
+    const proxyAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/AccountProxy.sol/AccountProxy.json', 'utf8'))
+
+    const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet)
+    const factory = await deployer.deploy(utils.hashBytecode(proxyAaArtifact.bytecode));
+    const factoryAddress = await factory.getAddress();
+
+    console.log(`\n"${factoryName}" was successfully deployed:`);
+    console.log(` - Contract address: ${factoryAddress}`);
+
+    if (expectedAddress && factoryAddress != expectedAddress) {
+        console.warn(`${factoryName}.sol address is not the expected default address (${expectedAddress}).`);
+        console.warn(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
+        return new ethers.Contract(expectedAddress, factoryArtifact.abi, wallet);
+    }
+
+    return new ethers.Contract(factoryAddress, factoryArtifact.abi, wallet);
 }
 
 export const getWallet = (privateKey?: string) => {
@@ -213,3 +237,40 @@ export const LOCAL_RICH_WALLETS = [
     privateKey: "0x3eb15da85647edd9a1159a4a13b9e7c56877c4eb33f614546d4db06a51868b1c"
   }
 ]
+
+const convertObjArrayToUint8Array = (objArray: {
+    [key: string]: number;
+}): Uint8Array => {
+    const objEntries = Object.entries(objArray);
+    return objEntries.reduce((existingArray, nextKv) => {
+        const index = parseInt(nextKv[0]);
+        existingArray[index] = nextKv[1];
+        return existingArray;
+    }, new Uint8Array(objEntries.length));
+};
+
+export class RecordedResponse {
+    constructor(filename: string) {
+        // loading directly from the response that was written (verifyAuthenticationResponse)
+        const jsonFile = readFileSync(filename, 'utf-8')
+        const responseData = JSON.parse(jsonFile)
+        this.authenticatorData = responseData.response.response.authenticatorData;
+        this.clientData = responseData.response.response.clientDataJSON;
+        this.b64SignedChallenge = responseData.response.response.signature;
+        this.passkeyBytes = convertObjArrayToUint8Array(responseData.authenticator.credentialPublicKey);
+    }
+
+    // this is jut the public key in xy format without the alg type
+    async getXyPublicKey() {
+      return await getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
+    } 
+
+    // this is the encoded data explaining what authenticator was used (fido, web, etc)
+    readonly authenticatorData: string;
+    // this is a b64 encoded json object
+    readonly clientData: string;
+    // signed challange should come from signed transaction hash (challange is the transaction hash)
+    readonly b64SignedChallenge: string;
+    // This is a binary object formatted by @simplewebauthn that contains the alg type and public key
+    readonly passkeyBytes: Uint8Array;
+}
