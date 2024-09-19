@@ -7,7 +7,7 @@ import { logInfo, getWallet, getProvider, create2, deployFactory, RecordedRespon
 import { assert, expect } from "chai";
 import { concat, toHash } from "./PasskeyModule";
 
-import { Address, Hash, http, encodeFunctionData } from "viem";
+import { Address, Hash, http, encodeFunctionData, formatEther } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
@@ -377,8 +377,10 @@ describe.only("Spend limit validation", function () {
             userName: "",
         });
 
+        console.log("ZK Account Balance - ", formatEther(await (passkeyClient as any).getBalance()));
+
         const tokenConfig = await getTokenConfig()
-        /* const callData = encodeFunctionData({
+        const callData = encodeFunctionData({
             abi: [
               {
                 "inputs": [
@@ -409,14 +411,7 @@ describe.only("Spend limit validation", function () {
                 tokenConfig.token as Address,
                 BigInt(100)
             ],
-          }); */
-        const callData = moduleContract.interface.encodeFunctionData('addSessionKey', [fixtures.sessionKeyWallet.address, tokenConfig.token, 100]);
-        /* if (callData !== callData2) {
-            console.log({ callData, callData2 });
-            throw new Error("call data mismatch");
-        } else {
-            console.log("call data match");
-        } */
+        });
 
         const transactionHash = await sendTransaction(passkeyClient, {
             address: moduleAddress as Address,
