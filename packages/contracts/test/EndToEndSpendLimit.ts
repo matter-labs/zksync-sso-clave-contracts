@@ -357,27 +357,17 @@ describe.only("Spend limit validation", function () {
         const proxyAccountAddress = proxyAccountReciept.contractAddress;
         assert.notEqual(proxyAccountAddress, undefined, "no address set");
 
-        const publicClient = createPublicClient({
-            chain: zksyncInMemoryNode,
-            transport: http(),
-        });
-        console.log("Wallet balance - ", formatEther(await fixtures.wallet.getBalance()));
         const richWallet = createWalletClient({
             account: privateKeyToAccount(fixtures.wallet.privateKey as Hash),
             chain: zksyncInMemoryNode,
             transport: http(),
         });
-        const receipt = await waitForTransactionReceipt(richWallet as any, {
+        await waitForTransactionReceipt(richWallet as any, {
             hash: await richWallet.sendTransaction({
                 to: proxyAccountAddress,
-                value: BigInt(1 * 10**18),
+                value: parseEther("0.5"),
             } as any)
         });
-        console.log("Wallet balance after transaction - ", formatEther(await fixtures.wallet.getBalance()));
-        console.log("Fund account receipt", receipt);
-        console.log("ZK Account Balance - ", formatEther(await publicClient.getBalance({
-            address: proxyAccountAddress,
-        })));
 
         const passkeyClient = createZksyncPasskeyClient({
             address: proxyAccountAddress as Address,
