@@ -381,7 +381,9 @@ describe.only("Spend limit validation", function () {
             userName: "",
         });
 
-        console.log("ZK Account Balance - ", formatEther(await publicClient.getBalance((passkeyClient as any).address)));
+        console.log("ZK Account Balance - ", formatEther(await publicClient.getBalance({
+            address: proxyAccountAddress,
+        })));
 
         const tokenConfig = await getTokenConfig()
         const callData = encodeFunctionData({
