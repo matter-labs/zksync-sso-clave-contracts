@@ -7,11 +7,11 @@ import { logInfo, getWallet, getProvider, create2, deployFactory, RecordedRespon
 import { assert, expect } from "chai";
 import { concat, toHash } from "./PasskeyModule";
 
-import { Address, Hash, http, encodeFunctionData, createWalletClient } from "viem";
+import { Address, Hash, http, encodeFunctionData, createWalletClient, toHex, publicActions, getAddress } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
-import { sendTransaction, waitForTransactionReceipt } from "viem/actions";
+import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { privateKeyToAccount } from "viem/accounts";
 
 
@@ -230,8 +230,8 @@ describe.only("Spend limit validation", function () {
             await getModuleData()
         );
 
-        const proxyAccountReciept = await proxyAccount.wait();
-        const proxyAccountAddress = proxyAccountReciept.contractAddress;
+        const proxyAccountReceipt = await proxyAccount.wait();
+        const proxyAccountAddress = proxyAccountReceipt.contractAddress;
         assert.notEqual(proxyAccountAddress, undefined, "no address set")
         console.log("proxyAccountAddress ", proxyAccountAddress)
         await (
@@ -345,25 +345,88 @@ describe.only("Spend limit validation", function () {
         logInfo(`Module Address        : ${await moduleContract.getAddress()}`);
 
         console.log("deployProxy7579Account for viem")
-        const proxyAccount = await factoryContract.deployProxy7579Account(
-            viemAccountSalt,
-            accountImpl,
-            await viemResponse.getXyPublicKey(),
-            expensiveVerifierAddress,
-            moduleAddress,
-            await getModuleData()
-        );
-
-        const proxyAccountReciept = await proxyAccount.wait();
-        const proxyAccountAddress = proxyAccountReciept.contractAddress;
-        assert.notEqual(proxyAccountAddress, undefined, "no address set");
-        assert.equal(proxyAccountAddress, "0xfF17355c3fDfC62b0b3A7C03a8bD0A3f3a82bAe6", "expected address")
 
         const richWallet = createWalletClient({
             account: privateKeyToAccount(fixtures.wallet.privateKey as Hash),
             chain: zksyncInMemoryNode,
             transport: http(),
-        });
+        }).extend(publicActions);
+        console.log("Factory address", await factoryContract.getAddress());
+        /* const proxyAccount = await factoryContract.deployProxy7579Account(
+            toHex(viemAccountSalt),
+            accountImpl,
+            toHex(await viemResponse.getXyPublicKey()),
+            expensiveVerifierAddress,
+            moduleAddress,
+            await getModuleData()
+        );
+        const proxyAccountReciept = await proxyAccount.wait();
+        const proxyAccountAddress = proxyAccountReciept.contractAddress; */
+
+        const proxyAccount = await writeContract(richWallet as any, {
+            address: await factoryContract.getAddress(),
+            abi: [
+            {
+                "inputs": [
+                    {
+                    "internalType": "bytes32",
+                    "name": "salt",
+                    "type": "bytes32"
+                    },
+                    {
+                    "internalType": "address",
+                    "name": "accountImplementionLocation",
+                    "type": "address"
+                    },
+                    {
+                    "internalType": "bytes",
+                    "name": "initialR1Owner",
+                    "type": "bytes"
+                    },
+                    {
+                    "internalType": "address",
+                    "name": "initialR1Validator",
+                    "type": "address"
+                    },
+                    {
+                    "internalType": "address",
+                    "name": "initialModule",
+                    "type": "address"
+                    },
+                    {
+                    "internalType": "bytes",
+                    "name": "initData",
+                    "type": "bytes"
+                    }
+                ],
+                "name": "deployProxy7579Account",
+                "outputs": [
+                    {
+                    "internalType": "address",
+                    "name": "accountAddress",
+                    "type": "address"
+                    }
+                ],
+                "stateMutability": "nonpayable",
+                "type": "function"
+                }
+            ] as const,
+            functionName: "deployProxy7579Account",
+            args: [
+                toHex(viemAccountSalt),
+                accountImpl,
+                toHex(await viemResponse.getXyPublicKey()),
+                expensiveVerifierAddress,
+                moduleAddress,
+                await getModuleData()
+            ],
+        } as any);
+        const proxyAccountReceipt = await waitForTransactionReceipt(richWallet as any, { hash: proxyAccount });
+        const proxyAccountAddress = getAddress(proxyAccountReceipt.contractAddress);
+
+        assert.notEqual(proxyAccountAddress, undefined, "no address set");
+        assert.equal(proxyAccountAddress, "0xfF17355c3fDfC62b0b3A7C03a8bD0A3f3a82bAe6", "expected address")
+        console.log("proxyAccountAddress ", proxyAccountAddress)
         const chainResponse = await waitForTransactionReceipt(richWallet as any, {
             hash: await richWallet.sendTransaction({
                 to: proxyAccountAddress,
@@ -414,6 +477,7 @@ describe.only("Spend limit validation", function () {
                 "type": "function"
               }
             ] as const,
+            functionName: "addSessionKey",
             args: [
                 fixtures.sessionKeyWallet.address as Address,
                 tokenConfig.token as Address,
@@ -421,18 +485,18 @@ describe.only("Spend limit validation", function () {
             ],
         });
 
-        const transactionHash = await sendTransaction(passkeyClient, {
-            address: moduleAddress as Address,
-            account: (passkeyClient as any).account,
-            chain: zksyncInMemoryNode,
-            to: moduleAddress as Address,
-            nonce: await provider.getTransactionCount(proxyAccountAddress),
-            kzg: undefined as any,
-            data: callData as Hash,
-        });
+        console.log("Params", [
+            fixtures.sessionKeyWallet.address as Address,
+            tokenConfig.token as Address,
+            BigInt(100)
+        ])
 
-        console.log({ transactionHash });
-        const receipt2 = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash });
-        console.log({ receipt2 });
+        const transactionHash = await sendTransaction(passkeyClient, {
+            to: moduleAddress as Address,
+            data: callData as Hash,
+        } as any);
+
+        const receipt = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash });
+        assert.equal(receipt.status, "success", "addSessionKey transaction should be successful");
     })
 })

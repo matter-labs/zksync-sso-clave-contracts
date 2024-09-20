@@ -3,11 +3,6 @@ export const FactoryAbi = [
     "inputs": [
       {
         "internalType": "bytes32",
-        "name": "_testAaBytecodeHash",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes32",
         "name": "_proxyAaBytecodeHash",
         "type": "bytes32"
       }
@@ -57,40 +52,6 @@ export const FactoryAbi = [
         "type": "bytes32"
       },
       {
-        "internalType": "string",
-        "name": "uniqueUserId",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "socialType",
-        "type": "string"
-      },
-      {
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      }
-    ],
-    "name": "deployLinkedSocialAccount",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "accountAddress",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "salt",
-        "type": "bytes32"
-      },
-      {
         "internalType": "address",
         "name": "accountImplementionLocation",
         "type": "address"
@@ -130,52 +91,6 @@ export const FactoryAbi = [
   {
     "inputs": [],
     "name": "proxyAaBytecodeHash",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "socialType",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "uniqueUserId",
-        "type": "string"
-      },
-      {
-        "internalType": "address",
-        "name": "updating",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "creator",
-        "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "publicPasskey",
-        "type": "string"
-      }
-    ],
-    "name": "setLinkedEmbeddedAccountPasskey",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "testAaBytecodeHash",
     "outputs": [
       {
         "internalType": "bytes32",
