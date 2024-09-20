@@ -7,7 +7,7 @@ import { logInfo, getWallet, getProvider, create2, deployFactory, RecordedRespon
 import { assert, expect } from "chai";
 import { concat, toHash } from "./PasskeyModule";
 
-import { Address, Hash, http, encodeFunctionData, formatEther, createPublicClient, createWalletClient } from "viem";
+import { Address, Hash, http, encodeFunctionData, createWalletClient } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
@@ -268,6 +268,7 @@ describe.only("Spend limit validation", function () {
                     clientDataBuffer,
                     [rs.r, rs.s]
                 ])
+                console.log("fatSignature(ethers)", fatSignature, "length", fatSignature.length)
                 // clave expects sigature + validator address + validator hook data
                 const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
                     fatSignature,
@@ -275,7 +276,7 @@ describe.only("Spend limit validation", function () {
                     []
                 ]);
 
-                console.log("fullFormattedSig", fullFormattedSig, "length", fullFormattedSig.length)
+                console.log("fullFormattedSig(ethers)", fullFormattedSig, "length", fullFormattedSig.length)
                 return Promise.resolve<string>(fullFormattedSig);
             }
         }
@@ -356,18 +357,20 @@ describe.only("Spend limit validation", function () {
         const proxyAccountReciept = await proxyAccount.wait();
         const proxyAccountAddress = proxyAccountReciept.contractAddress;
         assert.notEqual(proxyAccountAddress, undefined, "no address set");
+        assert.equal(proxyAccountAddress, "0xfF17355c3fDfC62b0b3A7C03a8bD0A3f3a82bAe6", "expected address")
 
         const richWallet = createWalletClient({
             account: privateKeyToAccount(fixtures.wallet.privateKey as Hash),
             chain: zksyncInMemoryNode,
             transport: http(),
         });
-        await waitForTransactionReceipt(richWallet as any, {
+        const chainResponse = await waitForTransactionReceipt(richWallet as any, {
             hash: await richWallet.sendTransaction({
                 to: proxyAccountAddress,
-                value: BigInt(parseEther("0.5")),
+                value: parseEther("0.05"),
             } as any)
         });
+        assert.equal(chainResponse.status, "success", "should fund without errors")
 
         const passkeyClient = createZksyncPasskeyClient({
             address: proxyAccountAddress as Address,
@@ -426,9 +429,6 @@ describe.only("Spend limit validation", function () {
             nonce: await provider.getTransactionCount(proxyAccountAddress),
             kzg: undefined as any,
             data: callData as Hash,
-            /* gas: BigInt(aaTx['gasLimit']),
-            gasPrice: BigInt(aaTx['gasPrice']),
-            gasPerPubdata: BigInt(utils.DEFAULT_GAS_PER_PUBDATA_LIMIT), */
         });
 
         console.log({ transactionHash });

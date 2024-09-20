@@ -11,7 +11,7 @@
     "deployAccountFactory": "hardhat deploy-zksync --script deployAccountFactory.ts",
     "deployFactoryAccount": "hardhat deploy-zksync --script deployFactoryAccount.ts",
     "getAccount": "hardhat deploy-zksync --script getAccount.ts",
-    "test": "hardhat test --network hardhat"
+    "test": "hardhat test"
   },
   "devDependencies": {
     "@ethersproject/contracts": "^5.7.0",
