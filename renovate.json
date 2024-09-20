@@ -1,6 +1,17 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
-  ]
+    "config:best-practices",
+    "group:allNonMajor",
+    ":semanticCommitTypeAll(chore)",
+    "packages:eslint",
+    "packages:jsUnitTest",
+    "packages:vite"
+  ],
+  "timezone": "Europe/London",
+  "schedule": ["every weekend"],
+  "semanticCommits": "enabled",
+  "npm": {
+    "minimumReleaseAge": "1 week"
+  }
 }
