@@ -258,6 +258,7 @@ describe.only("Spend limit validation", function () {
         // 4. bring that signed hash back here and have it returned as the signer
         const isTestMode = false;
         const extractSigningHash = (hash: string, secretKey, provider) => {
+            console.log("hash(ethers)", hash);
             const b64Hash = ethers.encodeBase64(hash)
             if (isTestMode) {
                 return Promise.resolve<string>(b64Hash);
@@ -268,7 +269,7 @@ describe.only("Spend limit validation", function () {
                     clientDataBuffer,
                     [rs.r, rs.s]
                 ])
-                console.log("fatSignature(ethers)", fatSignature, "length", fatSignature.length)
+                // console.log("fatSignature(ethers)", fatSignature, "length", fatSignature.length)
                 // clave expects sigature + validator address + validator hook data
                 const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
                     fatSignature,
@@ -276,7 +277,7 @@ describe.only("Spend limit validation", function () {
                     []
                 ]);
 
-                console.log("fullFormattedSig(ethers)", fullFormattedSig, "length", fullFormattedSig.length)
+                // console.log("fullFormattedSig(ethers)", fullFormattedSig, "length", fullFormattedSig.length)
                 return Promise.resolve<string>(fullFormattedSig);
             }
         }
@@ -315,6 +316,7 @@ describe.only("Spend limit validation", function () {
 
         const signedTransaction = await ethersTestSmartAccount.signTransaction(aaTx);
         assert(signedTransaction != null, "valid transaction to sign");
+        console.log("signedTransaction", signedTransaction);
 
         await provider.broadcastTransaction(signedTransaction);
     });

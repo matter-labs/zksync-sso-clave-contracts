@@ -1,6 +1,7 @@
 import { parseEther, encodeFunctionData, zeroAddress, encodeAbiParameters, type Prettify, type Account, type Address, type Chain, type Client, type Hash, type TransactionReceipt, type Transport } from 'viem'
 import { waitForTransactionReceipt, writeContract, sendTransaction } from 'viem/actions';
 import { toHex, http } from 'viem';
+import { Provider, SmartAccount, utils, type types } from 'zksync-ethers';
 
 import { FactoryAbi } from '../../abi/Factory.js';
 import { SessionPasskeySpendLimitModuleAbi } from '../../abi/SessionPasskeySpendLimitModule.js';
@@ -90,8 +91,6 @@ export const deployAccount = async <
     '0xB147F769FCC877dbf87e373A6c199237a2b9b2a0',
     '0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000ae045de5638162fa134807cb558e15a3f5a7f853000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000003e80000000000000000000000000000000000000000000000000000000000000040c4059f858b386c61f3acefba41e2031e6240e088902893c9c4b74f06fbfd3ad10d92b32b442870be14a2cfe213c929b83e64c14378a3041d648c08b5bc966e0e'
   ];
-  console.log("Deploying account with data", accountData);
-  console.log("Factory address", args.factory);
   
   const transactionHash = await writeContract(client, {
     address: args.factory,
@@ -117,16 +116,14 @@ export const deployAccount = async <
     throw new Error("Received zero address from account deployment");
   }
 
-  console.log("Funding account");
   const transactionHashFund = await sendTransaction(client, {
     to: proxyAccountAddress,
     value: parseEther("0.05"),
   } as any);
   const transactionReceiptFund = await waitForTransactionReceipt(client, { hash: transactionHashFund });
   if (transactionReceiptFund.status !== "success") throw new Error("Funding transaction reverted");
-  console.log("Account funded", {transactionReceiptFund});
 
-  const passkeyClient = createZksyncPasskeyClient({
+  const passkeyClientInitial = createZksyncPasskeyClient({
     address: proxyAccountAddress,
     chain: client.chain,
     transport: http(),
@@ -136,12 +133,17 @@ export const deployAccount = async <
       session: "0x"
     }
   });
+  const provider = new Provider(client.chain.rpcUrls.default.http[0]);
+  const passkeyClient = new SmartAccount({
+    payloadSigner: (hash: any) => {
+      console.log("Signing hash", hash);
+      const signed = passkeyClientInitial.account.sign!({ hash });
+      return Promise.resolve(signed);
+    },
+    address: proxyAccountAddress,
+    secret: "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e",
+  }, provider)
 
-  console.log("params", {
-    sessionPublicKey: args.initialSpendLimit![0].sessionPublicKey,
-    token: args.initialSpendLimit![0].token,
-    time: BigInt(Math.ceil(new Date().getTime() / 1000) + (1000 * 60 * 5)) // now + 5 minutes
-  });
   const callData = encodeFunctionData({
     abi: SessionPasskeySpendLimitModuleAbi,
     functionName: "addSessionKey",
@@ -154,11 +156,29 @@ export const deployAccount = async <
       BigInt(Math.ceil(new Date().getTime() / 1000) + (1000 * 60 * 5)) // now + 5 minutes */
     ],
   });
-  const transactionHash2 = await sendTransaction(passkeyClient, {
+  /* const transactionHash2 = await sendTransaction(passkeyClient, {
     to: args.initialModule,
     data: callData,
-  } as any);
-  const receipt2 = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash2 });
+    gas: BigInt(10_000_000),
+  } as any); */
+  const aaTx = {
+    type: 113,
+    from: proxyAccountAddress,
+    to: args.initialModule,
+    data: callData,
+    chainId: (await provider.getNetwork()).chainId,
+    nonce: await provider.getTransactionCount(proxyAccountAddress),
+    gasPrice: await provider.getGasPrice(),
+    customData: {
+      gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+    } as types.Eip712Meta,
+  };
+  (aaTx as any)['gasLimit'] = await provider.estimateGas(aaTx);
+
+  const signedTransaction = await passkeyClient.signTransaction(aaTx);
+  const tx = await provider.broadcastTransaction(signedTransaction);
+  const transactionHash2 = tx.hash as Hash;
+  const receipt2 = await waitForTransactionReceipt(passkeyClientInitial, { hash: transactionHash2 });
   if (receipt2.status !== "success") throw new Error("addSessionKey Transaction reverted");
 
   return {

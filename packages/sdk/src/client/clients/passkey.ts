@@ -1,9 +1,9 @@
 import { toBytes, toHex, encodeAbiParameters, createClient, getAddress, publicActions, walletActions, type Account, type Address, type Chain, type Client, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from 'viem'
-import { toSmartAccount } from 'viem/zksync';
 
 import type { ZksyncAccountContracts } from './common.js';
 import { requestPasskeyAuthentication } from '../actions/passkey.js';
 import { base64UrlToUint8Array, unwrapEC2Signature } from '../../utils/passkey.js';
+import { toSmartAccount } from '../smart-account.js';
 
 export function createZksyncPasskeyClient<
   transport extends Transport,
@@ -28,7 +28,6 @@ export function createZksyncPasskeyClient<
       const passkeySignature = await requestPasskeyAuthentication({
         challenge: toBytes(hash),
       });
-      console.log("Passkey signature", passkeySignature);
       const authData = passkeySignature.passkeyAuthenticationResponse.response.authenticatorData;
       const clientDataJson = passkeySignature.passkeyAuthenticationResponse.response.clientDataJSON;
       const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeySignature.passkeyAuthenticationResponse.response.signature));
@@ -40,7 +39,6 @@ export function createZksyncPasskeyClient<
         ],
         [toHex(base64UrlToUint8Array(authData)), toHex(base64UrlToUint8Array(clientDataJson)), [toHex(signature.r), toHex(signature.s)]]
       )
-      console.log("fatSignature(passkey)", fatSignature, fatSignature.length);
       const validator = "0x4c85Ce243E07D52C8e9DBB50ff41e6f6f1e33a60";
       const fullFormattedSig = encodeAbiParameters(
         [
@@ -50,7 +48,6 @@ export function createZksyncPasskeyClient<
         ],
         [fatSignature, validator, []]
       );
-      console.log("fullFormattedSig(passkey)", fullFormattedSig, fullFormattedSig.length);
       
       return fullFormattedSig;
     },
