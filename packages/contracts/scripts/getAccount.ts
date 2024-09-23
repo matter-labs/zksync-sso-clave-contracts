@@ -7,6 +7,7 @@ import { writeFile, readFile, access } from 'node:fs/promises';
 
 // load env file
 import dotenv from "dotenv";
+import { LOCAL_RICH_WALLETS } from "../test/utils";
 dotenv.config();
 
 export default async function (hre: HardhatRuntimeEnvironment) {
@@ -39,11 +40,11 @@ async function checkAddress(
     factoryAddress: string,
     userId: string,
     creator: string) {
-    const deployerPrivateKey = "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e"
-    const provider = new Provider("http://localhost:8011")
+    const deployerPrivateKey = LOCAL_RICH_WALLETS[0].privateKey;
+    const provider = new Provider("http://localhost:8011");
     const wallet = new Wallet(deployerPrivateKey, provider);
-    const factoryArtifact = JSON.parse(await readFile('artifacts-zk/src/AAFactory.sol/AAFactory.json', 'utf8'))
+    const factoryArtifact = JSON.parse(await readFile('artifacts-zk/src/AAFactory.sol/AAFactory.json', 'utf8'));
     const aaFactory = new ethers.Contract(factoryAddress, factoryArtifact.abi, wallet);
     const address = await aaFactory.accountMappings(appName, userId, creator);
-    console.log("account result: ", address)
+    console.log("account result: ", address);
 }

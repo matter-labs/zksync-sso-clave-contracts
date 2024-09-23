@@ -27,15 +27,12 @@ export const getProvider = () => {
 }
 
 export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<ethers.Contract> {
-    const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, 'utf8'))
-    const proxyAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/AccountProxy.sol/AccountProxy.json', 'utf8'))
+    const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, 'utf8'));
+    const proxyAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/AccountProxy.sol/AccountProxy.json', 'utf8'));
 
-    const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet)
+    const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet);
     const factory = await deployer.deploy(utils.hashBytecode(proxyAaArtifact.bytecode));
     const factoryAddress = await factory.getAddress();
-
-    console.log(`\n"${factoryName}" was successfully deployed:`);
-    console.log(` - Contract address: ${factoryAddress}`);
 
     if (expectedAddress && factoryAddress != expectedAddress) {
         console.warn(`${factoryName}.sol address is not the expected default address (${expectedAddress}).`);
@@ -82,7 +79,7 @@ export const verifyContract = async (data: {
   return verificationRequestId;
 }
 
-export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args) => {
+export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args: any = undefined) => {
   if (!salt['startsWith']) {
     salt = ethers.hexlify(salt);
   }
@@ -196,6 +193,10 @@ export const deployContract = async (contractArtifactName: string, constructorAr
  * Available on zkSync In-memory node and Dockerized node.
  */
 export const LOCAL_RICH_WALLETS = [
+  {
+    address: "0xBC989fDe9e54cAd2aB4392Af6dF60f04873A033A",
+    privateKey: "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e"
+  },
   {
     address: "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049",
     privateKey: "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110"
