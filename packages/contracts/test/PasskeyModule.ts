@@ -7,7 +7,7 @@ import { AsnParser } from '@peculiar/asn1-schema';
 import { ECDSASigValue } from '@peculiar/asn1-ecc';
 import { toArrayBuffer } from "@hexagon/base64";
 import { ethers } from "ethers"
-import { RecordedResponse } from "./utils";
+import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
 
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
@@ -224,10 +224,7 @@ async function rawVerify(
 }
 
 describe("Passkey validation", function () {
-
-    // era test node location
-    const eraTestNodeRichKey = "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e"
-    const wallet = new Wallet(eraTestNodeRichKey, new Provider("http://localhost:8011"));
+    const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
     const ethersResponse = new RecordedResponse("test/signed-challenge.json")
 
     it("should verify passkey", async function () {
