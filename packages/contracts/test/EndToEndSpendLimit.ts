@@ -5,8 +5,9 @@ import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import { it } from "mocha";
 import { logInfo, getWallet, getProvider, create2, deployFactory, RecordedResponse, LOCAL_RICH_WALLETS } from "./utils";
 import { assert, expect } from "chai";
+import * as hre from "hardhat";
 
-import { Address, Hash, http, encodeFunctionData, createWalletClient, toHex, publicActions, getAddress } from "viem";
+import { Address, Hash, http, encodeFunctionData, createWalletClient, toHex, publicActions, getAddress, Chain } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
@@ -309,10 +310,18 @@ describe.only("Spend limit validation", function () {
         const expensiveVerifierAddress = await verifierContract.getAddress();
         const moduleAddress = await moduleContract.getAddress();
         const accountImpl = await fixtures.getAccountImplAddress();
+        const localClient: Chain = {
+            ...zksyncInMemoryNode,
+            rpcUrls: {
+                default: {
+                    http: [hre.network.config.url], // Override if not using the default port
+                }
+            }
+        };
 
         const richWallet = createWalletClient({
             account: privateKeyToAccount(fixtures.wallet.privateKey as Hash),
-            chain: zksyncInMemoryNode,
+            chain: localClient,
             transport: http(),
         }).extend(publicActions);
 
@@ -388,7 +397,7 @@ describe.only("Spend limit validation", function () {
 
         const passkeyClient = createZksyncPasskeyClient({
             address: proxyAccountAddress as Address,
-            chain: zksyncInMemoryNode,
+            chain: localClient,
             key: "wallet",
             name: "ZKsync Account Passkey Client",
             signHash: async () => ({
