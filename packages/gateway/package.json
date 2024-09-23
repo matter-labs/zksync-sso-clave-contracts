@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@heroicons/vue": "^2.1.5",
-    "@nuxt/eslint": "^0.3.13",
+    "@nuxt/eslint": "^0.5.7",
     "@nuxtjs/google-fonts": "^3.2.0",
     "@nuxtjs/tailwindcss": "^6.12.0",
     "@pinia/nuxt": "^0.5.1",

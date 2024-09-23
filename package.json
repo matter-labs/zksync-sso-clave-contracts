@@ -1,11 +1,33 @@
 {
-  "name": "zksync-account-sdk",
-  "version": "1.0.0",
-  "description": "Account Abstraction tooling",
-  "keywords": ["zksync", "account-abstraction", "EIP7579"],
-  "author": "@matterlabs",
-  "license": "MIT",
-  "devDependencies": {
-    "nx": "^19.6.2"
-  }
+    "name": "zksync-account-sdk",
+    "version": "1.0.0",
+    "description": "Account Abstraction tooling",
+    "type": "module",
+    "private": true,
+    "keywords": [
+        "zksync",
+        "account-abstraction",
+        "EIP7579"
+    ],
+    "author": "@matterlabs",
+    "license": "MIT",
+    "devDependencies": {
+        "@commitlint/cli": "^19.5.0",
+        "@commitlint/config-conventional": "^19.5.0",
+        "@eslint/js": "^9.10.0",
+        "@stylistic/eslint-plugin": "^2.8.0",
+        "cspell": "^8.14.4",
+        "eslint": "^9.10.0",
+        "eslint-plugin-simple-import-sort": "^12.1.1",
+        "globals": "^15.9.0",
+        "husky": "^9.1.6",
+        "lint-staged": "^15.2.10",
+        "markdownlint-cli2": "^0.14.0",
+        "nx": "^19.6.2",
+        "prettier": "^3.3.3",
+        "typescript-eslint": "^8.6.0"
+    },
+    "scripts": {
+        "prepare": "husky"
+    }
 }

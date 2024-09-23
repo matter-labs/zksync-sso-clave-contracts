@@ -2,8 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:best-practices",
-    "group:allNonMajor",
     ":semanticCommitTypeAll(chore)",
+    "group:allNonMajor",
     "packages:eslint",
     "packages:jsUnitTest",
     "packages:vite"
@@ -13,5 +13,29 @@
   "semanticCommits": "enabled",
   "npm": {
     "minimumReleaseAge": "1 week"
+  },
+  "packageRules": [
+    {
+      "extends": ["helpers:pinGitHubActionDigests"],
+      "schedule": ["before 4am on Monday"],
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
+      "extends": ["monorepo:vue", "monorepo:vueuse"],
+      "groupName": "Vue"
+    },
+    {
+      "groupName": "OpenZeppelin",
+      "matchPackageNames": ["@openzeppelin/**"]
+    },
+    {
+      "groupName": "Hardhat",
+      "matchPackageNames": ["/hardhat/"]
+    }
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true
   }
 }

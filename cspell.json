@@ -1,0 +1,45 @@
+{
+    "language": "en",
+    "ignorePaths": [
+        "*.css",
+        "*.config.*",
+        "node_modules/**",
+        "dist/**",
+        "cspell-config/**",
+        "package.json",
+        "package-lock.json",
+        ".nx/**",
+        ".husky/**",
+        ".nuxt/**"
+    ],
+    "caseSensitive": true,
+    "dictionaries": [
+        "bash",
+        "cpp",
+        "cryptocurrencies",
+        "docker",
+        "css",
+        "en_US",
+        "filetypes",
+        "fullstack",
+        "git",
+        "html",
+        "misc",
+        "node",
+        "npm",
+        "npm",
+        "nuxt",
+        "softwareTerms",
+        "typescript",
+        "dict-zksync"
+    ],
+    "dictionaryDefinitions": [
+        {
+            "name": "dict-zksync",
+            "addWords": true,
+            "path": "./cspell-config/cspell-zksync.txt"
+        }
+    ],
+    "allowCompoundWords": true,
+    "flagWords": ["hte", "hve", "teh", "cna"]
+}

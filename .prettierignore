@@ -1,0 +1,23 @@
+node_modules
+.github
+.idea
+public
+dist
+bin
+build
+out
+tmp
+temp
+.cache
+.nuxt
+pnpm-lock.yaml
+package-lock.json
+.nuxt
+.nx
+
+# Disable prettier for files if VSCode settings are ignored
+**/*.vue
+**/*.js
+**/*.ts
+**/*.jsx
+**/*.tsx
