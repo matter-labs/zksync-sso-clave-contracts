@@ -1,21 +1,31 @@
-import { type Account, type Address, type Chain, type Client, type Hash, type Transport } from 'viem'
+import { toBytes, type Account, type Address, type Chain, type Client, type Hash, type Transport } from 'viem'
 import { writeContract } from 'viem/actions';
 import { type PublicKeyCredentialCreationOptionsJSON, type RegistrationResponseJSON, type PublicKeyCredentialRequestOptionsJSON, type AuthenticationResponseJSON } from "@simplewebauthn/types";
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
-import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse, type GenerateAuthenticationOptionsOpts, type GenerateRegistrationOptionsOpts } from '@simplewebauthn/server';
+import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse, type GenerateAuthenticationOptionsOpts, type GenerateRegistrationOptionsOpts, type VerifiedRegistrationResponse } from '@simplewebauthn/server';
 
-let pubKey: Uint8Array = new Uint8Array();
-export type GeneratePasskeyRegistrationOptionsArgs = Partial<GenerateRegistrationOptionsOpts> & { userName: string; userDisplayName: string };
-export type GeneratePasskeyRegistrationOptionsReturnType = PublicKeyCredentialCreationOptionsJSON;
-export const generatePasskeyRegistrationOptions = async (args: GeneratePasskeyRegistrationOptionsArgs): Promise<GeneratePasskeyRegistrationOptionsReturnType> => {
-  let rpName: string = args.rpName || "";
-  let rpID: string = args.rpID || "";
+const identifyPasskeyParams = () => {
+  let rpName: string | undefined;
+  let rpID: string | undefined;
+  let origin: string | undefined;
   try {
     rpName = window.location.hostname;
     rpID = window.location.hostname;
+    origin = window.location.origin;
   } catch {
     // ignore
   }
+
+  return { rpName, rpID, origin };
+}
+
+// let pubKey: Uint8Array = new Uint8Array();
+export type GeneratePasskeyRegistrationOptionsArgs = Partial<GenerateRegistrationOptionsOpts> & { userName: string; userDisplayName: string };
+export type GeneratePasskeyRegistrationOptionsReturnType = PublicKeyCredentialCreationOptionsJSON;
+export const generatePasskeyRegistrationOptions = async (args: GeneratePasskeyRegistrationOptionsArgs): Promise<GeneratePasskeyRegistrationOptionsReturnType> => {
+  let { rpName, rpID } = identifyPasskeyParams();
+  rpName = args.rpName || rpName;
+  rpID = args.rpID || rpID;
   if (!rpName || !rpID) throw new Error("Can't set rpName and rpID automatically, please provide them manually in the arguments");
 
   const defaultOptions: GenerateRegistrationOptionsOpts = {
@@ -44,19 +54,14 @@ export const generatePasskeyRegistrationOptions = async (args: GeneratePasskeyRe
 export type GeneratePasskeyAuthenticationOptionsArgs = Partial<GenerateAuthenticationOptionsOpts>;
 export type GeneratePasskeyAuthenticationOptionsReturnType = PublicKeyCredentialRequestOptionsJSON;
 export const generatePasskeyAuthenticationOptions = async (args: GeneratePasskeyAuthenticationOptionsArgs): Promise<GeneratePasskeyAuthenticationOptionsReturnType> => {
-  let rpID: string = args.rpID || "";
-  try {
-    rpID = window.location.hostname;
-  } catch {
-    // ignore
-  }
+  let { rpID } = identifyPasskeyParams();
+  rpID = args.rpID || rpID;
   if (!rpID) throw new Error("Can't set rpID automatically, please provide them manually in the arguments");
 
   const defaultOptions: GenerateAuthenticationOptionsOpts = {
     rpID: rpID,
   };
   const params: GenerateAuthenticationOptionsOpts = Object.assign({}, defaultOptions, args);
-  console.log({params});
   const options = await generateAuthenticationOptions(params);
   if ('pubKeyCredParams' in options) {
     options.pubKeyCredParams = (
@@ -67,57 +72,72 @@ export const generatePasskeyAuthenticationOptions = async (args: GeneratePasskey
   return options;
 }
 
-export type RequestPasskeySignatureArgs = { passkeyRegistrationOptions: PublicKeyCredentialCreationOptionsJSON } | GeneratePasskeyRegistrationOptionsArgs;
-export type RequestPasskeySignatureReturnType = {
-  passkeyRegistrationResponse: RegistrationResponseJSON;
+export type RegisterNewPasskeyArgs = ({ passkeyRegistrationOptions: PublicKeyCredentialCreationOptionsJSON } | GeneratePasskeyRegistrationOptionsArgs) & { origin?: string };
+export type RegisterNewPasskeyReturnType = {
   passkeyRegistrationOptions: PublicKeyCredentialCreationOptionsJSON;
-  passkeyPublicKey: Uint8Array;
+  passkeyRegistrationResponse: RegistrationResponseJSON;
+  verificationResponse: VerifiedRegistrationResponse;
+  credentialPublicKey: Uint8Array;
 }
-export const requestPasskeySignature = async (args: RequestPasskeySignatureArgs): Promise<RequestPasskeySignatureReturnType> => {
+export const registerNewPasskey = async (args: RegisterNewPasskeyArgs): Promise<RegisterNewPasskeyReturnType> => {
+  let { origin } = identifyPasskeyParams();
+  origin = args.origin || origin;
+  if (!origin) throw new Error("Can't set origin automatically, please provide it manually in the arguments");
+  
   const passkeyRegistrationOptions = 'passkeyRegistrationOptions' in args ? args.passkeyRegistrationOptions : await generatePasskeyRegistrationOptions(args);
   const registrationResponse: RegistrationResponseJSON = await startRegistration(passkeyRegistrationOptions);
   const verification = await verifyRegistrationResponse({
     response: registrationResponse,
     expectedChallenge: passkeyRegistrationOptions.challenge,
-    expectedOrigin: window.location.origin,
+    expectedOrigin: origin,
   });
   if (!verification.verified || !verification.registrationInfo) throw new Error("Passkey validation failed"); 
-  pubKey = verification.registrationInfo.credentialPublicKey;
+  
   return {
-    passkeyRegistrationResponse: registrationResponse,
     passkeyRegistrationOptions,
-    passkeyPublicKey: verification.registrationInfo.credentialPublicKey,
+    passkeyRegistrationResponse: registrationResponse,
+    verificationResponse: verification,
+    credentialPublicKey: verification.registrationInfo.credentialPublicKey,
   };
 }
 
-export type RequestPasskeyAuthenticationArgs = { passkeyAuthenticationOptions: PublicKeyCredentialRequestOptionsJSON } | GeneratePasskeyAuthenticationOptionsArgs;
+export type RequestPasskeyAuthenticationArgs = {
+  challenge: Hash; // Transaction hash to sign
+  credentialPublicKey: Uint8Array;
+  rpID?: string;
+  origin?: string;
+};
 export type RequestPasskeyAuthenticationReturnType = {
   passkeyAuthenticationResponse: AuthenticationResponseJSON;
   passkeyAuthenticationOptions: PublicKeyCredentialRequestOptionsJSON;
-  passkeyPublicKey: Uint8Array;
 }
 export const requestPasskeyAuthentication = async (args: RequestPasskeyAuthenticationArgs): Promise<RequestPasskeyAuthenticationReturnType> => {
-  const passkeyAuthenticationOptions = 'passkeyAuthenticationOptions' in args ? args.passkeyAuthenticationOptions : await generatePasskeyAuthenticationOptions(args);
+  const passkeyAuthenticationOptions = await generatePasskeyAuthenticationOptions({
+    challenge: toBytes(args.challenge),
+  });
   const authenticationResponse: AuthenticationResponseJSON = await startAuthentication(passkeyAuthenticationOptions);
-  console.log({authenticationResponse});
-  console.log({"passkeyAuthenticationOptions": passkeyAuthenticationOptions.challenge, original: (args as any).challenge});
+  
+  let { rpID, origin } = identifyPasskeyParams();
+  rpID = args.rpID || passkeyAuthenticationOptions.rpId || rpID;
+  origin = args.origin || origin;
+  if (!rpID || !origin) throw new Error("Can't set rpID and origin automatically, please provide them manually in the arguments");
+  
   const verification = await verifyAuthenticationResponse({
     response: authenticationResponse,
     expectedChallenge: passkeyAuthenticationOptions.challenge,
-    expectedOrigin: "https://x.com",
-    expectedRPID: "x.com",
+    expectedOrigin: origin,
+    expectedRPID: rpID,
     authenticator: {
-      credentialPublicKey: pubKey,
+      credentialPublicKey: args.credentialPublicKey,
       credentialID: authenticationResponse.id,
-      counter: 0, // just needs to be lower than the current counter?
+      counter: 0, // TODO: figure out if this has to be dynamic
     },
   });
-  console.log(2, {verification});
   if (!verification.verified || !verification.authenticationInfo) throw new Error("Passkey validation failed"); 
+  
   return {
     passkeyAuthenticationResponse: authenticationResponse,
     passkeyAuthenticationOptions,
-    passkeyPublicKey: pubKey,
   };
 }
 

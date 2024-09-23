@@ -1,3 +1,4 @@
+import { toHex } from 'viem';
 import { decode } from 'cbor-web';
 import { Buffer } from 'buffer';
 import { AsnParser } from '@peculiar/asn1-schema';
@@ -18,7 +19,7 @@ export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8
   const x = cosePublicKey.get(COSEKEYS.x);
   const y = cosePublicKey.get(COSEKEYS.y);
 	
-  return Buffer.concat([Buffer.from(x), Buffer.from(y)]);
+  return toHex(Buffer.concat([Buffer.from(x), Buffer.from(y)]));
 }
 
 /**

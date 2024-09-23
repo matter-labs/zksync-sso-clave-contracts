@@ -2,7 +2,6 @@ import { createClient, getAddress, publicActions, type Account, type Address, ty
 import { privateKeyToAccount } from 'viem/accounts';
 import { toSmartAccount } from 'viem/zksync';
 
-import type { ZksyncAccountContracts } from './common.js';
 import { zksyncAccountWalletActions, type ZksyncAccountWalletActions } from '../decorators/session_wallet.js';
 import { zksyncAccountSessionActions, type ZksyncAccountSessionActions } from '../decorators/session.js';
 
@@ -45,9 +44,12 @@ export function createZksyncSessionClient<
   return client;
 }
 
+export type SessionRequiredContracts = {
+  session: Address; // Session, spend limit, etc.
+}
 type ZksyncAccountSessionData = {
   sessionKey?: Hash;
-  contracts: ZksyncAccountContracts;
+  contracts: SessionRequiredContracts;
 }
 
 export type ClientWithZksyncAccountSessionData<
@@ -69,7 +71,7 @@ export type ZksyncAccountSessionClient<
     rpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema],
-    ZksyncAccountWalletActions<chain, account> & ZksyncAccountSessionActions<chain>
+    ZksyncAccountWalletActions<chain, account> & ZksyncAccountSessionActions
   > & ZksyncAccountSessionData
 >
 
@@ -81,7 +83,7 @@ export interface ZksyncAccountSessionClientConfig<
   chain: NonNullable<chain>;
   address: Address;
   sessionKey?: Hash;
-  contracts: ZksyncAccountContracts;
+  contracts: SessionRequiredContracts;
   key?: string;
   name?: string;
 }

@@ -1,20 +1,9 @@
-import { decodeFunctionData, erc20Abi, getAddress, type Account, type Address, type Chain, type Hash, type Transport, type WalletActions } from 'viem'
+import { /* decodeFunctionData, erc20Abi, getAddress, */ type Account, type Chain, type Transport, type WalletActions } from 'viem'
 import { sendTransaction, signTransaction } from 'viem/zksync';
 import { deployContract, getAddresses, getChainId, prepareTransactionRequest, sendRawTransaction, signTypedData, signMessage, writeContract } from 'viem/actions';
 
 import type { ClientWithZksyncAccountSessionData } from '../clients/session.js';
-import { getTokenSpendLimit } from '../actions/session.js';
-
-export class SpendLimitError extends Error {
-  public tokenAddress: Address;
-  public spendLimit: bigint;
-
-  constructor(message: string, info: { tokenAddress: Address, spendLimit: bigint }) {
-    super(message);
-    this.tokenAddress = info.tokenAddress;
-    this.spendLimit = info.spendLimit;
-  }
-}
+/* import { getTokenSpendLimit } from '../actions/session.js'; */
 
 export type ZksyncAccountWalletActions<chain extends Chain, account extends Account> = Omit<
   WalletActions<chain, account>, 'addChain' | 'getPermissions' | 'requestAddresses' | 'requestPermissions' | 'switchChain' | 'watchAsset'
@@ -34,7 +23,7 @@ export function zksyncAccountWalletActions<
     sendRawTransaction: (args) => sendRawTransaction(client, args),
     sendTransaction: async (args) => {
       const tx = client.chain.formatters?.transaction?.format(args) || args;
-      await verifyTransactionData({
+      /* await verifyTransactionData({
         value: tx.value,
         chain: tx.chain || undefined,
         to: tx.to || undefined,
@@ -43,13 +32,24 @@ export function zksyncAccountWalletActions<
         gasPrice: tx.gasPrice,
         maxFeePerGas: tx.maxFeePerGas,
         maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
-      }, client);
+      }, client); */
       return await sendTransaction(client, tx);
     },
     signMessage: (args) => signMessage(client, args),
     signTransaction: (args) => signTransaction(client, args as any),
     signTypedData: (args) => signTypedData(client, args),
     writeContract: (args) => writeContract(client, args),
+  }
+}
+
+/* export class SpendLimitError extends Error {
+  public tokenAddress: Address;
+  public spendLimit: bigint;
+
+  constructor(message: string, info: { tokenAddress: Address, spendLimit: bigint }) {
+    super(message);
+    this.tokenAddress = info.tokenAddress;
+    this.spendLimit = info.spendLimit;
   }
 }
 
@@ -125,7 +125,7 @@ const verifyTransactionData = async (
     return false;
   }
 
-  /* Verify transaction value */
+  // Verify transaction value
   const value = transaction.value || 0n;
   if (await exceedsSpendLimit(getAddress(l2BaseTokenAddress), value)) {
     throw new SpendLimitError(`Transaction value ${value} exceeds account spend limit`, {
@@ -134,7 +134,7 @@ const verifyTransactionData = async (
     });
   }
 
-  /* Verify total fee */
+  // Verify total fee
   const totalFee = getTotalFee({
     gas: transaction.gas,
     gasPrice: transaction.gasPrice,
@@ -150,18 +150,18 @@ const verifyTransactionData = async (
 
   if (!transaction.data || !transaction.to) return;
 
-  /* Assuming transaction is an erc20 transaction */
+  // Assuming transaction is an erc20 transaction
   const { functionName, args } = decodeERC20TransactionData(transaction.data);
   if (!functionName) return;
 
-  /* Verify if method is not blocked */
+  // Verify if method is not blocked
   if (isBlockedMethod(functionName)) {
     throw new Error(`Method "${functionName}" is not allowed for this account`);
   }
 
   const tokenAddress = getAddress(transaction.to.toLowerCase());
   
-  /* Verify transfer amount */
+  // Verify transfer amount
   if (functionName === "transfer") {
     const [_to, _amount] = args;
     const amount = _amount ? BigInt(_amount) : 0n;
@@ -172,4 +172,4 @@ const verifyTransactionData = async (
       });
     }
   }
-}
+} */

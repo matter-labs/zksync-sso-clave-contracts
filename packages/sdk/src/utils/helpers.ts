@@ -33,3 +33,11 @@ export function getFavicon(): string | null {
     return null;
   }
 }
+
+export function noThrow<T>(fn: () => T): T | null {
+  try {
+    return fn();
+  } catch (e) {
+    return null;
+  }
+}
