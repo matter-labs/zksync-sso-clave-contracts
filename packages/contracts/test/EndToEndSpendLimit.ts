@@ -9,10 +9,10 @@ import * as hre from "hardhat";
 
 import { Address, Hash, http, encodeFunctionData, createWalletClient, toHex, publicActions, getAddress, Chain } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
-import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
-import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { privateKeyToAccount } from "viem/accounts";
+const zkAccountClient = import("zksync-account/client");
+const zkAccountUtils = import("zksync-account/utils");
 
 export class ContractFixtures {
     // NOTE: CHANGING THE READONLY VALUES WILL REQUIRE UPDATING THE STATIC SIGNATURE
@@ -232,9 +232,9 @@ describe.only("Spend limit validation", function () {
             })
         ).wait();
 
-        const authDataBuffer = base64UrlToUint8Array(ethersResponse.authenticatorData);
-        const clientDataBuffer = base64UrlToUint8Array(ethersResponse.clientData);
-        const rs = unwrapEC2Signature(base64UrlToUint8Array(ethersResponse.b64SignedChallenge))
+        const authDataBuffer = (await zkAccountUtils).base64UrlToUint8Array(ethersResponse.authenticatorData);
+        const clientDataBuffer = (await zkAccountUtils).base64UrlToUint8Array(ethersResponse.clientData);
+        const rs = (await zkAccountUtils).unwrapEC2Signature((await zkAccountUtils).base64UrlToUint8Array(ethersResponse.b64SignedChallenge))
         // steps to get the data for this test
         // 1. build the transaction here in the test (aaTx)
         // 2. use this sample signer to get the transaction hash of a realistic transaction
@@ -395,7 +395,7 @@ describe.only("Spend limit validation", function () {
         });
         assert.equal(chainResponse.status, "success", "should fund without errors");
 
-        const passkeyClient = createZksyncPasskeyClient({
+        const passkeyClient = (await zkAccountClient).createZksyncPasskeyClient({
             address: proxyAccountAddress as Address,
             chain: localClient,
             key: "wallet",

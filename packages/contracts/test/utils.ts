@@ -7,11 +7,11 @@ import dotenv from "dotenv";
 import { ethers } from "ethers";
 
 import { IContractDeployer__factory } from "zksync-ethers/build/typechain";
+const zkAccountUtils = import("zksync-account/utils");
 
 import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
 import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
 import { promises } from "fs";
-import { getPublicKeyBytesFromPasskeySignature } from "./sdk/utils/passkey";
 
 // Load env file
 dotenv.config();
@@ -253,17 +253,17 @@ const convertObjArrayToUint8Array = (objArray: {
 export class RecordedResponse {
     constructor(filename: string) {
         // loading directly from the response that was written (verifyAuthenticationResponse)
-        const jsonFile = readFileSync(filename, 'utf-8')
-        const responseData = JSON.parse(jsonFile)
+        const jsonFile = readFileSync(filename, 'utf-8');
+        const responseData = JSON.parse(jsonFile);
         this.authenticatorData = responseData.response.response.authenticatorData;
         this.clientData = responseData.response.response.clientDataJSON;
         this.b64SignedChallenge = responseData.response.response.signature;
         this.passkeyBytes = convertObjArrayToUint8Array(responseData.authenticator.credentialPublicKey);
     }
 
-    // this is jut the public key in xy format without the alg type
+    // this is just the public key in xy format without the alg type
     async getXyPublicKey() {
-      return await getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
+      return await (await zkAccountUtils).getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
     } 
 
     // this is the encoded data explaining what authenticator was used (fido, web, etc)

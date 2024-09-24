@@ -1,5 +1,5 @@
 # Client SDK
-The client SDK is lowest level of the provided SDK which lets you take full control of how you manage ZK Account's. It's built on top of `viem` with the same development principles in mind.
+The client SDK is the lowest level of our provided SDK which lets you take full control of how you manage ZK Accounts. It's built on top of `viem` with the same development principles in mind.
 
 ## Lifecycle
 1. Register a new passkey
@@ -19,7 +19,7 @@ The client SDK is lowest level of the provided SDK which lets you take full cont
   import { generatePrivateKey, privateKeyToAccount } from "viem";
   import { deployAccount } from "zksync-account/client/actions";
 
-  const deployerClient = ...; // Any client which would be used to deploy the account, make sure it has enough balance to cover the deployment cost
+  const deployerClient = ...; // Any client for deploying the account, make sure it has enough balance to cover the deployment cost
   const sessionKey = generatePrivateKey();
   const sessionPublicKey = privateKeyToAccount(sessionKey.value).address;
 
@@ -62,6 +62,6 @@ The client SDK is lowest level of the provided SDK which lets you take full cont
   await passkeyClient.addSessionKey({
     sessionPublicKey,
     token: Token.address, // Address of the token
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day expiry
   });
   ```

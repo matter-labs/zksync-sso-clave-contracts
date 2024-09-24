@@ -81,6 +81,11 @@
       "import": "./dist/esm/errors/index.js",
       "require": "./dist/cjs/errors/index.js"
     },
+    "./utils": {
+      "types": "./dist/types/utils/index.d.ts",
+      "import": "./dist/esm/utils/index.js",
+      "require": "./dist/cjs/utils/index.js"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
