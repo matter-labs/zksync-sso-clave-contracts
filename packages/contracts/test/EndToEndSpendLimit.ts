@@ -206,6 +206,10 @@ describe.only("Spend limit validation", function () {
     });
 
     it("should set spend limit via module with ethers", async () => {
+
+        // fix for using .only
+        await fixtures.getProxyAccountContract();
+
         const verifierContract = await fixtures.getExpensiveVerifierContract();
         const expensiveVerifierAddress = await verifierContract.getAddress();
         const moduleContract = await fixtures.getPasskeyModuleContract();
@@ -240,28 +244,25 @@ describe.only("Spend limit validation", function () {
         // 2. use this sample signer to get the transaction hash of a realistic transaction
         // 3. take that transaction hash to another app, and sign it (as the challange)
         // 4. bring that signed hash back here and have it returned as the signer
-        const isTestMode = false;
         const extractSigningHash = (hash: string, secretKey, provider) => {
             const b64Hash = ethers.encodeBase64(hash)
-            if (isTestMode) {
-                return Promise.resolve<string>(b64Hash);
-            } else {
-                // the validator is now responsible for checking and hashing this
-                const fatSignature = abiCoder.encode(["bytes", "bytes", "bytes32[2]"], [
-                    authDataBuffer,
-                    clientDataBuffer,
-                    [rs.r, rs.s]
-                ])
+            console.debug("(ethers)b64Hash", b64Hash, "hex", hash, "binary hash", base64UrlToUint8Array(b64Hash));
 
-                // clave expects sigature + validator address + validator hook data
-                const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
-                    fatSignature,
-                    expensiveVerifierAddress,
-                    []
-                ]);
+            // the validator is now responsible for checking and hashing this
+            const fatSignature = abiCoder.encode(["bytes", "bytes", "bytes32[2]"], [
+                authDataBuffer,
+                clientDataBuffer,
+                [rs.r, rs.s]
+            ])
 
-                return Promise.resolve<string>(fullFormattedSig);
-            }
+            // clave expects sigature + validator address + validator hook data
+            const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
+                fatSignature,
+                expensiveVerifierAddress,
+                []
+            ]);
+
+            return Promise.resolve<string>(fullFormattedSig);
         };
 
         // smart account secret isn't stored in javascript (because it's a passkey)
@@ -299,10 +300,16 @@ describe.only("Spend limit validation", function () {
         const signedTransaction = await ethersTestSmartAccount.signTransaction(aaTx);
         assert(signedTransaction != null, "valid transaction to sign");
 
-        await provider.broadcastTransaction(signedTransaction);
+        const broadcastedTransaction = await provider.broadcastTransaction(signedTransaction);
+        const broadcastTransactionReciept = await broadcastedTransaction.wait();
+        assert.equal(broadcastTransactionReciept.status, 1, "addSessionKey should be successful(1)")
     });
 
     it("should set spend limit via module with viem", async () => {
+
+        // fix for using .only
+        await fixtures.getProxyAccountContract();
+
         const verifierContract = await fixtures.getExpensiveVerifierContract();
         const moduleContract = await fixtures.getPasskeyModuleContract();
         const factoryContract = await fixtures.getAaFactory();
@@ -328,49 +335,49 @@ describe.only("Spend limit validation", function () {
         const proxyAccount = await writeContract(richWallet as any, {
             address: await factoryContract.getAddress(),
             abi: [
-            {
-                "inputs": [
-                    {
-                    "internalType": "bytes32",
-                    "name": "salt",
-                    "type": "bytes32"
-                    },
-                    {
-                    "internalType": "address",
-                    "name": "accountImplementionLocation",
-                    "type": "address"
-                    },
-                    {
-                    "internalType": "bytes",
-                    "name": "initialR1Owner",
-                    "type": "bytes"
-                    },
-                    {
-                    "internalType": "address",
-                    "name": "initialR1Validator",
-                    "type": "address"
-                    },
-                    {
-                    "internalType": "address",
-                    "name": "initialModule",
-                    "type": "address"
-                    },
-                    {
-                    "internalType": "bytes",
-                    "name": "initData",
-                    "type": "bytes"
-                    }
-                ],
-                "name": "deployProxy7579Account",
-                "outputs": [
-                    {
-                    "internalType": "address",
-                    "name": "accountAddress",
-                    "type": "address"
-                    }
-                ],
-                "stateMutability": "nonpayable",
-                "type": "function"
+                {
+                    "inputs": [
+                        {
+                            "internalType": "bytes32",
+                            "name": "salt",
+                            "type": "bytes32"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "accountImplementionLocation",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "bytes",
+                            "name": "initialR1Owner",
+                            "type": "bytes"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "initialR1Validator",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "initialModule",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "bytes",
+                            "name": "initData",
+                            "type": "bytes"
+                        }
+                    ],
+                    "name": "deployProxy7579Account",
+                    "outputs": [
+                        {
+                            "internalType": "address",
+                            "name": "accountAddress",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
                 }
             ] as const,
             functionName: "deployProxy7579Account",
@@ -400,6 +407,7 @@ describe.only("Spend limit validation", function () {
             chain: localClient,
             key: "wallet",
             name: "ZKsync Account Passkey Client",
+            validator: getAddress(expensiveVerifierAddress),
             signHash: async () => ({
                 authenticatorData: viemResponse.authenticatorData,
                 clientDataJSON: viemResponse.clientData,
@@ -413,29 +421,29 @@ describe.only("Spend limit validation", function () {
         const tokenConfig = await getTokenConfig();
         const callData = encodeFunctionData({
             abi: [
-              {
-                "inputs": [
-                  {
-                    "internalType": "address",
-                    "name": "publicKey",
-                    "type": "address"
-                  },
-                  {
-                    "internalType": "address",
-                    "name": "token",
-                    "type": "address"
-                  },
-                  {
-                    "internalType": "uint256",
-                    "name": "expiration",
-                    "type": "uint256"
-                  }
-                ],
-                "name": "addSessionKey",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-              }
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "publicKey",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "token",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "expiration",
+                            "type": "uint256"
+                        }
+                    ],
+                    "name": "addSessionKey",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                }
             ] as const,
             functionName: "addSessionKey",
             args: [

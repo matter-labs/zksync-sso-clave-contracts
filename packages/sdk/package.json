@@ -117,6 +117,7 @@
   "dependencies": {
     "@peculiar/asn1-ecc": "^2.3.13",
     "@peculiar/asn1-schema": "^2.3.13",
+    "bigint-conversion": "^2.4.3",
     "buffer": "^6.0.3",
     "cbor-web": "^9.0.2",
     "zksync-ethers": "^6.12.1"

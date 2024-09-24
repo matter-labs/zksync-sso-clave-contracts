@@ -42,6 +42,7 @@
     "@nomad-xyz/excessively-safe-call": "^0.0.1-rc.1",
     "@openzeppelin/contracts": "4.9.6",
     "@openzeppelin/contracts-upgradeable": "4.9",
+    "bigint-conversion": "^2.4.3",
     "cbor-web": "^9.0.2",
     "hardhat": "^2.22.10",
     "ts-node": "^10.9.2",

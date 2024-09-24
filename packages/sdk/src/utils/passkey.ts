@@ -3,6 +3,7 @@ import { decode } from 'cbor-web';
 import { Buffer } from 'buffer';
 import { AsnParser } from '@peculiar/asn1-schema';
 import { ECDSASigValue } from '@peculiar/asn1-ecc';
+import { bigintToBuf, bufToBigint } from 'bigint-conversion';
 
 enum COSEKEYS {
   kty = 1,  // Key Type
@@ -42,8 +43,22 @@ export function unwrapEC2Signature(signature: Uint8Array): { r: Uint8Array; s: U
 
   return {
     r: rBytes,
-    s: sBytes,
+    s: normalizeS(sBytes),
   }
+}
+
+
+// normalize s (to prevent signature mallebility)
+function normalizeS(sBuf: Uint8Array): Uint8Array {
+    const n = BigInt('0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551');
+    const halfN = n / BigInt(2);
+    const sNumber: bigint = bufToBigint(sBuf);
+
+    if (sNumber / halfN) {
+        return new Uint8Array(bigintToBuf(n - sNumber))
+    } else {
+        return sBuf
+    }
 }
 
 /**

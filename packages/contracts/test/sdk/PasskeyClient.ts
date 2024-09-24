@@ -1,4 +1,4 @@
-import { toBytes, toHex, encodeAbiParameters, createClient, getAddress, publicActions, walletActions, type Account, type Address, type Chain, type Client, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema, Hash } from 'viem'
+import { toHex, encodeAbiParameters, createClient, getAddress, publicActions, walletActions, type Account, type Address, type Chain, type Client, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from 'viem'
 import { toSmartAccount } from 'viem/zksync';
 
 import { base64UrlToUint8Array, unwrapEC2Signature } from './utils/passkey';
@@ -27,7 +27,7 @@ export function createZksyncPasskeyClient<
           response: await parameters.signHash()
         }
       };
-      // console.log("Passkey signature", passkeySignature);
+      console.debug("Passkey signature", passkeySignature);
       const authData = passkeySignature.passkeyAuthenticationResponse.response.authenticatorData;
       const clientDataJson = passkeySignature.passkeyAuthenticationResponse.response.clientDataJSON;
       const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeySignature.passkeyAuthenticationResponse.response.signature));
@@ -39,18 +39,16 @@ export function createZksyncPasskeyClient<
         ],
         [toHex(base64UrlToUint8Array(authData)), toHex(base64UrlToUint8Array(clientDataJson)), [toHex(signature.r), toHex(signature.s)]]
       )
-      // console.log("fatSignature(PasskeyClient)", fatSignature, fatSignature.length);
-      // XXX: This will need to be updated if the code changes
-      const validator = "0x4c85Ce243E07D52C8e9DBB50ff41e6f6f1e33a60";
+      console.debug("fatSignature(PasskeyClient)", fatSignature, fatSignature.length);
       const fullFormattedSig = encodeAbiParameters(
         [
           { type: 'bytes' }, // fat signature
           { type: 'address' }, // validator address
           { type: 'bytes[]' }, // validator data
         ],
-        [fatSignature, validator, []]
+        [fatSignature, _parameters.validator, []]
       );
-      // console.log("fullFormattedSig(PasskeyClient)", fullFormattedSig, fullFormattedSig.length);
+      console.debug("fullFormattedSig(PasskeyClient)", fullFormattedSig, fullFormattedSig.length);
       
       return fullFormattedSig;
     },
@@ -101,6 +99,7 @@ export interface ZksyncAccountPasskeyClientConfig<
   chain extends Chain = Chain,
   rpcSchema extends RpcSchema | undefined = undefined
 > extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, 'account'> {
+  validator: `0x${string}`;
   chain: NonNullable<chain>;
   address: Address;
   userName: string;

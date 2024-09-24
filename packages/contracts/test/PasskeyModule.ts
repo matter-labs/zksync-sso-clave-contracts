@@ -1,4 +1,4 @@
-import { Wallet, Provider } from "zksync-ethers";
+import { Wallet } from "zksync-ethers";
 import { Deployer } from '@matterlabs/hardhat-zksync-deploy';
 import { assert } from 'chai';
 import { decodePartialCBOR } from '@levischuck/tiny-cbor'
@@ -8,6 +8,7 @@ import { ECDSASigValue } from '@peculiar/asn1-ecc';
 import { toArrayBuffer } from "@hexagon/base64";
 import { ethers } from "ethers"
 import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
+import { bigintToBuf, bufToBigint } from 'bigint-conversion'
 
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
@@ -178,7 +179,21 @@ export function unwrapEC2Signature(signature: Uint8Array): Uint8Array[] {
         sBytes = sBytes.slice(1);
     }
 
-    return [rBytes, sBytes];
+    return [rBytes, normalizeS(sBytes)];
+}
+
+
+// normalize s (to prevent signature mallebility)
+function normalizeS(sBuf: Uint8Array): Uint8Array {
+    const n = BigInt('0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551');
+    const halfN = n / BigInt(2);
+    const sNumber: bigint = bufToBigint(sBuf);
+
+    if (sNumber / halfN) {
+        return new Uint8Array(bigintToBuf(n - sNumber))
+    } else {
+        return sBuf
+    }
 }
 
 /**
