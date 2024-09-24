@@ -7,11 +7,11 @@ import dotenv from "dotenv";
 import { ethers } from "ethers";
 
 import { IContractDeployer__factory } from "zksync-ethers/build/typechain";
-const zkAccountUtils = import("zksync-account/utils");
 
 import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
 import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
 import { promises } from "fs";
+import { getPublicKeyBytesFromPasskeySignature } from "./sdk/utils/passkey";
 
 // Load env file
 dotenv.config();
@@ -263,7 +263,7 @@ export class RecordedResponse {
 
     // this is just the public key in xy format without the alg type
     async getXyPublicKey() {
-      return await (await zkAccountUtils).getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
+      return await getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
     } 
 
     // this is the encoded data explaining what authenticator was used (fido, web, etc)
