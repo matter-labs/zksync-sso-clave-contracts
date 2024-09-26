@@ -40,7 +40,7 @@ export class StorageItem<T> {
   constructor(
     key: string,
     defaultValue: T,
-    options: StorageItemOptions<T> = {}
+    options: StorageItemOptions<T> = {},
   ) {
     this.key = key;
     this.defaultValue = defaultValue;

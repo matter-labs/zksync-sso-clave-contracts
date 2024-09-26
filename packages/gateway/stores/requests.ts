@@ -1,48 +1,32 @@
-import { mapping as requestsMapping } from "zksync-account/client-gateway";
-import type { MethodCategory, Method, MessageID, RPCRequestMessage, RPCResponseMessageSuccessful } from "zksync-account/client-gateway";
-import { communicator } from "@/utils/communicator";
-
-type Request = {
-  id: MessageID;
-  type: "rpc-request";
-  // request: RPCRequest;
-  request: any;
-};
+import type { ExtractParams, ExtractReturnType, GatewayRpcSchema, Method, RPCRequestMessage, RPCResponseMessage } from "zksync-account/client-gateway";
 
 export const useRequestsStore = defineStore("requests", () => {
   const { appMeta } = useAppMeta();
 
-  const request = ref<Request | undefined>();
-  const requestType = computed<MethodCategory | undefined>(() => {
-    const method = request.value?.request.action.method;
-    if (!method) return undefined;
-    return Object.entries(requestsMapping)
-      .find(([_category, methods]) => methods.includes(method as Method))?.[0];
-  });
+  const request = ref<RPCRequestMessage<Method> | undefined>();
+  const hasRequests = computed(() => !!request.value);
   const requestChain = computed(() => {
-    const chainId = request.value?.request.chainId;
+    const chainId = request.value?.content.chainId;
     return supportedChains.find((chain) => chain.id === chainId);
   });
+  const requestMethod = computed(() => request.value?.content.action.method);
+  const requestParams = computed(() => request.value?.content.action.method);
 
-  communicator.onMessage<RPCRequestMessage>((message) => "content" in message)
+  communicator.onMessage<RPCRequestMessage<Method>>((message) => "content" in message)
     .then(async (message) => {
-      if (message.content.action.method === "eth_requestAccounts") {
-        appMeta.value = message.content.action.params.metadata;
+      if (message.content.action.method === "eth_requestAccounts" && "metadata" in message.content.action) {
+        const handshakeData = message.content.action.params as ExtractParams<"eth_requestAccounts", GatewayRpcSchema>;
+        appMeta.value = handshakeData.metadata;
       }
-      request.value = {
-        id: message.id,
-        type: "rpc-request",
-        request: message.content as RPCRequest,
-      };
+      request.value = message;
     });
 
-  const { inProgress: responseInProgress, execute: respond } = useAsync(async (responder: () => RPCResponseMessageSuccessful["content"] | Promise<RPCResponseMessageSuccessful["content"]>) => {
+  const { inProgress: responseInProgress, execute: respond } = useAsync(async (responder: () => RPCResponseMessage<ExtractReturnType<Method>>["content"] | Promise<RPCResponseMessage<ExtractReturnType<Method>>["content"]>) => {
     if (!request.value) throw new Error("No request to confirm");
 
-    communicator.postMessage<RPCResponseMessageSuccessful>({
-      requestId: request.value.id,
+    communicator.postMessage({
       id: crypto.randomUUID(),
-      timestamp: new Date(),
+      requestId: request.value.id,
       content: await responder(),
     });
     communicator.disconnect();
@@ -54,9 +38,11 @@ export const useRequestsStore = defineStore("requests", () => {
 
   return {
     request: computed(() => request.value),
-    requestType,
+    hasRequests,
     responseInProgress,
     requestChain,
+    requestMethod,
+    requestParams,
     respond,
     deny,
   };

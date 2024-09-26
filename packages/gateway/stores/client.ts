@@ -1,6 +1,7 @@
-import { http, createPublicClient } from "viem";
+import { http, createPublicClient, createWalletClient, publicActions, walletActions } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { zksync, zksyncSepoliaTestnet, zksyncInMemoryNode } from "viem/chains";
-import { createZksyncSessionClient, type ZksyncAccountContracts } from "zksync-account/client";
+import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-account/client";
 
 export const supportedChains = [zksync, zksyncSepoliaTestnet, zksyncInMemoryNode];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
@@ -9,39 +10,34 @@ export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
   [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.blockExplorerApi,
   [zksyncInMemoryNode.id]: "http://localhost:3020",
 };
-export const contractsByChain: Record<SupportedChainId, ZksyncAccountContracts> = {
+
+type ChainContracts = PasskeyRequiredContracts & {
+  accountFactory: NonNullable<PasskeyRequiredContracts["accountFactory"]>;
+  accountImplementation: NonNullable<PasskeyRequiredContracts["accountImplementation"]>;
+};
+export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [zksync.id]: {
-    session: "0xa00e749EAC6d9C1b78b916ab69f2B7E5990Eea77",
-    accountFactory: "0xa00e749EAC6d9C1b78b916ab69f2B7E5990Eea77",
+    session: "0x",
+    validator: "0x",
+    accountFactory: "0x",
+    accountImplementation: "0x",
   },
   [zksyncSepoliaTestnet.id]: {
-    session: "0xa00e749EAC6d9C1b78b916ab69f2B7E5990Eea77",
-    accountFactory: "0xa00e749EAC6d9C1b78b916ab69f2B7E5990Eea77",
+    session: "0x",
+    validator: "0x",
+    accountFactory: "0x",
+    accountImplementation: "0x",
   },
   [zksyncInMemoryNode.id]: {
-    session: "0xa00e749EAC6d9C1b78b916ab69f2B7E5990Eea77",
-    accountFactory: "0xa00e749EAC6d9C1b78b916ab69f2B7E5990Eea77",
+    session: "0xA341f3dcF0135E9482b9542FEe1f51b33d9a537f",
+    validator: "0x71015aF046AFE1B29b25F1Fe1df40ca21814dBEE",
+    accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
+    accountImplementation: "0x160261f1819DbC1907ceC1427c80d3Bf8B16E92F",
   },
 };
 
 export const useClientStore = defineStore("client", () => {
-  /* const { subscribeOnAddressChange } = useAccountStore(); */
-  const { address } = storeToRefs(useAccountStore());
-  /* let client: ZksyncAccountSessionClient | undefined;
-
-  const createClient = async ({ chainId }: { chainId: number }) => {
-    if (!address.value) throw new Error("Address is not set");
-    const chain = supportedChains.find((chain) => chain.id === chainId);
-    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
-
-    client = createZksyncSessionClient({
-      address: address.value,
-      chain,
-      contracts,
-      sessionKey: undefined,
-      transport: http(),
-    });
-  }; */
+  const { address, username, passkey } = storeToRefs(useAccountStore());
 
   const getPublicClient = ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -67,12 +63,14 @@ export const useClientStore = defineStore("client", () => {
       which makes it use same packages from different folders
       types are too complex to compare so it fails
     */
-    const client = createZksyncSessionClient({
+    const client = createZksyncPasskeyClient({
       address: address.value,
+      credentialPublicKey: passkey.value!,
+      userName: username.value!,
+      userDisplayName: username.value!,
+      contracts,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       chain: chain as any,
-      contracts,
-      sessionKey: undefined,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       transport: http() as any,
     });
@@ -80,14 +78,24 @@ export const useClientStore = defineStore("client", () => {
     return client;
   };
 
-  /* subscribeOnAddressChange((newAddress) => {
-    if (!newAddress) return;
-    createClient();
-  });
-  if (address.value) createClient(); */
+  /* TODO: remove. Temp for local dev and debugging */
+  const getRichWalletClient = ({ chainId }: { chainId: SupportedChainId }) => {
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+
+    const richWalletClient = createWalletClient({
+      account: privateKeyToAccount("0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e"),
+      chain,
+      transport: http(),
+    })
+      .extend(publicActions)
+      .extend(walletActions);
+    return richWalletClient;
+  };
 
   return {
     getPublicClient,
     getClient,
+    getRichWalletClient,
   };
 });

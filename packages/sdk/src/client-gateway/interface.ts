@@ -1,11 +1,11 @@
-import { EventEmitter } from 'eventemitter3';
+import { EventEmitter } from "eventemitter3";
+import type { Address, Hash, RpcSchema as RpcSchemaGeneric } from "viem";
 
-import type { Method } from './method.js';
-import type { Address, Hash } from 'viem';
+import type { ExtractParams, ExtractReturnType, Method, RpcSchema } from "./rpc.js";
 
-export interface RequestArguments {
-  readonly method: Method | string;
-  readonly params?: readonly unknown[] | object;
+export interface RequestArguments<M extends Method<TSchema>, TSchema extends RpcSchemaGeneric = RpcSchema> {
+  readonly method: M;
+  readonly params?: ExtractParams<M, TSchema>;
 }
 
 export interface ProviderRpcError extends Error {
@@ -24,13 +24,13 @@ interface ProviderConnectInfo {
 }
 
 export interface ProviderInterface extends EventEmitter {
-  request<T>(args: RequestArguments): Promise<T>;
+  request<M extends Method>(args: RequestArguments<M>): Promise<ExtractReturnType<M>>;
   disconnect(): Promise<void>;
-  on(event: 'connect', listener: (info: ProviderConnectInfo) => void): this;
-  on(event: 'disconnect', listener: (error: ProviderRpcError) => void): this;
-  on(event: 'chainChanged', listener: (chainId: string) => void): this;
-  on(event: 'accountsChanged', listener: (accounts: string[]) => void): this;
-  on(event: 'message', listener: (message: ProviderMessage) => void): this;
+  on(event: "connect", listener: (info: ProviderConnectInfo) => void): this;
+  on(event: "disconnect", listener: (error: ProviderRpcError) => void): this;
+  on(event: "chainChanged", listener: (chainId: string) => void): this;
+  on(event: "accountsChanged", listener: (accounts: string[]) => void): this;
+  on(event: "message", listener: (message: ProviderMessage) => void): this;
 }
 
 export interface AppMetadata {
@@ -39,7 +39,7 @@ export interface AppMetadata {
 }
 
 export interface SessionPreferences {
-  validUntil: string; // ISO string
+  expiresAt: string; // ISO string
   spendLimit: { [tokenAddress: Address]: string }; // tokenAddress => amount
 }
 

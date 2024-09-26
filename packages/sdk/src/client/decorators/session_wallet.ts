@@ -1,12 +1,12 @@
-import { /* decodeFunctionData, erc20Abi, getAddress, */ type Account, type Chain, type Transport, type WalletActions } from 'viem'
-import { sendTransaction, signTransaction } from 'viem/zksync';
-import { deployContract, getAddresses, getChainId, prepareTransactionRequest, sendRawTransaction, signTypedData, signMessage, writeContract } from 'viem/actions';
+import { /* decodeFunctionData, erc20Abi, getAddress, */ type Account, type Chain, type Transport, type WalletActions } from "viem";
+import { deployContract, getAddresses, getChainId, prepareTransactionRequest, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
+import { sendTransaction, signTransaction } from "viem/zksync";
 
-import type { ClientWithZksyncAccountSessionData } from '../clients/session.js';
+import type { ClientWithZksyncAccountSessionData } from "../clients/session.js";
 /* import { getTokenSpendLimit } from '../actions/session.js'; */
 
 export type ZksyncAccountWalletActions<chain extends Chain, account extends Account> = Omit<
-  WalletActions<chain, account>, 'addChain' | 'getPermissions' | 'requestAddresses' | 'requestPermissions' | 'switchChain' | 'watchAsset'
+  WalletActions<chain, account>, "addChain" | "getPermissions" | "requestAddresses" | "requestPermissions" | "switchChain" | "watchAsset"
 >;
 
 export function zksyncAccountWalletActions<
@@ -36,10 +36,11 @@ export function zksyncAccountWalletActions<
       return await sendTransaction(client, tx);
     },
     signMessage: (args) => signMessage(client, args),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     signTransaction: (args) => signTransaction(client, args as any),
     signTypedData: (args) => signTypedData(client, args),
     writeContract: (args) => writeContract(client, args),
-  }
+  };
 }
 
 /* export class SpendLimitError extends Error {
@@ -74,7 +75,7 @@ const decodeERC20TransactionData = (transactionData: Hash) => {
   }
 }
 
-const getTotalFee = (fee: { 
+const getTotalFee = (fee: {
   gas?: bigint,
   gasPrice?: bigint,
   maxFeePerGas?: bigint,
@@ -160,7 +161,7 @@ const verifyTransactionData = async (
   }
 
   const tokenAddress = getAddress(transaction.to.toLowerCase());
-  
+
   // Verify transfer amount
   if (functionName === "transfer") {
     const [_to, _amount] = args;

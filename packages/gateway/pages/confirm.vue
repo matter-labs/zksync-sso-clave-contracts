@@ -11,11 +11,11 @@
         key="login"
       />
       <ViewsLoading
-        v-else-if="!appMeta || !request"
+        v-else-if="!appMeta || !hasRequests"
         key="loading"
       />
       <ViewsConnect
-        v-else-if="requestType === 'handshake'"
+        v-else-if="requestMethod === 'eth_requestAccounts'"
         key="connect"
       />
       <ViewsConfirmation
@@ -29,7 +29,7 @@
 <script lang="ts" setup>
 const { appMeta } = useAppMeta();
 const { isLoggedIn } = storeToRefs(useAccountStore());
-const { request, requestType } = storeToRefs(useRequestsStore());
+const { hasRequests, requestMethod } = storeToRefs(useRequestsStore());
 
 communicator.init();
 </script>

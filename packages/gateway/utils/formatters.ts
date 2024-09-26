@@ -66,3 +66,20 @@ export const formatTokenPrice = (amount: bigint, decimals: number, price: number
   const formattedTokenAmount = formatUnits(amount, decimals);
   return formatPricePretty(parseFloat(formattedTokenAmount) * price);
 };
+
+export const usernameToSalt = (username: string): Uint8Array => {
+  const encoder = new TextEncoder();
+  let encoded = encoder.encode(username);
+
+  if (encoded.length > 32) {
+    // Trim if longer than 32 bytes
+    encoded = encoded.slice(0, 32);
+  } else if (encoded.length < 32) {
+    // Pad with zeros if shorter than 32 bytes
+    const padded = new Uint8Array(32);
+    padded.set(encoded);
+    return padded;
+  }
+
+  return encoded;
+};

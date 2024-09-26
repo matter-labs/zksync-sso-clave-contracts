@@ -1,31 +1,30 @@
-import { hexToNumber, http, type Address, type Chain, type Hash, type Transport } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
+import { type Address, type Chain, type Hash, hexToNumber, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, type Transport } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 
-import type { HandshakeResponse, RPCRequestMessage, RPCResponseMessage, RPCResponseMessageSuccessful } from './message.js';
-import type { AppMetadata, RequestArguments, SessionPreferences, SessionData } from './interface.js';
-import type { Method } from './method.js';
-import type { Communicator } from '../communicator/index.js';
-import { StorageItem } from '../utils/storage.js';
-import { createZksyncSessionClient, type ZksyncAccountSessionClient } from '../client/index.js';
+import { createZksyncSessionClient, type ZksyncAccountSessionClient } from "../client/index.js";
+import type { Communicator } from "../communicator/index.js";
+import { StorageItem } from "../utils/storage.js";
+import type { AppMetadata, RequestArguments, SessionData, SessionPreferences } from "./interface.js";
+import type { ExtractParams, ExtractReturnType, GatewayRpcSchema, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
 
 type Account = {
   address: Address;
   activeChainId: Chain["id"];
   session?: SessionData | undefined;
-}
+};
 
 interface SignerInterface {
   accounts: Address[];
   chain: Chain;
   handshake(): Promise<Address[]>;
-  request<T>(request: RequestArguments): Promise<T>;
+  request<TMethod extends Method>(request: RequestArguments<TMethod>): Promise<ExtractReturnType<TMethod>>;
   disconnect: () => Promise<void>;
 }
 
 type UpdateListener = {
   onAccountsUpdate: (_: Address[]) => void;
   onChainUpdate: (_: number) => void;
-}
+};
 
 type SignerConstructorParams = {
   metadata: AppMetadata;
@@ -34,9 +33,9 @@ type SignerConstructorParams = {
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
   session?: () => SessionPreferences | Promise<SessionPreferences>;
-}
+};
 
-type ChainsInfo = HandshakeResponse["result"]["chainsInfo"];
+type ChainsInfo = ExtractReturnType<"eth_requestAccounts", GatewayRpcSchema>["chainsInfo"];
 
 export class Signer implements SignerInterface {
   private readonly metadata: AppMetadata;
@@ -47,11 +46,11 @@ export class Signer implements SignerInterface {
   private readonly sessionParameters?: () => SessionPreferences | Promise<SessionPreferences>;
 
   private _account: StorageItem<Account | null>;
-  private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey('chainsInfo'), []);
+  private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey("chainsInfo"), []);
   private walletClient: ZksyncAccountSessionClient | undefined;
 
   constructor({ metadata, communicator, updateListener, session, chains, transports }: SignerConstructorParams) {
-    if (!chains.length) throw new Error('At least one chain must be included in the config');
+    if (!chains.length) throw new Error("At least one chain must be included in the config");
 
     this.metadata = metadata;
     this.communicator = communicator;
@@ -60,7 +59,7 @@ export class Signer implements SignerInterface {
     this.chains = chains;
     this.transports = transports || {};
 
-    this._account = new StorageItem<Account | null>(StorageItem.scopedStorageKey('account'), null, {
+    this._account = new StorageItem<Account | null>(StorageItem.scopedStorageKey("account"), null, {
       onChange: (newValue) => {
         if (newValue) {
           this.updateListener.onAccountsUpdate([newValue.address]);
@@ -69,7 +68,7 @@ export class Signer implements SignerInterface {
         } else {
           this.updateListener.onAccountsUpdate([]);
         }
-      }
+      },
     });
     if (this.account) this.createWalletClient();
   }
@@ -77,30 +76,31 @@ export class Signer implements SignerInterface {
   private get account(): Account | null {
     const account = this._account.get();
     if (!account) return null;
-    const chain = this.chains.find(e => e.id === account.activeChainId);
+    const chain = this.chains.find((e) => e.id === account.activeChainId);
     return {
       ...account,
       activeChainId: chain?.id || this.chains[0]!.id,
-    }
+    };
   }
-  private get session() { return this.account?.session }
-  private get chainsInfo() { return this._chainsInfo.get() }
+
+  private get session() { return this.account?.session; }
+  private get chainsInfo() { return this._chainsInfo.get(); }
   private readonly clearState = () => {
     this._account.remove();
     this._chainsInfo.remove();
-  }
-  
-  public get accounts() { return this.account ? [this.account.address] : [] }
+  };
+
+  public get accounts() { return this.account ? [this.account.address] : []; }
   public get chain() {
     const chainId = this.account?.activeChainId || this.chains[0]!.id;
-    return this.chains.find(e => e.id === chainId)!;
+    return this.chains.find((e) => e.id === chainId)!;
   }
 
   createWalletClient() {
     const session = this.session;
     const chain = this.chain;
-    const chainInfo = this.chainsInfo.find(e => e.id === chain.id);
-    if (!session) throw new Error('Session is not set');
+    const chainInfo = this.chainsInfo.find((e) => e.id === chain.id);
+    if (!session) throw new Error("Session is not set");
     if (!chainInfo) throw new Error(`Chain info for ${chain} wasn't set during handshake`);
     this.walletClient = createZksyncSessionClient({
       address: privateKeyToAccount(session.sessionKey).address,
@@ -108,7 +108,7 @@ export class Signer implements SignerInterface {
       chain,
       transport: this.transports[chain.id] || http(),
       sessionKey: session.sessionKey,
-    }); 
+    });
   }
 
   async handshake(): Promise<Address[]> {
@@ -117,30 +117,30 @@ export class Signer implements SignerInterface {
       try {
         session = await this.sessionParameters();
       } catch (error) {
-        console.error('Failed to get session data. Proceeding connection with no session.', error);
+        console.error("Failed to get session data. Proceeding connection with no session.", error);
       }
     }
-    const responseMessage = await this.sendRpcRequest({
-      method: 'eth_requestAccounts',
+    const responseMessage = await this.sendRpcRequest<"eth_requestAccounts", GatewayRpcSchema>({
+      method: "eth_requestAccounts",
       params: {
         metadata: this.metadata,
         session,
       },
     });
-    const response = responseMessage.content as HandshakeResponse;
+    const handshakeData = responseMessage.content.result!;
 
+    this._chainsInfo.set(handshakeData.chainsInfo);
     this._account.set({
-      address: response.result.account.address,
-      activeChainId: response.result.account.activeChainId || this.chain.id,
-      session: response.result.account.session,
+      address: handshakeData.account.address,
+      activeChainId: handshakeData.account.activeChainId || this.chain.id,
+      session: handshakeData.account.session,
     });
-    this._chainsInfo.set(response.result.chainsInfo);
     return this.accounts;
   }
 
   switchChain(chainId: number): boolean {
     const chain = this.chains.find((chain) => chain.id === chainId);
-    const chainInfo = this.chainsInfo.find(e => e.id === chainId);
+    const chainInfo = this.chainsInfo.find((e) => e.id === chainId);
     if (!chainInfo) {
       console.error(`Chain ${chainId} is not supported or chain info was not set during handshake`);
       return false;
@@ -158,68 +158,74 @@ export class Signer implements SignerInterface {
     return true;
   }
 
-  async request<T>(request: RequestArguments): Promise<T> {
-    const localResult = await this.tryLocalHandling<T>(request);
+  async request<TMethod extends Method>(request: RequestArguments<TMethod>): Promise<ExtractReturnType<TMethod>> {
+    const localResult = await this.tryLocalHandling(request);
     if (localResult !== undefined) return localResult;
 
-    const response = await this.sendRpcRequest<T>(request);
-    return response.content.result;
+    const response = await this.sendRpcRequest(request);
+    return response.content.result as ExtractReturnType<TMethod>;
   }
 
   async disconnect() {
     this.clearState();
   }
 
-  private async tryLocalHandling<T>(request: RequestArguments): Promise<T | undefined> {
-    const params = request.params as any;
-    switch (request.method as Method) {
-      case 'eth_sendTransaction':
+  private async tryLocalHandling<TMethod extends Method>(request: RequestArguments<TMethod>): Promise<ExtractReturnType<TMethod> | undefined> {
+    switch (request.method) {
+      case "eth_sendTransaction": {
         if (!this.walletClient || !this.session) return undefined;
-        const res = await this.walletClient.sendTransaction(params[0]);
-        return res as T;
-
-      case 'wallet_switchEthereumChain': {
-        const chainId = params[0].chainId;
-        const switched = this.switchChain(typeof chainId === 'string' ? hexToNumber(chainId as Hash) : chainId);
-        // "return null if the request was successful"
-        // https://eips.ethereum.org/EIPS/eip-3326#wallet_switchethereumchain
-        return switched ? (null as T) : undefined;
+        const params = request.params as ExtractParams<"eth_sendTransaction">;
+        const transactionRequest = params[0];
+        const res = await this.walletClient.sendTransaction(transactionRequest as unknown as SendTransactionParameters);
+        return res as ExtractReturnType<TMethod>;
       }
-      case 'wallet_getCapabilities': {
-        const chainInfo = this.chainsInfo.find(e => e.id === this.chain.id);
-        if (!chainInfo) throw new Error('Chain info is not set');
-        return { [this.chain.id]: chainInfo.capabilities } as T;
+
+      case "wallet_switchEthereumChain": {
+        const params = request.params as ExtractParams<"wallet_switchEthereumChain">;
+        const chainId = params[0].chainId;
+        const switched = this.switchChain(typeof chainId === "string" ? hexToNumber(chainId as Hash) : chainId);
+        return switched ? (null as ExtractReturnType<TMethod>) : undefined;
+      }
+      case "wallet_getCapabilities": {
+        const chainInfo = this.chainsInfo.find((e) => e.id === this.chain.id);
+        if (!chainInfo) throw new Error("Chain info is not set");
+        return { [this.chain.id]: chainInfo.capabilities } as ExtractReturnType<TMethod>;
+      }
+      case "eth_accounts": {
+        return this.accounts as ExtractReturnType<TMethod>;
       }
       default:
         return undefined;
     }
   }
 
-  private async sendRpcRequest<T>(request: RequestArguments): Promise<RPCResponseMessageSuccessful<T>> {
-    // Open the popup before constructing the request message.
-    // This is to ensure that the popup is not blocked by some browsers (i.e. Safari)
+  private async sendRpcRequest<
+    TMethod extends Method<TSchema>,
+    TSchema extends RpcSchemaGeneric = RpcSchema,
+  >(request: RequestArguments<TMethod, TSchema>): Promise<RPCResponseMessage<ExtractReturnType<TMethod, TSchema>>> {
+    // Open popup immediately to make sure popup won't be blocked by Safari
     await this.communicator.ready();
 
-    const message = await this.createRequestMessage({
+    const message = this.createRequestMessage<TMethod, TSchema>({
       action: request,
       chainId: this.chain.id,
     });
+    const response: RPCResponseMessage<ExtractReturnType<TMethod, TSchema>>
+      = await this.communicator.postRequestAndWaitForResponse(message);
 
-    const response: RPCResponseMessage<T> = await this.communicator.postRequestAndWaitForResponse(message);
-    
     const content = response.content;
-    if ('error' in content) throw content.error;
-    
-    return response as RPCResponseMessageSuccessful<T>;
+    if ("error" in content) throw content.error;
+
+    return response;
   }
 
-  private async createRequestMessage<T>(
-    content: RPCRequestMessage<T>['content']
-  ): Promise<RPCRequestMessage<T>> {
+  private createRequestMessage<
+    TMethod extends Method<TSchema>,
+    TSchema extends RpcSchemaGeneric = RpcSchema,
+  >(content: RPCRequestMessage<TMethod, TSchema>["content"]): RPCRequestMessage<TMethod, TSchema> {
     return {
       id: crypto.randomUUID(),
       content,
-      timestamp: new Date(),
     };
   }
 }

@@ -105,16 +105,19 @@
 </template>
 
 <script lang="ts" setup>
-import { requestPasskeySignature } from "zksync-account/client";
+import { parseEther, toHex } from "viem";
+import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
+import { deployAccount, registerNewPasskey } from "zksync-account/client/actions";
 
 const { appMeta } = useAppMeta();
 const { login } = useAccountStore();
+const { getRichWalletClient } = useClientStore();
 const { requestChain } = storeToRefs(useRequestsStore());
 
 const screen = ref<"choose-auth-method" | "register" | "login">("choose-auth-method");
 const username = ref("");
 
-const { accountData, accountDataFetchInProgress, accountDataFetchError, fetchAccountData } = useFetchAccountData(
+const { accountData, accountDataFetchInProgress, accountDataFetchError/* , fetchAccountData */ } = useFetchAccountData(
   username,
   computed(() => requestChain.value!.id),
 );
@@ -133,23 +136,47 @@ const errorState = computed<"username-taken" | "account-not-found" | undefined>(
   return undefined;
 });
 const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
-  const signature = await requestPasskeySignature({
+  const { credentialPublicKey } = await registerNewPasskey({
     userName: username.value,
     userDisplayName: username.value,
   });
-  await fetchAccountData();
+
+  /* TODO: implement username check */
+  /* await fetchAccountData();
   if (accountData.value) {
     return; // username is taken
-  }
-  console.log(signature);
-  /* TODO: Deploy account here */
+  } */
+
+  const deployerClient = getRichWalletClient({ chainId: requestChain.value!.id });
+  const sessionKey = generatePrivateKey();
+  const sessionPublicKey = privateKeyToAddress(sessionKey);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { address } = await deployAccount(deployerClient as any, {
+    credentialPublicKey,
+    /* TODO: Remove spend limit, right now deployment fails without initial data */
+    initialSpendLimit: [
+      {
+        sessionPublicKey,
+        token: "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb",
+        amount: BigInt(100),
+      },
+    ],
+    contracts: contractsByChain[requestChain.value!.id],
+  });
+  await deployerClient.sendTransaction({
+    to: address,
+    value: parseEther("1"),
+  });
   login({
     username: username.value,
-    address: "0xa1cf087DB965Ab02Fb3CFaCe1f5c63935815f044",
+    address: address,
+    passkey: toHex(credentialPublicKey),
+    sessionKey,
   });
 });
 const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(async () => {
-  const signature = await requestPasskeySignature({
+  /* const signature = await requestPasskeySignature({
     userName: username.value,
     userDisplayName: username.value,
   });
@@ -165,7 +192,21 @@ const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(asyn
   login({
     username: username.value,
     address: accountData.value.address,
+  }); */
+
+  const credential = await navigator.credentials.get({
+    publicKey: {
+      challenge: new Uint8Array(32),
+      userVerification: "discouraged",
+    },
   });
+  if (!credential) throw new Error("No registered passkeys");
+
+  // eslint-disable-next-line no-console
+  console.log({ credential });
+  // eslint-disable-next-line no-console
+  console.log("Login not implemented yet");
+  /* TODO: find account by credential.id */
 });
 
 const mainButton = computed(() => {

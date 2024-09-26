@@ -1,4 +1,11 @@
-import type { Message } from "../client-gateway/message.js";
+import type { UUID } from "crypto";
+
+type MessageID = UUID;
+
+export interface Message {
+  id: MessageID;
+  requestId?: MessageID; // For responses
+}
 
 export interface Communicator {
   postMessage: (_: Message) => void;

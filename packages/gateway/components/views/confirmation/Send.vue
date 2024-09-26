@@ -25,7 +25,7 @@
       >
         <Web3Avatar
           :address="to"
-          class="w-4 h-4 rounded-full"
+          class="w-4 h-4 rounded-full flex-shrink-0"
         />
         <span class="font-medium">&nbsp;{{ shortenAddress(to) }}</span>
       </div>
@@ -71,7 +71,7 @@
 <script lang="ts" setup>
 import Web3Avatar from "web3-avatar-vue";
 import { formatUnits, type Hash } from "viem";
-import { type SerializedEthereumRpcError } from "zksync-account/errors";
+import type { SerializedEthereumRpcError } from "zksync-account/errors";
 
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();

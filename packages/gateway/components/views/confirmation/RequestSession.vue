@@ -94,11 +94,11 @@
 
 <script lang="ts" setup>
 import { useTimeAgo } from "@vueuse/core";
-import { type SessionPreferences, type SessionData } from "zksync-account";
-import { type HandshakeResponse } from "zksync-account/client-gateway";
-import { $fetch } from "ofetch";
+import type { SessionPreferences, SessionData } from "zksync-account";
+import type { GatewayRpcSchema, ExtractReturnType } from "zksync-account/client-gateway";
 import { formatUnits, getAddress, type Address } from "viem";
 import { ClockIcon, FingerPrintIcon } from "@heroicons/vue/24/outline";
+import { privateKeyToAddress } from "viem/accounts";
 
 const props = defineProps({
   session: {
@@ -109,33 +109,18 @@ const props = defineProps({
 
 const { appMeta, origin } = useAppMeta();
 const { respond, deny } = useRequestsStore();
-const { request, responseInProgress, requestChain } = storeToRefs(useRequestsStore());
+const { sessionKey } = storeToRefs(useAccountStore());
+const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
+const { fetchTokenInfo } = useTokenUtilities(computed(() => requestChain.value!.id));
 const { getClient } = useClientStore();
 
 const domain = computed(() => new URL(origin.value).host);
-const sessionExpiresIn = useTimeAgo(props.session.validUntil);
+const sessionExpiresIn = useTimeAgo(props.session.expiresAt);
 
 const { result: tokensList, inProgress: tokensLoading, execute: fetchTokens } = useAsync(async () => {
   const fetchSingleToken = async (tokenAddress: Address): Promise<Token> => {
     try {
-      const { result } = await $fetch<{
-        result: {
-          tokenName: string;
-          symbol: string;
-          tokenDecimal: string;
-          tokenPriceUSD: string;
-          iconURL: string;
-        }[];
-      }>(`${blockExplorerApiByChain[requestChain.value!.id]}?module=token&action=tokeninfo&contractaddress=${tokenAddress}`);
-      const tokenInfo = result[0];
-      return {
-        address: tokenAddress,
-        name: tokenInfo.tokenName,
-        symbol: tokenInfo.symbol,
-        decimals: parseInt(tokenInfo.tokenDecimal),
-        price: parseFloat(tokenInfo.tokenPriceUSD),
-        iconUrl: tokenInfo.iconURL,
-      };
+      return fetchTokenInfo(tokenAddress);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(`Failed to fetch token info for ${tokenAddress}`, error);
@@ -148,7 +133,7 @@ const { result: tokensList, inProgress: tokensLoading, execute: fetchTokens } = 
     }
   };
   const promises = Object.keys(props.session.spendLimit).map(async (tokenAddress) => fetchSingleToken(tokenAddress as Address));
-  if (!Object.keys(props.session.spendLimit).includes(BASE_TOKEN_ADDRESS)) {
+  if (!Object.keys(props.session.spendLimit).includes(BASE_TOKEN_ADDRESS)) { // Fetch base token info if not present
     promises.push(fetchSingleToken(BASE_TOKEN_ADDRESS));
   }
   return Object.fromEntries((await Promise.all(promises)).map((e) => [e.address, e]));
@@ -170,9 +155,9 @@ const totalUsd = computed(() => (spendLimitTokens.value || []).reduce((acc, item
 
 const confirmConnection = async () => {
   respond(async () => {
-    const client = getClient({ chainId: request.value!.request.chainId });
+    const client = getClient({ chainId: requestChain.value!.id });
     const sessionData: Omit<SessionData, "sessionKey"> = {
-      validUntil: props.session.validUntil,
+      expiresAt: props.session.expiresAt,
       spendLimit: props.session.spendLimit
         ? Object.fromEntries(Object.entries(props.session.spendLimit).map(
           ([tokenAddress, amount]) => [
@@ -182,37 +167,44 @@ const confirmConnection = async () => {
         ))
         : {},
     };
-    const session = await client.requestSession(sessionData);
-    const response: HandshakeResponse = {
-      result: {
-        account: {
-          address: client.account.address,
-          activeChainId: client.chain.id,
-          session: {
-            ...sessionData,
-            sessionKey: session.sessionKey,
+    /* TODO: this shouldn't pass a single token */
+    const firstToken = {
+      address: Object.keys(sessionData.spendLimit)[0] as Address,
+      amount: Object.values(sessionData.spendLimit)[0],
+    };
+    const _session = await client.addSessionKey({
+      sessionPublicKey: privateKeyToAddress(sessionKey.value!),
+      token: firstToken.address,
+      expiresAt: new Date(sessionData.expiresAt),
+    });
+    const response: ExtractReturnType<"eth_requestAccounts", GatewayRpcSchema> = {
+      account: {
+        address: client.account.address,
+        activeChainId: client.chain.id,
+        session: {
+          ...sessionData,
+          sessionKey: sessionKey.value!,
+        },
+      },
+      chainsInfo: supportedChains.map((chain) => ({
+        id: chain.id,
+        capabilities: {
+          paymasterService: {
+            supported: true,
+          },
+          atomicBatch: {
+            supported: true,
+          },
+          auxiliaryFunds: {
+            supported: true,
           },
         },
-        chainsInfo: supportedChains.map((chain) => ({
-          id: chain.id,
-          capabilities: {
-            paymasterService: {
-              supported: true,
-            },
-            atomicBatch: {
-              supported: true,
-            },
-            auxiliaryFunds: {
-              supported: true,
-            },
-          },
-          contracts: {
-            session: "0xa1cf087DB965Ab02Fb3CFaCe1f5c63935815f044",
-          },
-        })),
-      },
+        contracts: contractsByChain[chain.id],
+      })),
     };
-    return response;
+    return {
+      result: response,
+    };
   });
 };
 

@@ -4,7 +4,7 @@
       <span class="text-neutral-400">{{ message }}&nbsp;</span>
       <Web3Avatar
         :address="address!"
-        class="w-4 h-4 rounded-full"
+        class="w-4 h-4 rounded-full flex-shrink-0"
       />
       <span
         class="font-medium"

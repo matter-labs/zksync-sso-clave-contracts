@@ -1,20 +1,19 @@
-import { EventEmitter } from 'eventemitter3';
+import { EventEmitter } from "eventemitter3";
+import type { Address, Chain, Transport } from "viem";
+import { toHex } from "viem";
 
-import { standardErrorCodes, standardErrors } from '../errors/index.js';
-import { serializeError } from '../errors/serialize.js';
+import { PopupCommunicator } from "../communicator/PopupCommunicator.js";
+import { serializeError, standardErrors } from "../errors/index.js";
 import type {
   AppMetadata,
   ProviderInterface,
   RequestArguments,
   SessionPreferences,
-} from './interface.js';
-import { checkErrorForInvalidRequestArgs, fetchRPCRequest } from '../utils/provider.js';
-import { PopupCommunicator } from '../communicator/PopupCommunicator.js';
-import { determineMethodCategory } from './method.js';
-import { Signer } from './Signer.js';
-import type { Address, Chain, Transport } from 'viem';
+} from "./interface.js";
+import { type ExtractReturnType, type Method } from "./rpc.js";
+import { Signer } from "./Signer.js";
 
-const DEFAULT_GATEWAY_URL = 'http://localhost:3002/confirm';
+const DEFAULT_GATEWAY_URL = "http://localhost:3002/confirm";
 
 export type WalletProviderConstructorOptions = {
   metadata: AppMetadata;
@@ -37,99 +36,74 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
       communicator: communicator,
       chains,
       transports,
-      session: typeof session === 'object' ? () => session : session,
+      session: typeof session === "object" ? () => session : session,
     });
   }
 
   protected get chain() {
     return this.signer.chain;
   }
+
   public get connected() {
     return this.signer.accounts.length > 0;
   }
 
-  public async request<T>(args: RequestArguments): Promise<T> {
+  public async request<M extends Method>(request: RequestArguments<M>): Promise<ExtractReturnType<M>> {
     try {
-      checkErrorForInvalidRequestArgs(args);
-      // unrecognized methods are treated as fetch requests
-      const category = determineMethodCategory(args.method) ?? 'fetch';
-      return this.handlers[category](args) as T;
+      switch (request.method) {
+        case "eth_requestAccounts": {
+          return await this.handshake() as ExtractReturnType<M>;
+        }
+        case "personal_sign":
+        case "eth_accounts":
+        case "eth_signTransaction":
+        case "eth_sendTransaction":
+        case "eth_signTypedData_v4":
+        case "wallet_addEthereumChain":
+        case "wallet_switchEthereumChain":
+        case "wallet_watchAsset":
+        case "wallet_getCapabilities":
+        case "wallet_sendCalls":
+        case "wallet_showCallsStatus": {
+          if (!this.connected) {
+            throw standardErrors.provider.unauthorized(
+              "Must call 'eth_requestAccounts' before other methods",
+            );
+          }
+          return await this.signer.request(request) as ExtractReturnType<M>;
+        }
+        case "eth_chainId":
+        case "net_version": {
+          return toHex(this.chain.id) as ExtractReturnType<M>;
+        }
+      }
+      throw standardErrors.rpc.methodNotSupported(`Method ${request.method} is not supported.`);
     } catch (error) {
-      this.handleUnauthorizedError(error);
-      return Promise.reject(serializeError(error, args.method));
+      return Promise.reject(serializeError(error, request.method));
     }
   }
 
-  protected readonly handlers = {
-    // eth_requestAccounts
-    handshake: async (_: RequestArguments): Promise<Address[]> => {
-      if (this.connected) {
-        this.emit('connect', { chainId: this.chain.id });
-        return this.signer.accounts;
-      }
-
-      const accounts = await this.signer.handshake();
-
-      this.emit('connect', { chainId: this.chain.id });
-      return accounts;
-    },
-
-    sign: async (request: RequestArguments) => {
-      if (!this.connected) {
-        throw standardErrors.provider.unauthorized(
-          "Must call 'eth_requestAccounts' before other methods"
-        );
-      }
-      return await this.signer.request(request);
-    },
-
-    fetch: (request: RequestArguments) => {
-      return fetchRPCRequest(request, this.chain.rpcUrls.default.http[0]!);
-    },
-
-    state: (request: RequestArguments) => {
-      const getConnectedAccounts = (): Address[] => {
-        if (this.connected) return this.signer.accounts;
-        throw standardErrors.provider.unauthorized(
-          "Must call 'eth_requestAccounts' before other methods"
-        );
-      };
-      switch (request.method) {
-        case 'eth_chainId':
-        case 'net_version':
-          return this.chain.id;
-        case 'eth_accounts':
-          return getConnectedAccounts();
-        default:
-          return this.handlers.unsupported(request);
-      }
-    },
-
-    deprecated: ({ method }: RequestArguments) => {
-      throw standardErrors.rpc.methodNotSupported(`Method ${method} is deprecated.`);
-    },
-
-    unsupported: ({ method }: RequestArguments) => {
-      throw standardErrors.rpc.methodNotSupported(`Method ${method} is not supported.`);
-    },
-  };
-
-  private handleUnauthorizedError(error: unknown) {
-    const e = error as { code?: number };
-    if (e.code === standardErrorCodes.provider.unauthorized) this.disconnect();
+  public async handshake(): Promise<Address[]> {
+    if (this.connected) {
+      this.emit("connect", { chainId: this.chain.id });
+      return this.signer.accounts;
+    }
+    const accounts = await this.signer.handshake();
+    this.emit("connect", { chainId: this.chain.id });
+    return accounts;
   }
 
   async disconnect(): Promise<void> {
     this.signer.disconnect();
-    this.emit('disconnect', standardErrors.provider.disconnected('User initiated disconnection'));
+    this.emit("disconnect", standardErrors.provider.disconnected("User initiated disconnection"));
   }
 
   protected readonly updateListener = {
     onAccountsUpdate: (accounts: Address[]) => {
-      this.emit('accountsChanged', accounts);
+      this.emit("accountsChanged", accounts);
     },
     onChainUpdate: (chainId: number) => {
-      this.emit('chainChanged', chainId);
+      this.emit("chainChanged", chainId);
     },
   };
 }
