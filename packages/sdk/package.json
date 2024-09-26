@@ -2,6 +2,9 @@
   "name": "zksync-account",
   "description": "ZKsync Smart Account SDK",
   "version": "0.0.0-development",
+  "publishConfig": {
+    "registry": "http://localhost:4873"
+  },
   "license": "MIT",
   "author": "Matter Labs",
   "repository": {
@@ -13,7 +16,8 @@
     "build:esm+types": "tsc --project tsconfig.build.json --outDir ./dist/esm --declaration --declarationMap --declarationDir ./dist/types",
     "build:cjs": "tsc --project tsconfig.build.cjs.json",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "publish:local": "pnpm publish --no-git-checks --force"
   },
   "peerDependencies": {
     "@simplewebauthn/browser": "10.x",
@@ -26,7 +30,10 @@
     }
   },
   "devDependencies": {
-    "@types/node": "^22.1.0"
+    "@simplewebauthn/types": "^10.0.0",
+    "@types/node": "^22.1.0",
+    "eventemitter3": "^5.0.1",
+    "viem": "^2.21.14"
   },
   "files": [
     "dist/**",
@@ -122,6 +129,7 @@
   "dependencies": {
     "@peculiar/asn1-ecc": "^2.3.13",
     "@peculiar/asn1-schema": "^2.3.13",
+    "abitype": "^1.0.6",
     "buffer": "^6.0.3",
     "cbor-web": "^9.0.2",
     "zksync-ethers": "^6.12.1"

@@ -1,22 +1,23 @@
 {
-    "recommendations": [
-        "bradlc.vscode-tailwindcss",
-        "christian-kohler.npm-intellisense",
-        "christian-kohler.path-intellisense",
-        "DavidAnson.vscode-markdownlint",
-        "bierner.markdown-preview-github-styles",
-        "stkb.rewrap",
-        "dbaeumer.vscode-eslint",
-        "editorconfig.editor",
-        "esbenp.prettier-vscode",
-        "mikestead.dotenv",
-        "nuxt.mdc",
-        "rvest.vs-code-prettier-eslint",
-        "simonsiefke.svg-preview",
-        "streetsidesoftware.code-spell-checker",
-        "vue.volar",
-        "yoavbls.pretty-ts-errors",
-        "antfu.vite"
-    ],
-    "unwantedRecommendations": ["vue.vscode-typescript-vue-plugin"]
+  "recommendations": [
+    "nrwl.angular-console",
+    "bradlc.vscode-tailwindcss",
+    "christian-kohler.npm-intellisense",
+    "christian-kohler.path-intellisense",
+    "DavidAnson.vscode-markdownlint",
+    "bierner.markdown-preview-github-styles",
+    "stkb.rewrap",
+    "dbaeumer.vscode-eslint",
+    "editorconfig.editor",
+    "esbenp.prettier-vscode",
+    "mikestead.dotenv",
+    "nuxt.mdc",
+    "rvest.vs-code-prettier-eslint",
+    "simonsiefke.svg-preview",
+    "streetsidesoftware.code-spell-checker",
+    "vue.volar",
+    "yoavbls.pretty-ts-errors",
+    "antfu.vite"
+  ],
+  "unwantedRecommendations": ["vue.vscode-typescript-vue-plugin"]
 }

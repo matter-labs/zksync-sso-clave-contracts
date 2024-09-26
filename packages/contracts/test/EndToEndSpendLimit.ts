@@ -13,6 +13,7 @@ import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { privateKeyToAccount } from "viem/accounts";
+import { HttpNetworkConfig } from "hardhat/types/config";
 
 export class ContractFixtures {
     // NOTE: CHANGING THE READONLY VALUES WILL REQUIRE UPDATING THE STATIC SIGNATURE
@@ -85,7 +86,7 @@ export class ContractFixtures {
     }
 }
 
-describe.only("Spend limit validation", function () {
+describe("Spend limit validation", function () {
     const fixtures = new ContractFixtures();
     const ethersResponse = new RecordedResponse("test/signed-challenge.json");
     const viemResponse = new RecordedResponse("test/signed-viem-challenge.json");
@@ -314,6 +315,7 @@ describe.only("Spend limit validation", function () {
             ...zksyncInMemoryNode,
             rpcUrls: {
                 default: {
+                  // @ts-ignore 
                     http: [hre.network.config.url], // Override if not using the default port
                 }
             }
@@ -384,7 +386,7 @@ describe.only("Spend limit validation", function () {
             ],
         } as any);
         const proxyAccountReceipt = await waitForTransactionReceipt(richWallet as any, { hash: proxyAccount });
-        const proxyAccountAddress = getAddress(proxyAccountReceipt.contractAddress);
+        const proxyAccountAddress = getAddress(proxyAccountReceipt.contractAddress!);
 
         assert.isDefined(proxyAccountAddress, "no address set");
         const chainResponse = await waitForTransactionReceipt(richWallet as any, {

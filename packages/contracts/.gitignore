@@ -109,3 +109,6 @@ dist
 
 # hardhat
 deployments-zk/
+
+# typechain
+typechain-types/

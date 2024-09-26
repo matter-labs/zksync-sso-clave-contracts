@@ -3,10 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
@@ -22,7 +18,8 @@
     "sass": "^1.77.6",
     "viem": "^2.19.2",
     "vue": "latest",
-    "web3-avatar-vue": "^1.0.4"
+    "web3-avatar-vue": "^1.0.4",
+    "zksync-account": "workspace:*"
   },
   "overrides": {
     "vue": "latest"

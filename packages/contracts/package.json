@@ -6,12 +6,9 @@
   "license": "MIT",
   "repository": "https://github.com/matter-labs/zk-account-sdk.git",
   "scripts": {
-    "build": "hardhat compile",
-    "clean": "hardhat clean",
-    "deployAccountFactory": "hardhat deploy-zksync --script deployAccountFactory.ts",
-    "deployFactoryAccount": "hardhat deploy-zksync --script deployFactoryAccount.ts",
-    "getAccount": "hardhat deploy-zksync --script getAccount.ts",
-    "test": "hardhat test"
+    "build": "nx exec -- hardhat compile",
+    "clean": "nx exec -- hardhat clean",
+    "test": "nx exec -- hardhat test"
   },
   "devDependencies": {
     "@ethersproject/contracts": "^5.7.0",
@@ -19,10 +16,14 @@
     "@hexagon/base64": "^1.1.28",
     "@levischuck/tiny-cbor": "^0.2.2",
     "@matterlabs/hardhat-zksync": "^1.1.0",
+    "@matterlabs/hardhat-zksync-deploy": "^1.5.0",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.7",
     "@nomicfoundation/hardhat-ethers": "^3.0.7",
+    "@nomicfoundation/hardhat-verify": "^2.0.11",
     "@peculiar/asn1-ecc": "^2.3.8",
     "@peculiar/asn1-schema": "^2.3.8",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
     "@types/chai": "^4.3.18",
     "@types/elliptic": "^6",
     "@types/ini": "^4.1.0",
@@ -35,18 +36,20 @@
     "ini": "^4.1.3",
     "mocha": "^10.7.3",
     "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
     "typescript": "^5.5.4",
     "zksync-ethers": "^6.11.2"
   },
   "dependencies": {
+    "@matterlabs/zksync-contracts": "^0.6.1",
     "@nomad-xyz/excessively-safe-call": "^0.0.1-rc.1",
-    "@openzeppelin/contracts": "4.9.6",
-    "@openzeppelin/contracts-upgradeable": "4.9",
+    "@openzeppelin/contracts": "^4.6.0",
+    "@openzeppelin/contracts-upgradeable": "^4.6.0",
     "cbor-web": "^9.0.2",
     "hardhat": "^2.22.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4",
     "viem": "^2.21.6",
-    "zksync-account": "file:../sdk"
+    "zksync-account": "workspace:*"
   }
 }

@@ -3,14 +3,14 @@
   "ignorePaths": [
     "*.css",
     "*.config.*",
-    "node_modules/**",
-    "dist/**",
+    "**/node_modules/**",
+    "**/dist/**",
     "cspell-config/**",
     "package.json",
     "package-lock.json",
     ".nx/**",
     ".husky/**",
-    ".nuxt/**"
+    "**/.nuxt/**"
   ],
   "caseSensitive": true,
   "dictionaries": [
@@ -32,7 +32,8 @@
     "softwareTerms",
     "typescript",
     "dict-zksync",
-    "dict-packages"
+    "dict-packages",
+    "dict-misc"
   ],
   "dictionaryDefinitions": [
     {
@@ -44,6 +45,11 @@
       "name": "dict-packages",
       "addWords": true,
       "path": "./cspell-config/cspell-packages.txt"
+    },
+    {
+      "name": "dict-misc",
+      "addWords": true,
+      "path": "./cspell-config/cspell-misc.txt"
     }
   ],
   "allowCompoundWords": true,

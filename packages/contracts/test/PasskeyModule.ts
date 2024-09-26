@@ -1,13 +1,14 @@
-import { Wallet, Provider } from "zksync-ethers";
+import { Wallet } from "zksync-ethers";
 import { Deployer } from '@matterlabs/hardhat-zksync-deploy';
 import { assert } from 'chai';
 import { decodePartialCBOR } from '@levischuck/tiny-cbor'
-import { fromArrayBuffer } from "@hexagon/base64"
+import { fromArrayBuffer, toArrayBuffer } from "@hexagon/base64"
 import { AsnParser } from '@peculiar/asn1-schema';
 import { ECDSASigValue } from '@peculiar/asn1-ecc';
-import { toArrayBuffer } from "@hexagon/base64";
 import { ethers } from "ethers"
 import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
+import * as hre from "hardhat";
+import { PasskeyValidator, PasskeyValidator__factory } from '../typechain-types';
 
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
@@ -34,12 +35,7 @@ async function deployValidator(
     );
 
     const validator = await deployer.deploy(passkeyValidatorArtifact, []);
-
-    return await hre.ethers.getContractAt(
-        'PasskeyValidator',
-        await validator.getAddress(),
-        wallet,
-    );
+    return PasskeyValidator__factory.connect(await validator.getAddress(), wallet);
 }
 
 /**
@@ -128,7 +124,7 @@ export function fromBuffer(
     return fromArrayBuffer(buffer, to === 'base64url');
 }
 
-async function getPublicKey(publicPasskey: Uint8Array) {
+async function getPublicKey(publicPasskey: Uint8Array): Promise<[string, string]> {
     const cosePublicKey = decodeFirst<Map<number, any>>(publicPasskey);
     console.log("decodeFirst", cosePublicKey)
     const alg = cosePublicKey.get(COSEKEYS.alg) as COSEALG;
@@ -162,10 +158,10 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
 
 /**
  * Return 2 32byte words for the R & S for the EC2 signature, 0 l-trimmed
- * @param signature 
+ * @param signature
  * @returns r & s bytes sequentially
  */
-export function unwrapEC2Signature(signature: Uint8Array): Uint8Array[] {
+export function unwrapEC2Signature(signature: Uint8Array): [Uint8Array, Uint8Array] {
     const parsedSignature = AsnParser.parse(signature, ECDSASigValue);
     let rBytes = new Uint8Array(parsedSignature.r);
     let sBytes = new Uint8Array(parsedSignature.s);

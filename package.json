@@ -1,33 +1,52 @@
 {
-    "name": "zksync-account-sdk",
-    "version": "1.0.0",
-    "description": "Account Abstraction tooling",
-    "type": "module",
-    "private": true,
-    "keywords": [
-        "zksync",
-        "account-abstraction",
-        "EIP7579"
-    ],
-    "author": "@matterlabs",
-    "license": "MIT",
-    "devDependencies": {
-        "@commitlint/cli": "^19.5.0",
-        "@commitlint/config-conventional": "^19.5.0",
-        "@eslint/js": "^9.10.0",
-        "@stylistic/eslint-plugin": "^2.8.0",
-        "cspell": "^8.14.4",
-        "eslint": "^9.10.0",
-        "eslint-plugin-simple-import-sort": "^12.1.1",
-        "globals": "^15.9.0",
-        "husky": "^9.1.6",
-        "lint-staged": "^15.2.10",
-        "markdownlint-cli2": "^0.14.0",
-        "nx": "^19.6.2",
-        "prettier": "^3.3.3",
-        "typescript-eslint": "^8.6.0"
-    },
-    "scripts": {
-        "prepare": "husky"
-    }
+  "name": "zksync-account-sdk",
+  "description": "Account Abstraction tooling",
+  "type": "module",
+  "private": true,
+  "author": "Matter Labs <zksync.io>",
+  "license": "MIT",
+  "keywords": [
+    "zksync",
+    "account-abstraction",
+    "EIP7579"
+  ],
+  "scripts": {
+    "prepare": "husky",
+    "build": "npx nx run-many -t build --all",
+    "lint": "npm run lint:eslint && npm run lint:markdown && npm run lint:spelling && npm run lint:prettier",
+    "lint:eslint": "npx nx run-many -t lint --all",
+    "lint:markdown": "markdownlint-cli2 '**/*.md'",
+    "lint:spelling": "cspell '**/*.md'",
+    "lint:prettier": "prettier --list-different .",
+    "registry": "npx nx local-registry"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
+    "@eslint/js": "^9.10.0",
+    "@nx/eslint": "19.8.0",
+    "@nx/js": "^19.8.0",
+    "@nx/nuxt": "19.8.0",
+    "@nx/vite": "19.8.0",
+    "@stylistic/eslint-plugin": "^2.8.0",
+    "@swc-node/register": "^1.10.9",
+    "@swc/core": "^1.7.26",
+    "cspell": "^8.14.4",
+    "eslint": "^9.10.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "globals": "^15.9.0",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "markdownlint-cli2": "^0.14.0",
+    "nuxt": "^3.10.0",
+    "nx": "19.8.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.6.0",
+    "verdaccio": "^5.0.4"
+  },
+  "nx": {
+    "includedScripts": []
+  },
+  "packageManager": "pnpm@9.11.0"
 }

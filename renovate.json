@@ -22,7 +22,7 @@
       "automergeType": "branch"
     },
     {
-      "extends": ["monorepo:vue", "monorepo:vueuse"],
+      "matchSourceUrls": ["monorepo:vue", "monorepo:vueuse", "monorepo:nuxtjs"],
       "groupName": "Vue"
     },
     {

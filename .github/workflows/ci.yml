@@ -22,51 +22,36 @@ jobs:
     - name: Era Test Node Action
       uses: dutterbutter/era-test-node-action@v1
 
-    # NPM install for contracts/gateway/sdk
-    - name: Use latest Node.js
+    # Setup pnpm
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9.11.0
+
+    - name: Use Node.js
       uses: actions/setup-node@v4
       with:
         node-version: lts/Iron
-        cache: 'npm'
-        cache-dependency-path: '**/package-lock.json'
-    - name: Install contracts dependencies
-      working-directory: ./packages/contracts
-      run: npm ci
-    - name: Install gateway dependencies
-      working-directory: ./packages/gateway
-      run: npm ci
-    - name: Install sdk dependencies
-      working-directory: ./packages/sdk
-      run: npm ci
-    
+        cache: 'pnpm'
+
+    # Install dependencies for contracts/gateway/sdk
+    - name: Install dependencies
+      run: pnpm install -r --frozen-lockfile
+
     # Build SDK
     - name: Build SDK
-      working-directory: ./packages/sdk
-      run: npm run build:cjs
+      run: pnpm nx build:cjs sdk
 
-    # Link SDK to other packages
-    - name: Link SDK to contracts
-      run: |
-        cd packages/sdk
-        npm link
-        cd ../contracts
-        npm link zksync-account
-    - name: Link SDK to gateway
-      run: |
-        cd packages/sdk
-        npm link
-        cd ../gateway
-        npm link zksync-account
+    # Build contracts and generate types
+    - name: Build contracts
+      run: pnpm nx build contracts
 
     # Start the Gateway
     - name: Run Gateway in the background
-      working-directory: ./packages/gateway
       run: |
-        npm run dev -- --port 3002 &
+        pnpm nx dev gateway --port 3002 &
         for attempt in {1..20}; do sleep 1; if (curl localhost:3002| head -n1 | grep -Ev 'Nuxt Dev server is starting...|Starting Nuxt...'); then echo ready; break; fi; echo waiting...; done
 
     # Run e2e tests
     - name: Run e2e test
-      working-directory: ./packages/contracts
-      run: npm run test
-
+      run: pnpm nx test contracts -- --typecheck

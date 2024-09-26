@@ -1,7 +1,6 @@
 // zkSync-related words
 !MatterLabs
 !zkSync
-!Zksync
 !ZkSync
 ZKsync
 zksync
