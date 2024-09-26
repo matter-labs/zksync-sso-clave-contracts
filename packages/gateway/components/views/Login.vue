@@ -176,24 +176,6 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
   });
 });
 const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(async () => {
-  /* const signature = await requestPasskeySignature({
-    userName: username.value,
-    userDisplayName: username.value,
-  });
-  await fetchAccountData();
-  if (!accountData.value) {
-    return; // account not found
-  }
-  const publicKey = Array.from(signature.passkeyPublicKey).join(",");
-  if (!accountData.value.passkeyPublicKeys.join(",").includes(publicKey)) {
-    passkeyError.value = "Make sure you are using the correct passkey.";
-    return;
-  }
-  login({
-    username: username.value,
-    address: accountData.value.address,
-  }); */
-
   const credential = await navigator.credentials.get({
     publicKey: {
       challenge: new Uint8Array(32),
