@@ -3,7 +3,6 @@ import { AsnParser } from "@peculiar/asn1-schema";
 import { bigintToBuf, bufToBigint } from "bigint-conversion";
 import { Buffer } from "buffer";
 import { decode } from "cbor-web";
-import { assert } from "console";
 import { type Address, encodeAbiParameters, toHex } from "viem";
 
 enum COSEKEYS {
@@ -42,8 +41,12 @@ export function unwrapEC2Signature(signature: Uint8Array): { r: Uint8Array; s: U
     sBytes = sBytes.slice(1);
   }
 
-  assert(rBytes.length === 32, "R length is not 32 bytes");
-  assert(sBytes.length === 32, "S length is not 32 bytes");
+  if (rBytes.length === 32) {
+    console.error("R length is not 32 bytes");
+  }
+  if (sBytes.length === 32) {
+    console.error("S length is not 32 bytes");
+  }
 
   return {
     r: rBytes,
