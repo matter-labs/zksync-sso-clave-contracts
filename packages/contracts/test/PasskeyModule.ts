@@ -1,11 +1,9 @@
 import { fromArrayBuffer, toArrayBuffer } from "@hexagon/base64";
 import { decodePartialCBOR } from "@levischuck/tiny-cbor";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
-import { ECDSASigValue } from "@peculiar/asn1-ecc";
-import { AsnParser } from "@peculiar/asn1-schema";
-import { bigintToBuf, bufToBigint } from "bigint-conversion";
 import { assert } from "chai";
 import * as hre from "hardhat";
+import { unwrapEC2Signature } from "zksync-account/utils";
 import { Wallet } from "zksync-ethers";
 
 import { PasskeyValidator, PasskeyValidator__factory } from "../typechain-types";
@@ -151,51 +149,6 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
 }
 
 /**
- * Return 2 32byte words for the R & S for the EC2 signature, 0 l-trimmed
- * @param signature
- * @returns r & s bytes sequentially
- */
-export function unwrapEC2Signature(signature: Uint8Array): [Uint8Array, Uint8Array] {
-  const parsedSignature = AsnParser.parse(signature, ECDSASigValue);
-  let rBytes = new Uint8Array(parsedSignature.r);
-  let sBytes = new Uint8Array(parsedSignature.s);
-
-  if (shouldRemoveLeadingZero(rBytes)) {
-    rBytes = rBytes.slice(1);
-  }
-
-  if (shouldRemoveLeadingZero(sBytes)) {
-    sBytes = sBytes.slice(1);
-  }
-
-  return [rBytes, normalizeS(sBytes)];
-}
-
-// normalize s (to prevent signature malleability)
-function normalizeS(sBuf: Uint8Array): Uint8Array {
-  const n = BigInt("0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551");
-  const halfN = n / BigInt(2);
-  const sNumber: bigint = bufToBigint(sBuf);
-
-  if (sNumber / halfN) {
-    return new Uint8Array(bigintToBuf(n - sNumber));
-  } else {
-    return sBuf;
-  }
-}
-
-/**
- * Determine if the DER-specific `00` byte at the start of an ECDSA signature byte sequence
- * should be removed based on the following logic:
- *
- * "If the leading byte is 0x0, and the the high order bit on the second byte is not set to 0,
- * then remove the leading 0x0 byte"
- */
-function shouldRemoveLeadingZero(bytes: Uint8Array): boolean {
-  return bytes[0] === 0x0 && (bytes[1] & (1 << 7)) !== 0;
-}
-
-/**
  * Returns hash digest of the given data, using the given algorithm when provided. Defaults to using
  * SHA-256.
  */
@@ -221,9 +174,9 @@ async function rawVerify(
   const rs = unwrapEC2Signature(toBuffer(b64SignedChallange));
   const publicKeys = await getPublicKey(publicKeyEs256Bytes);
   /* console.log("externalSignature", ethers.hexlify(hashedData));
-  console.log("rs", ethers.hexlify(rs[0]), ethers.hexlify(rs[1]));
+  console.log("rs", ethers.hexlify(rs.r), ethers.hexlify(rs.s));
   console.log("pubkey xy", publicKeys); */
-  return await passkeyValidator.rawVerify(hashedData, rs, publicKeys);
+  return await passkeyValidator.rawVerify(hashedData, [rs.r, rs.s], publicKeys);
 }
 
 describe("Passkey validation", function () {

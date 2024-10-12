@@ -3,6 +3,7 @@ import { AsnParser } from "@peculiar/asn1-schema";
 import { bigintToBuf, bufToBigint } from "bigint-conversion";
 import { Buffer } from "buffer";
 import { decode } from "cbor-web";
+import { assert } from "console";
 import { type Address, encodeAbiParameters, toHex } from "viem";
 
 enum COSEKEYS {
@@ -24,7 +25,7 @@ export const getPublicKeyBytesFromPasskeySignature = (publicPasskey: Uint8Array)
 };
 
 /**
- * Return 2 32byte words for the R & S for the EC2 signature, 0 l-trimmed
+ * Return 2 32byte words for the R & S for the EC2 signature
  * @param signature
  * @returns r & s bytes sequentially
  */
@@ -41,10 +42,24 @@ export function unwrapEC2Signature(signature: Uint8Array): { r: Uint8Array; s: U
     sBytes = sBytes.slice(1);
   }
 
+  assert(rBytes.length === 32, "R length is not 32 bytes");
+  assert(sBytes.length === 32, "S length is not 32 bytes");
+
   return {
     r: rBytes,
     s: normalizeS(sBytes),
   };
+}
+
+/**
+ * Determine if the DER-specific `00` byte at the start of an ECDSA signature byte sequence
+ * should be removed based on the following logic:
+ *
+ * "If the leading byte is 0x0, and the the high order bit on the second byte is not set to 0,
+ * then remove the leading 0x0 byte"
+ */
+function shouldRemoveLeadingZero(bytes: Uint8Array): boolean {
+  return bytes[0] === 0x0 && (bytes[1] & (1 << 7)) !== 0;
 }
 
 /**
@@ -73,17 +88,6 @@ export function normalizeS(sBuf: Uint8Array): Uint8Array {
   } else {
     return sBuf;
   }
-}
-
-/**
- * Determine if the DER-specific `00` byte at the start of an ECDSA signature byte sequence
- * should be removed based on the following logic:
- *
- * "If the leading byte is 0x0, and the the high order bit on the second byte is not set to 0,
- * then remove the leading 0x0 byte"
- */
-function shouldRemoveLeadingZero(bytes: Uint8Array): boolean {
-  return bytes[0] === 0x0 && (bytes[1] & (1 << 7)) !== 0;
 }
 
 /**
