@@ -54,9 +54,6 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
     // supportsSimulation: true,
     type: "zksync-account",
     async connect({ chainId } = {}) {
-      console.log("Connecting");
-      console.log("ChainId", chainId);
-      console.log("Config", config);
       try {
         const provider = await this.getProvider();
         console.log("Provider", provider);
@@ -65,7 +62,6 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
             method: "eth_requestAccounts",
           })) as string[]
         ).map((x) => getAddress(x));
-        console.log("Accounts", accounts);
 
         if (!accountsChanged) {
           accountsChanged = this.onAccountsChanged.bind(this);
