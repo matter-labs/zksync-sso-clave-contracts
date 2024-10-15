@@ -69,10 +69,8 @@ export const useClientStore = defineStore("client", () => {
       userName: username.value!,
       userDisplayName: username.value!,
       contracts,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      chain: chain as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      transport: http() as any,
+      chain: chain,
+      transport: http(),
     });
 
     return client;

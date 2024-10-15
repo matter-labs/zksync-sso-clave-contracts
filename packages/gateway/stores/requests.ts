@@ -21,7 +21,7 @@ export const useRequestsStore = defineStore("requests", () => {
       request.value = message;
     });
 
-  const { inProgress: responseInProgress, execute: respond } = useAsync(async (responder: () => RPCResponseMessage<ExtractReturnType<Method>>["content"] | Promise<RPCResponseMessage<ExtractReturnType<Method>>["content"]>) => {
+  const { inProgress: responseInProgress, execute: respond, error: responseError } = useAsync(async (responder: () => RPCResponseMessage<ExtractReturnType<Method>>["content"] | Promise<RPCResponseMessage<ExtractReturnType<Method>>["content"]>) => {
     if (!request.value) throw new Error("No request to confirm");
 
     communicator.postMessage({
@@ -40,6 +40,7 @@ export const useRequestsStore = defineStore("requests", () => {
     request: computed(() => request.value),
     hasRequests,
     responseInProgress,
+    responseError,
     requestChain,
     requestMethod,
     requestParams,
