@@ -45,6 +45,7 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
     }
     walletProvider = undefined;
   };
+  console.log("Created");
 
   return createConnector<Provider>((config) => ({
     icon: "https://zksync.io/favicon.ico",
@@ -53,13 +54,18 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
     // supportsSimulation: true,
     type: "zksync-account",
     async connect({ chainId } = {}) {
+      console.log("Connecting");
+      console.log("ChainId", chainId);
+      console.log("Config", config);
       try {
         const provider = await this.getProvider();
+        console.log("Provider", provider);
         const accounts = (
           (await provider.request({
             method: "eth_requestAccounts",
           })) as string[]
         ).map((x) => getAddress(x));
+        console.log("Accounts", accounts);
 
         if (!accountsChanged) {
           accountsChanged = this.onAccountsChanged.bind(this);

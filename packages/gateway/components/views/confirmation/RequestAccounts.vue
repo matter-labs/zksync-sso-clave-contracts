@@ -57,17 +57,42 @@
 <script lang="ts" setup>
 import Web3Avatar from "web3-avatar-vue";
 import { CheckIcon } from "@heroicons/vue/24/outline";
+import type { GatewayRpcSchema, ExtractReturnType } from "zksync-account/client-gateway";
 
 const { appMeta, domain } = useAppMeta();
 const { respond, deny } = useRequestsStore();
-const { responseInProgress } = storeToRefs(useRequestsStore());
+const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
 const { address } = storeToRefs(useAccountStore());
+const { getClient } = useClientStore();
 
 const confirmConnection = () => {
-  respond(() => ({
-    result: {
-      value: [address.value!],
-    },
-  }));
+  respond(async () => {
+    const client = getClient({ chainId: requestChain.value!.id });
+    const response: ExtractReturnType<"eth_requestAccounts", GatewayRpcSchema> = {
+      account: {
+        address: client.account.address,
+        activeChainId: client.chain.id,
+        session: undefined,
+      },
+      chainsInfo: supportedChains.map((chain) => ({
+        id: chain.id,
+        capabilities: {
+          paymasterService: {
+            supported: true,
+          },
+          atomicBatch: {
+            supported: true,
+          },
+          auxiliaryFunds: {
+            supported: true,
+          },
+        },
+        contracts: contractsByChain[chain.id],
+      })),
+    };
+    return {
+      result: response,
+    };
+  });
 };
 </script>

@@ -100,15 +100,18 @@ export class Signer implements SignerInterface {
     const chain = this.chain;
     const chainInfo = this.chainsInfo.find((e) => e.id === chain.id);
     if (!this.account) throw new Error("Account is not set");
-    if (!session) throw new Error("Session is not set");
     if (!chainInfo) throw new Error(`Chain info for ${chain} wasn't set during handshake`);
-    this.walletClient = createZksyncSessionClient({
-      address: this.account.address,
-      contracts: chainInfo.contracts,
-      chain,
-      transport: this.transports[chain.id] || http(),
-      sessionKey: session.sessionKey,
-    });
+    if (session) {
+      this.walletClient = createZksyncSessionClient({
+        address: this.account.address,
+        contracts: chainInfo.contracts,
+        chain,
+        transport: this.transports[chain.id] || http(),
+        sessionKey: session.sessionKey,
+      });
+    } else {
+      this.walletClient = undefined;
+    }
   }
 
   async handshake(): Promise<Address[]> {
