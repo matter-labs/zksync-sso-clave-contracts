@@ -7,7 +7,7 @@ import { SmartAccount, utils } from "zksync-ethers";
 import { ERC7579Account__factory } from "../typechain-types";
 import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
 import { ContractFixtures } from "./EndToEndSpendLimit";
-import { getProvider } from "./utils";
+import { create2, getProvider } from "./utils";
 
 describe("Basic tests", function () {
   const fixtures = new ContractFixtures();
@@ -92,7 +92,7 @@ describe("Basic tests", function () {
     expect(await provider.getBalance(target)).to.equal(value, "invalid final balance");
   });
 
-  it("should execute a multicall", async () => {
+  it("should execute a simple multicall", async () => {
     const smartAccount = new SmartAccount({
       address: proxyAccountAddress,
       secret: fixtures.wallet.privateKey,
@@ -138,5 +138,67 @@ describe("Basic tests", function () {
     expect(await provider.getBalance(proxyAccountAddress)).to.equal(balanceBefore - value * 2n - fee, "invalid final account balance");
     expect(await provider.getBalance(target1)).to.equal(value, "invalid final target balance");
     expect(await provider.getBalance(target2)).to.equal(value, "invalid final target balance");
+  });
+
+  it("should execute an approve+swap multicall", async () => {
+    const smartAccount = new SmartAccount({
+      address: proxyAccountAddress,
+      secret: fixtures.wallet.privateKey,
+    }, provider);
+
+    const tokenAContract = await create2("ERC20TestToken", fixtures.wallet, fixtures.ethersStaticSalt, ["TestTokenA", "AA"]);
+    const tokenBContract = await create2("ERC20TestToken", fixtures.wallet, fixtures.ethersStaticSalt, ["TestTokenB", "BB"]);
+    const swapContract = await create2("TokenSwap", fixtures.wallet, fixtures.ethersStaticSalt, [await tokenAContract.getAddress(), await tokenBContract.getAddress()]);
+    assert(await tokenAContract.balanceOf(proxyAccountAddress) == "0", "invalid initial token A balance");
+    assert(await tokenBContract.balanceOf(proxyAccountAddress) == "0", "invalid initial token B balance");
+
+    const TOKEN_A_INITIAL_AMOUNT = parseEther("100");
+    const EXPECTED_TOKEN_B_AMOUNT = TOKEN_A_INITIAL_AMOUNT * 2n;
+
+    /* Mint some A tokens for account */
+    await (await fixtures.wallet.sendTransaction({
+      to: await tokenAContract.getAddress(),
+      data: tokenAContract.interface.encodeFunctionData("mint", [proxyAccountAddress, TOKEN_A_INITIAL_AMOUNT]),
+    })).wait();
+    assert(await tokenAContract.balanceOf(proxyAccountAddress) == TOKEN_A_INITIAL_AMOUNT, "invalid after mint token balance of swap contract");
+
+    /* Mint tokens B tokens for swap contract */
+    await (await fixtures.wallet.sendTransaction({
+      to: await tokenBContract.getAddress(),
+      data: tokenBContract.interface.encodeFunctionData("mint", [await swapContract.getAddress(), EXPECTED_TOKEN_B_AMOUNT]),
+    })).wait();
+    assert(await tokenBContract.balanceOf(await swapContract.getAddress()) == EXPECTED_TOKEN_B_AMOUNT, "invalid after mint token balance of swap contract");
+
+    const calls: CallStruct[] = [
+      /* Approve allowance */
+      {
+        target: await tokenAContract.getAddress(),
+        value: 0n,
+        callData: tokenAContract.interface.encodeFunctionData("approve", [await swapContract.getAddress(), TOKEN_A_INITIAL_AMOUNT]),
+        allowFailure: false,
+      },
+      /* Swap */
+      {
+        target: await swapContract.getAddress(),
+        value: 0n,
+        callData: swapContract.interface.encodeFunctionData("swap", [TOKEN_A_INITIAL_AMOUNT]),
+        allowFailure: false,
+      },
+    ];
+
+    const account = ERC7579Account__factory.connect(proxyAccountAddress, provider);
+    const aaTx = {
+      ...await aaTxTemplate(),
+      to: await account.BATCH_CALLER(),
+      data: account.interface.encodeFunctionData("batchCall", [calls]),
+    };
+    aaTx.gasLimit = await provider.estimateGas(aaTx);
+
+    const signedTransaction = await smartAccount.signTransaction(aaTx);
+    assert(signedTransaction != null, "valid transaction to sign");
+
+    await (await provider.broadcastTransaction(signedTransaction)).wait();
+    assert(await tokenAContract.balanceOf(proxyAccountAddress) == 0n, "invalid after swap token A balance of smart account");
+    assert(await tokenBContract.balanceOf(proxyAccountAddress) == EXPECTED_TOKEN_B_AMOUNT, "invalid after swap token B balance of smart account");
   });
 });
