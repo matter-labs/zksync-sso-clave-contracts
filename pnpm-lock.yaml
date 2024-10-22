@@ -138,7 +138,7 @@ importers:
         version: 1.5.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.13.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@nomicfoundation/hardhat-chai-matchers':
         specifier: 2.0.8
-        version: 2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(chai@4.5.0)(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
+        version: 2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(chai@5.1.1)(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-ethers':
         specifier: 3.0.8
         version: 3.0.8(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
@@ -158,8 +158,8 @@ importers:
         specifier: 9.1.0
         version: 9.1.0(@typechain/ethers-v6@0.5.1(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typechain@8.3.2(typescript@5.6.2))(typescript@5.6.2))(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(typechain@8.3.2(typescript@5.6.2))
       '@types/chai':
-        specifier: 4.3.20
-        version: 4.3.20
+        specifier: 5.0.0
+        version: 5.0.0
       '@types/elliptic':
         specifier: 6.4.18
         version: 6.4.18
@@ -173,8 +173,8 @@ importers:
         specifier: 20.16.10
         version: 20.16.10
       chai:
-        specifier: 4.5.0
-        version: 4.5.0
+        specifier: 5.1.1
+        version: 5.1.1
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
@@ -3657,8 +3657,8 @@ packages:
   '@types/chai-as-promised@7.1.8':
     resolution: {integrity: sha512-ThlRVIJhr69FLlh6IctTXFkmhtP3NpMZ2QGq69StYLyKZFp/HOp1VdKZj7RvfNWYYcJ1xlbLGLLWj1UvP5u/Gw==}
 
-  '@types/chai@4.3.20':
-    resolution: {integrity: sha512-/pC9HAB5I/xMlc5FP77qjCnI16ChlJfW0tGa0IUcFn38VJrTV6DeZ60NU5KZBtaOZqjdpwTWohz5HU1RrhiYxQ==}
+  '@types/chai@5.0.0':
+    resolution: {integrity: sha512-+DwhEHAaFPPdJ2ral3kNHFQXnTfscEEFsUxzD+d7nlcLrFK23JtNjH71RGasTcHb88b4vVi4mTyfpf8u2L8bdA==}
 
   '@types/conventional-commits-parser@5.0.0':
     resolution: {integrity: sha512-loB369iXNmAZglwWATL+WRe+CRMmmBPtpolYzIebFaX4YA3x+BEfLqhUAV9WanycKI3TG1IMr5bMJDajDKLlUQ==}
@@ -4355,6 +4355,7 @@ packages:
 
   '@web3modal/wagmi@5.1.11':
     resolution: {integrity: sha512-etV1qfBVvh41EMuBHXUpcO/W818jZVNh5/l9Z5kqRPZxlQmBaJbt5mTzw6nw/Lujoe1yYKugGQFhgjfEQK+eyA==}
+    deprecated: Web3Modal is now Reown AppKit. Please follow the upgrade guide at https://docs.reown.com/appkit/upgrade/from-w3m-to-reown
     peerDependencies:
       '@wagmi/connectors': '>=4'
       '@wagmi/core': '>=2.0.0'
@@ -5756,6 +5757,7 @@ packages:
 
   eciesjs@0.3.20:
     resolution: {integrity: sha512-Rz5AB8v9+xmMdS/R7RzWPe/R8DP5QfyrkA6ce4umJopoB5su2H2aDy/GcgIfwhmCwxnBkqGf/PbGzmKcGtIgGA==}
+    deprecated: Please upgrade to v0.4+
 
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
@@ -13056,12 +13058,12 @@ snapshots:
       '@nomicfoundation/ethereumjs-rlp': 5.0.4
       ethereum-cryptography: 0.1.3
 
-  '@nomicfoundation/hardhat-chai-matchers@2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(chai@4.5.0)(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))':
+  '@nomicfoundation/hardhat-chai-matchers@2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(chai@5.1.1)(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))':
     dependencies:
       '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@types/chai-as-promised': 7.1.8
-      chai: 4.5.0
-      chai-as-promised: 7.1.2(chai@4.5.0)
+      chai: 5.1.1
+      chai-as-promised: 7.1.2(chai@5.1.1)
       deep-eql: 4.1.4
       ethers: 6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       hardhat: 2.22.12(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
@@ -15046,9 +15048,9 @@ snapshots:
 
   '@types/chai-as-promised@7.1.8':
     dependencies:
-      '@types/chai': 4.3.20
+      '@types/chai': 5.0.0
 
-  '@types/chai@4.3.20': {}
+  '@types/chai@5.0.0': {}
 
   '@types/conventional-commits-parser@5.0.0':
     dependencies:
@@ -17343,9 +17345,9 @@ snapshots:
     dependencies:
       nofilter: 3.1.0
 
-  chai-as-promised@7.1.2(chai@4.5.0):
+  chai-as-promised@7.1.2(chai@5.1.1):
     dependencies:
-      chai: 4.5.0
+      chai: 5.1.1
       check-error: 1.0.3
 
   chai@4.5.0:
@@ -20963,7 +20965,7 @@ snapshots:
       vue: 3.5.8(typescript@5.6.2)
       vue-bundle-renderer: 2.1.0
       vue-devtools-stub: 0.1.0
-      vue-router: 4.4.5(vue@3.5.8(typescript@5.6.2))
+      vue-router: 4.4.5(vue@3.5.11(typescript@5.6.2))
     optionalDependencies:
       '@parcel/watcher': 2.4.1
       '@types/node': 22.7.5
@@ -23196,7 +23198,7 @@ snapshots:
       unplugin: 1.14.1
       yaml: 2.5.1
     optionalDependencies:
-      vue-router: 4.4.5(vue@3.5.8(typescript@5.6.2))
+      vue-router: 4.4.5(vue@3.5.11(typescript@5.6.2))
     transitivePeerDependencies:
       - rollup
       - vue
@@ -23620,10 +23622,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vue-router@4.4.5(vue@3.5.8(typescript@5.6.2)):
+  vue-router@4.4.5(vue@3.5.11(typescript@5.6.2)):
     dependencies:
       '@vue/devtools-api': 6.6.4
-      vue: 3.5.8(typescript@5.6.2)
+      vue: 3.5.11(typescript@5.6.2)
 
   vue@3.5.11(typescript@5.6.2):
     dependencies:
