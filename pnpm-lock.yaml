@@ -125,8 +125,8 @@ importers:
         specifier: 5.7.2
         version: 5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       '@hexagon/base64':
-        specifier: 1.1.28
-        version: 1.1.28
+        specifier: 2.0.3
+        version: 2.0.3
       '@levischuck/tiny-cbor':
         specifier: 0.2.2
         version: 0.2.2
@@ -2081,6 +2081,9 @@ packages:
 
   '@hexagon/base64@1.1.28':
     resolution: {integrity: sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw==}
+
+  '@hexagon/base64@2.0.3':
+    resolution: {integrity: sha512-ZtQDPh0m9MXHK241Cutx4low/WwqtPr0fPeUsXTAEX5Nocrdk6oB9TvyUF9SePrZYkeTL4gFrd+ceMHVb/zC8A==}
 
   '@humanwhocodes/module-importer@1.0.1':
     resolution: {integrity: sha512-bxveV4V8v5Yb4ncFTT3rPSgZBOpCkjfK0y4oVVVJwIuDVBRMDXrPyXRL988i5ap9m9bnyEEjWfm5WkBmtffLfA==}
@@ -4355,6 +4358,7 @@ packages:
 
   '@web3modal/wagmi@5.1.11':
     resolution: {integrity: sha512-etV1qfBVvh41EMuBHXUpcO/W818jZVNh5/l9Z5kqRPZxlQmBaJbt5mTzw6nw/Lujoe1yYKugGQFhgjfEQK+eyA==}
+    deprecated: Web3Modal is now Reown AppKit. Please follow the upgrade guide at https://docs.reown.com/appkit/upgrade/from-w3m-to-reown
     peerDependencies:
       '@wagmi/connectors': '>=4'
       '@wagmi/core': '>=2.0.0'
@@ -5756,6 +5760,7 @@ packages:
 
   eciesjs@0.3.20:
     resolution: {integrity: sha512-Rz5AB8v9+xmMdS/R7RzWPe/R8DP5QfyrkA6ce4umJopoB5su2H2aDy/GcgIfwhmCwxnBkqGf/PbGzmKcGtIgGA==}
+    deprecated: Please upgrade to v0.4+
 
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
@@ -12431,6 +12436,8 @@ snapshots:
       vue: 3.5.12(typescript@5.6.2)
 
   '@hexagon/base64@1.1.28': {}
+
+  '@hexagon/base64@2.0.3': {}
 
   '@humanwhocodes/module-importer@1.0.1': {}
 
@@ -20963,7 +20970,7 @@ snapshots:
       vue: 3.5.8(typescript@5.6.2)
       vue-bundle-renderer: 2.1.0
       vue-devtools-stub: 0.1.0
-      vue-router: 4.4.5(vue@3.5.8(typescript@5.6.2))
+      vue-router: 4.4.5(vue@3.5.11(typescript@5.6.2))
     optionalDependencies:
       '@parcel/watcher': 2.4.1
       '@types/node': 22.7.5
@@ -23196,7 +23203,7 @@ snapshots:
       unplugin: 1.14.1
       yaml: 2.5.1
     optionalDependencies:
-      vue-router: 4.4.5(vue@3.5.8(typescript@5.6.2))
+      vue-router: 4.4.5(vue@3.5.11(typescript@5.6.2))
     transitivePeerDependencies:
       - rollup
       - vue
@@ -23620,10 +23627,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vue-router@4.4.5(vue@3.5.8(typescript@5.6.2)):
+  vue-router@4.4.5(vue@3.5.11(typescript@5.6.2)):
     dependencies:
       '@vue/devtools-api': 6.6.4
-      vue: 3.5.8(typescript@5.6.2)
+      vue: 3.5.11(typescript@5.6.2)
 
   vue@3.5.11(typescript@5.6.2):
     dependencies:

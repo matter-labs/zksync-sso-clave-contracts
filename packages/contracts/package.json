@@ -8,7 +8,7 @@
   "devDependencies": {
     "@ethersproject/contracts": "5.7.0",
     "@ethersproject/providers": "5.7.2",
-    "@hexagon/base64": "1.1.28",
+    "@hexagon/base64": "2.0.3",
     "@levischuck/tiny-cbor": "0.2.2",
     "@matterlabs/hardhat-zksync": "1.2.0",
     "@matterlabs/hardhat-zksync-deploy": "1.5.0",
