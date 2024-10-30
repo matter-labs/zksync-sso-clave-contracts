@@ -13,7 +13,7 @@
     "@nuxtjs/tailwindcss": "^6.12.0",
     "@pinia/nuxt": "^0.5.5",
     "@simplewebauthn/browser": "^10.0.0",
-    "@simplewebauthn/server": "^10.0.1",
+    "@simplewebauthn/server": "^11.0.0",
     "@simplewebauthn/types": "^10.0.0",
     "@vueuse/core": "^11.0.0",
     "@vueuse/nuxt": "^11.1.0",

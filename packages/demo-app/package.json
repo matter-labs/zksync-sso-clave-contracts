@@ -10,7 +10,7 @@
     "@nuxtjs/google-fonts": "^3.2.0",
     "@pinia/nuxt": "^0.5.5",
     "@simplewebauthn/browser": "^10.0.0",
-    "@simplewebauthn/server": "^10.0.1",
+    "@simplewebauthn/server": "^11.0.0",
     "@simplewebauthn/types": "^10.0.0",
     "@wagmi/core": "^2.13.3",
     "@web3modal/wagmi": "^5.1.11",
