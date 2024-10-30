@@ -14,7 +14,7 @@
     "@pinia/nuxt": "^0.5.5",
     "@simplewebauthn/browser": "^10.0.0",
     "@simplewebauthn/server": "^10.0.1",
-    "@simplewebauthn/types": "^10.0.0",
+    "@simplewebauthn/types": "^11.0.0",
     "@vueuse/core": "^11.0.0",
     "@vueuse/nuxt": "^11.1.0",
     "cbor-web": "^9.0.2",
