@@ -22,7 +22,7 @@
     "publish:local": "pnpm publish --no-git-checks --force"
   },
   "peerDependencies": {
-    "@simplewebauthn/browser": "10.x",
+    "@simplewebauthn/browser": "10.x || 11.x",
     "@simplewebauthn/server": "10.x",
     "@wagmi/core": "2.x"
   },

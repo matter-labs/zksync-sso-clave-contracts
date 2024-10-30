@@ -31,7 +31,7 @@
     "@nx/js": "19.8.2",
     "@nx/nuxt": "19.8.0",
     "@nx/vite": "19.8.0",
-    "@simplewebauthn/browser": "^10.0.0",
+    "@simplewebauthn/browser": "^11.0.0",
     "@simplewebauthn/server": "^10.0.1",
     "@simplewebauthn/types": "^10.0.0",
     "@stylistic/eslint-plugin": "2.8.0",
