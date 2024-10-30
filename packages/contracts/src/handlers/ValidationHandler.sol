@@ -9,7 +9,7 @@ import { ValidatorManager } from "../managers/ValidatorManager.sol";
 import { IK1Validator, IR1Validator } from "../interfaces/IValidator.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /**
  * @title ValidationHandler
@@ -47,7 +47,7 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
         return true;
       }
     } else if (_isModuleValidator(validator)) {
-      console.log("_isModuleValidator");
+      // console.log("_isModuleValidator");
       return IModuleValidator(validator).handleValidation(signedHash, signature);
     }
 

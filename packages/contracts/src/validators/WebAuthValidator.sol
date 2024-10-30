@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import "./PasskeyValidator.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /**
  * @title validator contract for passkey r1 signatures
@@ -30,8 +30,8 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
 
     for (uint256 validationKeyIndex = 0; validationKeyIndex < validationKeys.length; validationKeyIndex++) {
       // Printing this hash makes capturing this for a replay test easier
-      console.log("signed hash");
-      console.logBytes32(signedHash);
+      // console.log("signed hash");
+      // console.logBytes32(signedHash);
       AttestationPasskey memory attestationPasskey = validationKeys[validationKeyIndex];
 
       bool _success = webAuthVerify(signedHash, signature, attestationPasskey);
@@ -53,17 +53,17 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
       fatSignature
     );
 
-    console.log("clientDataJSON");
-    console.logString(clientDataJSON);
+    // console.log("clientDataJSON");
+    // console.logString(clientDataJSON);
     // malleability check
     if (rs[1] > lowSmax) {
-      console.log("malleability check failed");
+      // console.log("malleability check failed");
       return false;
     }
 
     // check if the flags are set
     if (authenticatorData[32] & AUTH_DATA_MASK != AUTH_DATA_MASK) {
-      console.log("auth data mask failed");
+      // console.log("auth data mask failed");
       return false;
     }
 
@@ -71,8 +71,8 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
     // TODO: test if the parse fails for more than 10 elements, otherwise can have a malicious header
     (uint returnValue, JsmnSolLib.Token[] memory tokens, uint actualNum) = JsmnSolLib.parse(clientDataJSON, 20);
     if (returnValue != 0) {
-      console.log("failed to parse json");
-      console.logUint(returnValue);
+      // console.log("failed to parse json");
+      // console.logUint(returnValue);
       return false;
     }
 
@@ -91,51 +91,51 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
           string memory challengeValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
           // this should only be set once, otherwise this is an error
           if (validChallenge) {
-            console.log("duplicate challenge, bad json!");
+            // console.log("duplicate challenge, bad json!");
             return false;
           }
           // this is the key part to ensure the signature is for the provided transaction
           bytes memory challengeDataArray = Base64.decode(challengeValue);
           if (challengeDataArray.length != 32) {
             // wrong hash size
-            console.log("invalid hash data length in json challenge field");
+            // console.log("invalid hash data length in json challenge field");
             return false;
           }
           bytes32 challengeData = abi.decode(challengeDataArray, (bytes32));
 
           validChallenge = challengeData == transactionHash;
-          console.log("validChallenge");
-          console.logBool(validChallenge);
+          // console.log("validChallenge");
+          // console.logBool(validChallenge);
         } else if (Strings.equal(keyOrValue, "type")) {
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory typeValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
           // this should only be set once, otherwise this is an error
           if (validType) {
-            console.log("duplicate type field, bad json");
+            // console.log("duplicate type field, bad json");
             return false;
           }
           validType = Strings.equal("webauthn.get", typeValue);
-          console.log("valid type");
-          console.logBool(validType);
+          // console.log("valid type");
+          // console.logBool(validType);
         } else if (Strings.equal(keyOrValue, "origin")) {
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory originValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
           // this should only be set once, otherwise this is an error
           if (validOrigin) {
-            console.log("duplicate origin field, bad json");
+            // console.log("duplicate origin field, bad json");
             return false;
           }
-          console.logString(attestationPasskey.originDomain);
+          // console.logString(attestationPasskey.originDomain);
           validOrigin = Strings.equal(attestationPasskey.originDomain, originValue);
-          console.log("valid origin");
-          console.logBool(validOrigin);
+          // console.log("valid origin");
+          // console.logBool(validOrigin);
         }
         // TODO: check 'cross-origin' keys as part of signature
       }
     }
 
     if (!validChallenge || !validType) {
-      console.log("invalid challenge or type");
+      // console.log("invalid challenge or type");
       return false;
     }
 

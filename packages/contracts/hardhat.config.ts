@@ -9,7 +9,7 @@ const config: HardhatUserConfig = {
     sources: "src",
     deployPaths: "scripts",
   },
-  defaultNetwork: "inMemoryNode",
+  defaultNetwork: "interop1",
   networks: {
     zkSyncSepoliaTestnet: {
       url: "https://sepolia.era.zksync.dev",
@@ -31,6 +31,11 @@ const config: HardhatUserConfig = {
     inMemoryNode: {
       url: "http://127.0.0.1:8011",
       ethNetwork: "localhost", // in-memory node doesn't support eth node; removing this line will cause an error
+      zksync: true,
+    },
+    interop1: {
+      url: "https://zksync-interop.com/chain-1",
+      ethNetwork: "https://zksync-interop.com/l1",
       zksync: true,
     },
     hardhat: {

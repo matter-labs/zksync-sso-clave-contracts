@@ -24,6 +24,7 @@ export type DeployAccountArgs = {
     expiresAt: string; // ISO string
     spendLimit: { [tokenAddress: Address]: string }; // tokenAddress => amount
   }[];
+  eoaOwners?: Address[]; // EOA owners
   onTransactionSent?: (hash: Hash) => void;
 };
 export type DeployAccountReturnType = {
@@ -84,14 +85,26 @@ export const deployAccount = async <
       accountId,
       [encodedPasskeyModuleData, encodedSessionSpendLimitModuleData],
       [],
-      [],
+      (args.eoaOwners || []).map(getAddress),
     ],
   } as any);
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
   }
 
-  const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
+  const waitForReceipt = async () => {
+    try {
+      const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
+      return transactionReceipt;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("The Transaction may not be processed on a block yet")) {
+        await new Promise((resolve) => setTimeout(resolve, 1_500));
+        return await waitForReceipt();
+      }
+      throw error;
+    }
+  };
+  const transactionReceipt = await waitForReceipt();
   if (transactionReceipt.status !== "success") throw new Error("Account deployment transaction reverted");
 
   const proxyAccountAddress = transactionReceipt.contractAddress;

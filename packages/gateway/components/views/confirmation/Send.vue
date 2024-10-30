@@ -120,13 +120,16 @@
 import Web3Avatar from "web3-avatar-vue";
 import { formatUnits, type Address } from "viem";
 import type { ExtractParams } from "zksync-account/client-gateway";
+import { requestPasskeyAuthentication } from "zksync-account/client/passkey";
 import { chainConfig, type ZksyncRpcTransaction } from "viem/zksync";
 import { useIntervalFn } from "@vueuse/core";
+import { shortenAddress, formatAmount } from "#imports";
 
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();
 const { responseInProgress, responseError, request, requestChain } = storeToRefs(useRequestsStore());
-const { getClient } = useClientStore();
+const { passkey } = storeToRefs(useAccountStore());
+const { getClient, temp_getEoaClient } = useClientStore();
 
 const transactionParams = computed(() => {
   const params = request.value!.content.action.params as ExtractParams<"eth_sendTransaction">;
@@ -181,12 +184,14 @@ const totalFee = computed<bigint>(() => {
 
 const confirmTransaction = async () => {
   respond(async () => {
-    const client = getClient({ chainId: requestChain.value!.id });
+    await requestPasskeyAuthentication({
+      challenge: "0xtemp_fake",
+      credentialPublicKey: passkey.value!,
+    });
+    const client = temp_getEoaClient({ chainId: requestChain.value!.id });
     const transactionHash = await client.sendTransaction(transactionParams.value);
     return {
-      result: {
-        value: transactionHash,
-      },
+      result: transactionHash,
     };
   });
 };

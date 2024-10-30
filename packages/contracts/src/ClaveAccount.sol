@@ -25,7 +25,7 @@ import { BatchCaller } from "./batch/BatchCaller.sol";
 
 import { IClaveAccount } from "./interfaces/IClaveAccount.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /**
  * @title Main account contract from the Clave wallet infrastructure in ZKsync Era
@@ -109,7 +109,7 @@ contract ClaveAccount is
     // should be checked explicitly to prevent user paying for fee for a
     // transaction that wouldn't be included on Ethereum.
     if (transaction.totalRequiredBalance() > address(this).balance) {
-      console.log("revert Errors.INSUFFICIENT_FUNDS()");
+      // console.log("revert Errors.INSUFFICIENT_FUNDS()");
       revert Errors.INSUFFICIENT_FUNDS();
     }
 
@@ -209,11 +209,11 @@ contract ClaveAccount is
     bytes32 signedHash,
     Transaction calldata transaction
   ) internal returns (bytes4 magicValue) {
-    console.log("_validateTransaction");
+    // console.log("_validateTransaction");
     if (transaction.signature.length == 65) {
-      console.log("transaction.signature.length == 65");
+      // console.log("transaction.signature.length == 65");
       (address signer, ) = ECDSA.tryRecover(signedHash, transaction.signature);
-      console.log("recovered signer", signer);
+      // console.log("recovered signer", signer);
       // gas estimation?
       if (signer == address(0)) {
         return bytes4(0);
@@ -226,13 +226,13 @@ contract ClaveAccount is
       transaction.signature
     );
 
-    console.log("validator address");
-    console.logAddress(validator);
+    // console.log("validator address");
+    // console.logAddress(validator);
 
     // Run validation hooks
     bool hookSuccess = runValidationHooks(signedHash, transaction, hookData);
     if (!hookSuccess) {
-      console.log("failed hook validation");
+      // console.log("failed hook validation");
       return bytes4(0);
     }
 

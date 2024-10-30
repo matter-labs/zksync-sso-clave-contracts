@@ -151,32 +151,37 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
   const deployerClient = getRichWalletClient({ chainId: requestChain.value!.id });
   const sessionKey = generatePrivateKey();
   const sessionPublicKey = privateKeyToAddress(sessionKey);
+  const eoaOwnerPrivateKey = generatePrivateKey();
+  const eoaOwnerPublicKey = privateKeyToAddress(eoaOwnerPrivateKey);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  console.log("Deploying account");
   const { address } = await deployAccount(deployerClient as any, {
     credentialPublicKey,
     uniqueAccountId: username.value,
     /* TODO: Remove spend limit, right now deployment fails without initial data */
     initialSessions: [
-      {
+      /* {
         sessionPublicKey,
         expiresAt: new Date(new Date().getTime() + 1000 * 60 * 60 * 24).toISOString(), // 24 hours
         spendLimit: {
           "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb": "10000",
         },
-      },
+      }, */
     ],
+    eoaOwners: [eoaOwnerPublicKey],
     contracts: contractsByChain[requestChain.value!.id],
   });
+  console.log("Account deployed", { address });
   await deployerClient.sendTransaction({
     to: address,
-    value: parseEther("1"),
+    value: parseEther("15"),
   });
   login({
     username: username.value,
     address: address,
     passkey: toHex(credentialPublicKey),
     sessionKey,
+    temp_privateKey: eoaOwnerPrivateKey,
   });
 });
 const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(async () => {

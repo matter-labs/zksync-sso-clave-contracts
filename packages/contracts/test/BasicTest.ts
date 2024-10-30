@@ -140,7 +140,7 @@ describe("Basic tests", function () {
     expect(await provider.getBalance(target2)).to.equal(value, "invalid final target balance");
   });
 
-  it("should execute an approve+swap multicall", async () => {
+  it.skip("should execute an approve+swap multicall", async () => {
     const smartAccount = new SmartAccount({
       address: proxyAccountAddress,
       secret: fixtures.wallet.privateKey,

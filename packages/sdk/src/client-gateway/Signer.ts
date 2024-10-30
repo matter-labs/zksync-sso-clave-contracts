@@ -69,7 +69,13 @@ export class Signer implements SignerInterface {
         }
       },
     });
-    if (this.account) this.createWalletClient();
+    try {
+      if (this.account) this.createWalletClient();
+    } catch (error) {
+      console.error("Failed to create wallet client", error);
+      console.error("Logging out to prevent crash loop");
+      this.clearState();
+    }
   }
 
   private get account(): Account | null {

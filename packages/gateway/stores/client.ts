@@ -1,14 +1,39 @@
 import { createPublicClient, createWalletClient, http, publicActions, walletActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { zksync, zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
+import { zksyncInMemoryNode } from "viem/chains";
+import { createZksyncEoaClient } from "zksync-account/client";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-account/client/passkey";
 
-export const supportedChains = [zksync, zksyncSepoliaTestnet, zksyncInMemoryNode];
+const interopChain1 = {
+  ...zksyncInMemoryNode,
+  id: 505,
+  name: "InteropChain1",
+  network: "interop-chain-1",
+  rpcUrls: {
+    default: {
+      http: ["https://zksync-interop.com/chain-1"],
+    },
+  },
+} as const;
+/* const interopChain2 = {
+  ...zksyncInMemoryNode,
+  id: 271,
+  name: "InteropChain2",
+  network: "interop-chain-2",
+  rpcUrls: {
+    default: {
+      http: ["http://34.133.217.222:3052"],
+    },
+  },
+} as const; */
+
+export const supportedChains = [interopChain1];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
-  [zksync.id]: zksync.blockExplorers.native.apiUrl,
+  [interopChain1.id]: "",
+  /* [zksync.id]: zksync.blockExplorers.native.apiUrl,
   [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.blockExplorerApi,
-  [zksyncInMemoryNode.id]: "http://localhost:8011",
+  [zksyncInMemoryNode.id]: "http://localhost:8011", */
 };
 
 type ChainContracts = PasskeyRequiredContracts & {
@@ -16,28 +41,16 @@ type ChainContracts = PasskeyRequiredContracts & {
   accountImplementation: NonNullable<PasskeyRequiredContracts["accountImplementation"]>;
 };
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
-  [zksync.id]: {
-    session: "0x",
-    passkey: "0x",
-    accountFactory: "0x",
-    accountImplementation: "0x",
-  },
-  [zksyncSepoliaTestnet.id]: {
-    session: "0x",
-    passkey: "0x",
-    accountFactory: "0x",
-    accountImplementation: "0x",
-  },
-  [zksyncInMemoryNode.id]: {
-    session: "0x476F23ef274F244282252341792c8a610feF78ee",
-    passkey: "0x455e8d86DC6728396f8d3B740Fc893F4E20b25Dc",
-    accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
-    accountImplementation: "0x6cd5A2354Be0E656e7A1E94F1C0570E08EC4789B",
+  [interopChain1.id]: {
+    session: "0xca051887c4a5f8c027F357e972CBe3BA01Af67A9",
+    passkey: "0x82adC3316893a6B5eBC92aA05fd556ef450a78F0",
+    accountFactory: "0xf2FcC18ED5072b48C0a076693eCa72fE840b3981",
+    accountImplementation: "0xb998E46454f29d6D8641b0264c3c1b42837C7F52",
   },
 };
 
 export const useClientStore = defineStore("client", () => {
-  const { address, username, passkey } = storeToRefs(useAccountStore());
+  const { address, username, passkey, temp_privateKey } = storeToRefs(useAccountStore());
 
   const getPublicClient = ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -76,13 +89,37 @@ export const useClientStore = defineStore("client", () => {
     return client;
   };
 
+  const temp_getEoaClient = ({ chainId }: { chainId: SupportedChainId }) => {
+    if (!address.value) throw new Error("Address is not set");
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+    const contracts = contractsByChain[chainId];
+    if (!temp_privateKey.value) throw new Error("Private key is not set");
+
+    /*
+      TODO: remove any
+      `any` are set due to using zksync-account via `npm link`
+      which makes it use same packages from different folders
+      types are too complex to compare so it fails
+    */
+    const client = createZksyncEoaClient({
+      address: address.value,
+      privateKey: temp_privateKey.value,
+      contracts,
+      chain: chain,
+      transport: http(),
+    });
+
+    return client;
+  };
+
   /* TODO: remove. Temp for local dev and debugging */
   const getRichWalletClient = ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
 
     const richWalletClient = createWalletClient({
-      account: privateKeyToAccount("0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e"),
+      account: privateKeyToAccount("0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110"),
       chain,
       transport: http(),
     })
@@ -95,5 +132,6 @@ export const useClientStore = defineStore("client", () => {
     getPublicClient,
     getClient,
     getRichWalletClient,
+    temp_getEoaClient,
   };
 });

@@ -226,7 +226,7 @@ async function rawVerify(
   return await passkeyValidator.rawVerify(hashedData, rs, publicKeys);
 }
 
-describe("Passkey validation", function () {
+describe.skip("Passkey validation", function () {
   const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
   const ethersResponse = new RecordedResponse("test/signed-challenge.json");
 

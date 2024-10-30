@@ -27,7 +27,7 @@ export const useFetchAccountData = (_username: MaybeRef<string>, _chainId: Maybe
     }); */
 
     /* Temporary test code */
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // await new Promise((resolve) => setTimeout(resolve, 500));
     if (name === "test") {
       return await Promise.resolve({
         username: name,
