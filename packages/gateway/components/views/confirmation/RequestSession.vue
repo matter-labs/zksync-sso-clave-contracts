@@ -114,7 +114,7 @@ const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
 const { getClient } = useClientStore();
 
 const domain = computed(() => new URL(origin.value).host);
-const sessionExpiresIn = useTimeAgo(Number(props.session.expiry) * 1000);
+const sessionExpiresIn = useTimeAgo(Number(props.session.expiresAt) * 1000);
 
 const { result: tokensList, inProgress: tokensLoading, execute: fetchTokens } = useAsync(async () => {
   // const fetchSingleToken = async (tokenAddress: Address): Promise<Token> => {

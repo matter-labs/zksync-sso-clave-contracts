@@ -96,7 +96,7 @@ export const SessionKeyModuleAbi = [
           },
           {
             internalType: "uint256",
-            name: "expiry",
+            name: "expiresAt",
             type: "uint256",
           },
           {
@@ -613,7 +613,7 @@ export const SessionKeyModuleAbi = [
           },
           {
             internalType: "uint256",
-            name: "expiry",
+            name: "expiresAt",
             type: "uint256",
           },
           {
@@ -798,7 +798,7 @@ export const SessionKeyModuleAbi = [
           },
           {
             internalType: "uint256",
-            name: "expiry",
+            name: "expiresAt",
             type: "uint256",
           },
           {

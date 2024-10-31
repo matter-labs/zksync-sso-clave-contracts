@@ -54,7 +54,7 @@ export type Limit = {
 };
 
 export interface SessionPreferences {
-  expiry?: number | bigint;
+  expiresAt?: number | bigint;
   feeLimit?: Limit;
   callPolicies?: {
     target: string;

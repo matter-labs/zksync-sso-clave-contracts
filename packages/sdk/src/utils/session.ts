@@ -30,7 +30,7 @@ function getLimit(limit?: Limit) {
 
 export function getSession(session: SessionPreferences) {
   return {
-    expiry: BigInt(session.expiry ?? Math.floor(Date.now() / 1000) + 60 * 60 * 24),
+    expiresAt: BigInt(session.expiresAt ?? Math.floor(Date.now() / 1000) + 60 * 60 * 24),
     feeLimit: getLimit(session.feeLimit),
     callPolicies: session.callPolicies?.map((policy) => ({
       target: <Address>policy.target,

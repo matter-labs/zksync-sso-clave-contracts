@@ -7,7 +7,7 @@ export const encodeCreateSessionParameters = (session: SessionData) => {
   const sessionSpec = {
     components: [
       { name: "signer", type: "address" },
-      { name: "expiry", type: "uint256" },
+      { name: "expiresAt", type: "uint256" },
       {
         components: [
           { name: "limitType", type: "uint8" },

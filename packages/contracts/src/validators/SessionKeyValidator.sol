@@ -56,7 +56,7 @@ library SessionLib {
     mapping(address => mapping(address => TransferPolicy)) transferPolicy;
     mapping(address => Status) status;
     // Timestamp after which session is considered expired
-    mapping(address => uint256) expiry;
+    mapping(address => uint256) expiresAt;
     // Tracks gasLimit * maxFeePerGas of each transaction
     mapping(address => UsageLimit) feeLimit;
     UsageTrackers trackers;
@@ -128,7 +128,7 @@ library SessionLib {
 
   struct SessionSpec {
     address signer;
-    uint256 expiry;
+    uint256 expiresAt;
     UsageLimit feeLimit;
     CallSpec[] callPolicies;
     TransferSpec[] transferPolicies;
@@ -210,7 +210,7 @@ library SessionLib {
     require(session.status[msg.sender] == Status.Active, "Session is not active");
 
     // TODO uncomment when it's possible to check timestamps during validation
-    // require(block.timestamp <= session.expiry);
+    // require(block.timestamp <= session.expiresAt);
 
     // TODO: update fee allowance with the gasleft/refund at the end of execution
     uint256 fee = transaction.maxFeePerGas * transaction.gasLimit;
@@ -239,7 +239,7 @@ library SessionLib {
 
   function fill(SessionStorage storage session, SessionSpec memory newSession, address account) internal {
     session.status[account] = Status.Active;
-    session.expiry[account] = newSession.expiry;
+    session.expiresAt[account] = newSession.expiresAt;
     session.feeLimit[account] = newSession.feeLimit;
     for (uint256 i = 0; i < newSession.callPolicies.length; i++) {
       CallSpec memory newPolicy = newSession.callPolicies[i];
@@ -296,7 +296,7 @@ library SessionLib {
         // Signer addresses are not stored in SessionStorage,
         // and are filled in later in the `sessionSpec()` getter.
         signer: address(0),
-        expiry: session.expiry[account],
+        expiresAt: session.expiresAt[account],
         feeLimit: session.feeLimit[account],
         callPolicies: callPolicies,
         transferPolicies: transferPolicies
