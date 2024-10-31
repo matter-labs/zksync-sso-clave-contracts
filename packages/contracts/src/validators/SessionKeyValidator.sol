@@ -22,30 +22,45 @@ library SessionLib {
 
   uint256 constant MAX_CONSTRAINTS = 16;
 
+  // We do not permit session keys to be reused to open multiple sessions
+  // (after one expires or is closed, e.g.).
+  // For each session key, its session status can only be changed
+  // from NotInitialized to Active, and from Active to Closed.
   enum Status {
     NotInitialized,
     Active,
     Closed
   }
 
+  // This struct is used to track usage information for each session.
+  // Along with `status`, this is considered the session state.
+  // While everything else is considered the session spec.
   struct UsageTrackers {
     UsageTracker fee;
+    // (target) => transfer value tracker
     mapping(address => UsageTracker) transferValue;
+    // (target, selector) => call value tracker
     mapping(address => mapping(bytes4 => UsageTracker)) callValue;
+    // (target, selector, index) => call parameter tracker
+    // index is the constraint index in callPolicy, not the parameter index
     mapping(address => mapping(bytes4 => mapping(uint256 => UsageTracker))) params;
   }
 
-  // This struct has weird layout because of the AA storage access restrictions for validation
+  // This is the main struct that holds information about all sessions and their state.
+  // This struct has weird layout because of the AA storage access restrictions for validation.
+  // Innermost mappings are all mapping(address account => ...) because of this.
   struct SessionStorage {
     // (target, selector) => call policy
     mapping(address => mapping(bytes4 => mapping(address => CallPolicy))) callPolicy;
-    // (target) => empty (no selector) call policy
+    // (target) => transfer policy. Used for calls with calldata.length < 4.
     mapping(address => mapping(address => TransferPolicy)) transferPolicy;
     mapping(address => Status) status;
+    // Timestamp after which session is considered expired
     mapping(address => uint256) expiry;
+    // Tracks gasLimit * maxFeePerGas of each transaction
     mapping(address => UsageLimit) feeLimit;
     UsageTrackers trackers;
-    // only used in getters / view functions, not used during validation
+    // These 2 mappings are only used in getters / view functions, not used during validation.
     mapping(address => CallTarget[]) callTargets;
     mapping(address => address[]) transferTargets;
   }
@@ -56,11 +71,13 @@ library SessionLib {
     bool isAllowed;
     uint256 maxValuePerUse;
     UsageLimit valueLimit;
+    // We restrain from using a dynamic array here, as it would mean further
+    // complications for the storage layout due to the AA storage access restrictions.
     uint256 totalConstraints;
     Constraint[MAX_CONSTRAINTS] constraints;
   }
 
-  // for transfers, i.e. calls without a selector
+  // For transfers, i.e. calls without a selector
   struct TransferPolicy {
     bool isAllowed;
     uint256 maxValuePerUse;
@@ -75,14 +92,16 @@ library SessionLib {
   }
 
   struct UsageTracker {
+    // Used for LimitType.Lifetime
     mapping(address => uint256) lifetimeUsage;
+    // Used for LimitType.Allowance
     // period => used that period
     mapping(uint256 => mapping(address => uint256)) allowanceUsage;
   }
 
   struct UsageLimit {
     LimitType limitType;
-    uint256 limit;
+    uint256 limit; // ignored if limitType == Unlimited
     uint256 period; // ignored if limitType != Allowance
   }
 
@@ -132,6 +151,8 @@ library SessionLib {
   }
 
   struct LimitState {
+    // this might also be limited by a constraint or `maxValuePerUse`,
+    // which is not reflected here
     uint256 remaining;
     address target;
     // ignored for transfer value
@@ -140,8 +161,9 @@ library SessionLib {
     uint256 index;
   }
 
-  // Info about remaining session limits
+  // Info about remaining session limits and its status
   struct SessionState {
+    Status status;
     uint256 fee;
     LimitState[] transferValue;
     LimitState[] callValue;
@@ -162,10 +184,6 @@ library SessionLib {
   }
 
   function checkAndUpdate(Constraint storage constraint, UsageTracker storage tracker, bytes calldata data) internal {
-    if (constraint.condition == Condition.Unconstrained && constraint.limit.limitType == LimitType.Unlimited) {
-      return;
-    }
-
     uint256 index = 4 + constraint.index * 32;
     bytes32 param = bytes32(data[index:index + 32]);
     Condition condition = constraint.condition;
@@ -246,7 +264,7 @@ library SessionLib {
     }
   }
 
-  function getSpec(SessionStorage storage session, address account) internal view returns (Status, SessionSpec memory) {
+  function getSpec(SessionStorage storage session, address account) internal view returns (SessionSpec memory) {
     CallSpec[] memory callPolicies = new CallSpec[](session.callTargets[account].length);
     TransferSpec[] memory transferPolicies = new TransferSpec[](session.transferTargets[account].length);
     for (uint256 i = 0; i < session.callTargets[account].length; i++) {
@@ -273,25 +291,25 @@ library SessionLib {
         valueLimit: transferPolicy.valueLimit
       });
     }
-    return (
-      session.status[account],
+    return
       SessionSpec({
+        // Signer addresses are not stored in SessionStorage,
+        // and are filled in later in the `sessionSpec()` getter.
         signer: address(0),
         expiry: session.expiry[account],
         feeLimit: session.feeLimit[account],
         callPolicies: callPolicies,
         transferPolicies: transferPolicies
-      })
-    );
+      });
   }
 
-  function remainingUsage(
+  function remainingLimit(
     UsageLimit memory limit,
     UsageTracker storage tracker,
     address account
   ) internal view returns (uint256) {
     if (limit.limitType == LimitType.Unlimited) {
-      // this might be still limited by `maxValuePerUse`
+      // this might be still limited by `maxValuePerUse` or a constraint
       return type(uint256).max;
     }
     if (limit.limitType == LimitType.Lifetime) {
@@ -303,11 +321,8 @@ library SessionLib {
     }
   }
 
-  function remainingLimits(
-    SessionStorage storage session,
-    address account
-  ) internal view returns (SessionState memory) {
-    (, SessionSpec memory spec) = getSpec(session, account);
+  function getState(SessionStorage storage session, address account) internal view returns (SessionState memory) {
+    SessionSpec memory spec = getSpec(session, account);
 
     LimitState[] memory transferValue = new LimitState[](spec.transferPolicies.length);
     LimitState[] memory callValue = new LimitState[](spec.callPolicies.length);
@@ -316,20 +331,12 @@ library SessionLib {
 
     for (uint256 i = 0; i < transferValue.length; i++) {
       TransferSpec memory transferSpec = spec.transferPolicies[i];
-      uint256 remaining;
-
-      if (transferSpec.valueLimit.limitType == LimitType.Unlimited) {
-        remaining = transferSpec.maxValuePerUse;
-      } else {
-        remaining = remainingUsage(
+      transferValue[i] = LimitState({
+        remaining: remainingLimit(
           transferSpec.valueLimit,
           session.trackers.transferValue[transferSpec.target],
           account
-        );
-      }
-
-      transferValue[i] = LimitState({
-        remaining: remaining,
+        ),
         target: spec.transferPolicies[i].target,
         selector: bytes4(0),
         index: 0
@@ -338,20 +345,12 @@ library SessionLib {
 
     for (uint256 i = 0; i < callValue.length; i++) {
       CallSpec memory callSpec = spec.callPolicies[i];
-      uint256 remaining;
-
-      if (callSpec.valueLimit.limitType == LimitType.Unlimited) {
-        remaining = callSpec.maxValuePerUse;
-      } else {
-        remaining = remainingUsage(
+      callValue[i] = LimitState({
+        remaining: remainingLimit(
           callSpec.valueLimit,
           session.trackers.callValue[callSpec.target][callSpec.selector],
           account
-        );
-      }
-
-      callValue[i] = LimitState({
-        remaining: remaining,
+        ),
         target: callSpec.target,
         selector: callSpec.selector,
         index: 0
@@ -360,7 +359,7 @@ library SessionLib {
       for (uint256 j = 0; j < callSpec.constraints.length; j++) {
         if (callSpec.constraints[j].limit.limitType != LimitType.Unlimited) {
           callParams[paramLimitIndex++] = LimitState({
-            remaining: remainingUsage(
+            remaining: remainingLimit(
               callSpec.constraints[j].limit,
               session.trackers.params[callSpec.target][callSpec.selector][j],
               account
@@ -380,7 +379,8 @@ library SessionLib {
 
     return
       SessionState({
-        fee: remainingUsage(spec.feeLimit, session.trackers.fee, account),
+        status: session.status[account],
+        fee: remainingLimit(spec.feeLimit, session.trackers.fee, account),
         transferValue: transferValue,
         callValue: callValue,
         callParams: callParams
@@ -399,19 +399,13 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   // account => owners
   mapping(address => EnumerableSet.AddressSet) sessionOwners;
 
-  function session(
-    address account,
-    address signer
-  ) public view returns (SessionLib.Status status, SessionLib.SessionSpec memory spec) {
-    (status, spec) = sessions[signer].getSpec(account);
+  function sessionSpec(address account, address signer) public view returns (SessionLib.SessionSpec memory spec) {
+    spec = sessions[signer].getSpec(account);
     spec.signer = signer;
   }
 
-  function remainingSessionLimits(
-    address account,
-    address signer
-  ) external view returns (SessionLib.SessionState memory) {
-    return sessions[signer].remainingLimits(account);
+  function sessionState(address account, address signer) public view returns (SessionLib.SessionState memory) {
+    return sessions[signer].getState(account);
   }
 
   function activeSigners(address account) external view returns (address[] memory) {
@@ -420,12 +414,14 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
 
   function sessionList(
     address account
-  ) external view returns (SessionLib.Status[] memory statuses, SessionLib.SessionSpec[] memory specs) {
-    specs = new SessionLib.SessionSpec[](sessionOwners[account].length());
-    statuses = new SessionLib.Status[](specs.length);
-    for (uint256 i = 0; i < specs.length; i++) {
+  ) external view returns (SessionLib.SessionState[] memory states, SessionLib.SessionSpec[] memory specs) {
+    uint256 length = sessionOwners[account].length();
+    states = new SessionLib.SessionState[](length);
+    specs = new SessionLib.SessionSpec[](length);
+    for (uint256 i = 0; i < length; i++) {
       address signer = sessionOwners[account].at(i);
-      (statuses[i], specs[i]) = session(account, signer);
+      specs[i] = sessionSpec(account, signer);
+      states[i] = sessionState(account, signer);
     }
   }
 
