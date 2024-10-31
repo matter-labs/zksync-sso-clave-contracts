@@ -11,7 +11,6 @@ import {
 } from "viem";
 
 import { type AppMetadata, type ProviderInterface, WalletProvider, type WalletProviderSessionPreferences } from "../index.js";
-import { getFavicon, getWebsiteName } from "../utils/helpers.js";
 
 export type ZksyncAccountConnectorOptions = {
   metadata?: Partial<AppMetadata>;
@@ -121,8 +120,8 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
       if (!walletProvider) {
         walletProvider = new WalletProvider({
           metadata: {
-            name: parameters.metadata?.name || getWebsiteName() || "Unknown DApp",
-            icon: parameters.metadata?.icon || getFavicon(),
+            name: parameters.metadata?.name,
+            icon: parameters.metadata?.icon,
           },
           gatewayUrl: parameters.gatewayUrl,
           session: parameters.session,
