@@ -1,5 +1,5 @@
 import { EventEmitter } from "eventemitter3";
-import type { Address, RpcSchema as RpcSchemaGeneric } from "viem";
+import type { Address, Hash, RpcSchema as RpcSchemaGeneric } from "viem";
 
 import type { ExtractParams, ExtractReturnType, Method, RpcSchema } from "./rpc.js";
 
@@ -49,30 +49,34 @@ export enum Condition {
 }
 
 export type Limit = {
-  limit: number | bigint;
-  period?: number | bigint;
+  limit: bigint;
+  period?: bigint;
+};
+
+export type CallPolicy = {
+  target: Address;
+  selector?: Hash;
+  maxValuePerUse?: bigint;
+  valueLimit?: bigint | Limit;
+  constraints?: {
+    condition?: Condition;
+    index: bigint;
+    refValue?: Hash;
+    limit?: Limit;
+  }[];
+};
+
+export type TransferPolicy = {
+  target: Address;
+  maxValuePerUse?: bigint;
+  valueLimit?: bigint | Limit;
 };
 
 export interface SessionPreferences {
-  expiresAt?: number | bigint;
-  feeLimit?: Limit;
-  callPolicies?: {
-    target: string;
-    selector?: string;
-    maxValuePerUse?: number | bigint;
-    valueLimit?: Limit;
-    constraints?: {
-      condition?: Condition;
-      index: number | bigint;
-      refValue?: string;
-      limit?: Limit;
-    }[];
-  }[];
-  transferPolicies?: {
-    target: string;
-    maxValuePerUse?: number | bigint;
-    valueLimit?: Limit;
-  }[];
+  expiresAt?: bigint;
+  feeLimit?: bigint | Limit;
+  callPolicies?: CallPolicy[];
+  transferPolicies?: TransferPolicy[];
 };
 
 export interface SessionData extends SessionPreferences {

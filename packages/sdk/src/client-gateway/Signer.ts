@@ -5,6 +5,7 @@ import type { Communicator } from "../communicator/index.js";
 import { StorageItem } from "../utils/storage.js";
 import type { AppMetadata, RequestArguments, SessionPreferences } from "./interface.js";
 import type { ExtractParams, ExtractReturnType, GatewayRpcSchema, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
+import type { WalletProviderSessionPreferences } from "./WalletProvider.js";
 
 type Account = {
   address: Address;
@@ -31,7 +32,7 @@ type SignerConstructorParams = {
   updateListener: UpdateListener;
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
-  session?: () => SessionPreferences | Promise<SessionPreferences>;
+  session?: () => WalletProviderSessionPreferences | Promise<WalletProviderSessionPreferences>;
 };
 
 type ChainsInfo = ExtractReturnType<"eth_requestAccounts", GatewayRpcSchema>["chainsInfo"];
@@ -42,7 +43,7 @@ export class Signer implements SignerInterface {
   private readonly updateListener: UpdateListener;
   private readonly chains: readonly Chain[];
   private readonly transports: Record<number, Transport> = {};
-  private readonly sessionParameters?: () => SessionPreferences | Promise<SessionPreferences>;
+  private readonly sessionParameters?: () => (WalletProviderSessionPreferences | Promise<WalletProviderSessionPreferences>);
 
   private _account: StorageItem<Account | null>;
   private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey("chainsInfo"), []);
@@ -124,7 +125,19 @@ export class Signer implements SignerInterface {
     let session: SessionPreferences | undefined;
     if (this.sessionParameters) {
       try {
-        session = await this.sessionParameters();
+        const sessionParameters = await this.sessionParameters();
+        session = {
+          ...sessionParameters,
+          expiresAt: undefined,
+          feeLimit: undefined,
+        };
+        if (sessionParameters.expiresAt) {
+          if (sessionParameters.expiresAt instanceof Date) {
+            session.expiresAt = BigInt(Math.ceil(sessionParameters.expiresAt.getTime() / 1000));
+          } else {
+            session.expiresAt = sessionParameters.expiresAt;
+          }
+        }
       } catch (error) {
         console.error("Failed to get session data. Proceeding connection with no session.", error);
       }

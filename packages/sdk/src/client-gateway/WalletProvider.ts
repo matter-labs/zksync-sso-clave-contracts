@@ -15,11 +15,15 @@ import { Signer } from "./Signer.js";
 
 const DEFAULT_GATEWAY_URL = "http://localhost:3002/confirm";
 
+export type WalletProviderSessionPreferences = Omit<SessionPreferences, "expiresAt"> & {
+  expiresAt?: Date | bigint;
+};
+
 export type WalletProviderConstructorOptions = {
   metadata: AppMetadata;
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
-  session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
+  session?: WalletProviderSessionPreferences | (() => WalletProviderSessionPreferences | Promise<WalletProviderSessionPreferences>);
   gatewayUrl?: string;
 };
 

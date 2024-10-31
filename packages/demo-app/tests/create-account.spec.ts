@@ -37,7 +37,6 @@ test("Create account, session key, and send ETH", async ({ page }) => {
 
   // Click the Connect button
   await page.getByRole("button", { name: "Connect" }).click();
-  await page.getByRole("button", { name: "ZKsync Account" }).click();
 
   // Ensure popup is displayed
   await page.waitForTimeout(2000);
