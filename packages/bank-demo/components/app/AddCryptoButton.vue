@@ -13,7 +13,7 @@
 
 <script setup lang="ts">
 import { createWalletClient, http, type Address, type Chain } from "viem";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { privateKeyToAccount } from "viem/accounts";
 import { deployAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
 
@@ -38,7 +38,7 @@ const createCryptoAccount = async () => {
   // Create new Passkey
   if (!appMeta.value || !appMeta.value.credentialPublicKey) {
     try {
-      const { newCredentialPublicKey } = await registerNewPasskey({
+      const { credentialPublicKey: newCredentialPublicKey } = await registerNewPasskey({
         userDisplayName: userDisplay, // Display name of the user
         userName: userId, // User's unique ID
       });
@@ -63,22 +63,9 @@ const createCryptoAccount = async () => {
     transport: http()
   });
 
-  // Generate session key
-  const sessionKey = generatePrivateKey();
-  const sessionPublicKey = privateKeyToAccount(sessionKey).address;
-
   try {
     const { address, transactionReceipt } = await deployAccount(deployerClient, {
       credentialPublicKey,
-      initialSessions: [
-          {
-            sessionPublicKey,
-            expiresAt: (new Date(Date.now() + 1000 * 60 * 60 * 24)).toISOString(), // 1 day expiry
-            spendLimit: {
-                ["0x000000000000000000000000000000000000800A"]: "1000", // ETH
-            },
-          },
-      ],
       contracts,
     });
 

@@ -13,7 +13,6 @@ const wagmiConfig = defaultWagmiConfig({
   connectors: [
     zksyncAccountConnector({
       session: {
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60), // 1 hour
         spendLimit: {
           [ETH_TOKEN.address]: parse("0.1", ETH_TOKEN.decimals).toString(), // 0.1 ETH
         },

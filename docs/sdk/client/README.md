@@ -28,8 +28,8 @@ development principles in mind.
    import { deployAccount } from "zksync-account/client";
 
    const deployerClient = ...; // Any client for deploying the account, make sure it has enough balance to cover the deployment cost
-   const sessionPrivateKey = generatePrivateKey();
-   const sessionKey = privateKeyToAddress(sessionPrivateKey.value);
+   const sessionKey = generatePrivateKey();
+   const sessionPublicKey = privateKeyToAddress(sessionKey.value);
 
    const { address } = await deployAccount(deployerClient, {
       credentialPublicKey,
@@ -69,7 +69,7 @@ development principles in mind.
    ```ts
    await passkeyClient.createSession({
      session: {
-       sessionKey,
+       sessionPublicKey,
        expiry: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 1 week
        feeLimit: { limit: parseEther("0.01") },
        transferPolicies: [

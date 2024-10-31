@@ -77,7 +77,7 @@ export const encodeCreateSessionParameters = (session: SessionData) => {
 
   return encodeAbiParameters(
     [sessionSpec],
-    [{ ...getSession(session), signer: session.sessionKey }],
+    [{ ...getSession(session), signer: session.sessionPublicKey }],
   );
 };
 

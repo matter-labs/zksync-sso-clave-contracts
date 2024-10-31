@@ -1,22 +1,22 @@
-import type { Address, PublicRpcSchema, RpcSchema as RpcSchemaGeneric, WalletRpcSchema } from "viem";
+import type { Address, Hash, PublicRpcSchema, RpcSchema as RpcSchemaGeneric, WalletRpcSchema } from "viem";
 
 import type { SessionRequiredContracts } from "../client/index.js";
 import type { Message } from "../communicator/index.js";
 import type { SerializedEthereumRpcError } from "../errors/index.js";
-import type { AppMetadata, RequestArguments, SessionData, SessionPreferences } from "./interface.js";
+import type { AppMetadata, RequestArguments, SessionPreferences } from "./interface.js";
 
 export type GatewayRpcSchema = [
   {
     Method: "eth_requestAccounts";
     Parameters: {
       metadata: AppMetadata;
-      session?: SessionPreferences | undefined;
+      session?: SessionPreferences;
     };
     ReturnType: {
       account: {
         address: Address;
         activeChainId: number;
-        session?: SessionData;
+        session?: SessionPreferences & { sessionKey: Hash };
       };
       chainsInfo: {
         id: number;

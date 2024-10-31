@@ -94,11 +94,11 @@
 
 <script lang="ts" setup>
 import { useTimeAgo } from "@vueuse/core";
-import type { SessionPreferences, SessionData } from "zksync-account";
+import type { SessionPreferences } from "zksync-account";
 import type { GatewayRpcSchema, ExtractReturnType } from "zksync-account/client-gateway";
 import { formatUnits } from "viem";
 import { ClockIcon, FingerPrintIcon } from "@heroicons/vue/24/outline";
-import { privateKeyToAddress } from "viem/accounts";
+import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 
 const props = defineProps({
   session: {
@@ -109,7 +109,6 @@ const props = defineProps({
 
 const { appMeta, origin } = useAppMeta();
 const { respond, deny } = useRequestsStore();
-const { sessionKey } = storeToRefs(useAccountStore());
 const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
 // const { fetchTokenInfo } = useTokenUtilities(computed(() => requestChain.value!.id));
 const { getClient } = useClientStore();
@@ -160,14 +159,13 @@ const totalUsd = computed(() => (spendLimitTokens.value || []).reduce((acc, item
 const confirmConnection = async () => {
   respond(async () => {
     const client = getClient({ chainId: requestChain.value!.id });
-    const sessionData: Omit<SessionData, "sessionKey"> = {
-      ...props.session,
-    };
+    const sessionKey = generatePrivateKey();
+    const sessionPreferences = props.session;
 
     const _session = await client.createSession({
       session: {
-        sessionKey: privateKeyToAddress(sessionKey.value!),
-        ...sessionData,
+        ...sessionPreferences,
+        sessionPublicKey: privateKeyToAddress(sessionKey),
       },
     });
     const response: ExtractReturnType<"eth_requestAccounts", GatewayRpcSchema> = {
@@ -175,8 +173,8 @@ const confirmConnection = async () => {
         address: client.account.address,
         activeChainId: client.chain.id,
         session: {
-          ...sessionData,
-          sessionKey: sessionKey.value!,
+          ...sessionPreferences,
+          sessionKey,
         },
       },
       chainsInfo: supportedChains.map((chain) => ({

@@ -5,7 +5,6 @@ type SmartAccount = {
   username: string;
   address: Address;
   passkey: Hash;
-  sessionKey?: Hash; // TODO: This one is temporary, should be removed once sessions work properly
 };
 
 export const useAccountStore = defineStore("account", () => {
@@ -14,7 +13,6 @@ export const useAccountStore = defineStore("account", () => {
   });
   const address = computed(() => accountData.value?.address || null);
   const passkey = computed(() => accountData.value?.passkey ? toBytes(accountData.value?.passkey) : null);
-  const sessionKey = computed(() => accountData.value?.sessionKey ? accountData.value?.sessionKey : null);
   const username = computed(() => accountData.value?.username || null);
   const isLoggedIn = computed(() => !!address.value);
   const login = (data: SmartAccount) => {
@@ -32,7 +30,6 @@ export const useAccountStore = defineStore("account", () => {
   return {
     address,
     passkey,
-    sessionKey,
     username,
     isLoggedIn,
     subscribeOnAccountChange,

@@ -3,13 +3,13 @@ import { type Address, type Chain, type Hash, hexToNumber, http, type RpcSchema 
 import { createZksyncSessionClient, type ZksyncAccountSessionClient } from "../client/index.js";
 import type { Communicator } from "../communicator/index.js";
 import { StorageItem } from "../utils/storage.js";
-import type { AppMetadata, RequestArguments, SessionData, SessionPreferences } from "./interface.js";
+import type { AppMetadata, RequestArguments, SessionPreferences } from "./interface.js";
 import type { ExtractParams, ExtractReturnType, GatewayRpcSchema, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
 
 type Account = {
   address: Address;
   activeChainId: Chain["id"];
-  session?: SessionData | undefined;
+  session?: SessionPreferences & { sessionKey: Hash } | undefined;
 };
 
 interface SignerInterface {

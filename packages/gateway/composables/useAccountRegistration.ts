@@ -1,5 +1,4 @@
 import { registerNewPasskey } from "zksync-account/client/passkey";
-import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { deployAccount } from "zksync-account/client";
 import { zksyncInMemoryNode } from "viem/chains";
 import { parseEther, toHex } from "viem";
@@ -30,25 +29,11 @@ export async function useAccountRegistration(_username: MaybeRef<string>) {
     });
 
     const deployerClient = getRichWalletClient({ chainId: chainId });
-    const sessionKey = generatePrivateKey();
-    const sessionPublicKey = privateKeyToAddress(sessionKey);
-
-    // Breaks at this following step
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { address } = await deployAccount(deployerClient as any, {
       credentialPublicKey,
       uniqueAccountId: username.value,
-      /* TODO: Remove spend limit, right now deployment fails without initial data */
-      initialSessions: [
-        {
-          sessionPublicKey,
-          expiresAt: new Date(new Date().getTime() + 1000 * 60 * 60 * 24).toISOString(), // 24 hours
-          spendLimit: {
-            "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb": "10000",
-          },
-        },
-      ],
       contracts: contractsByChain[chainId],
     }).catch(() => {
       throw new Error("Failed to create a new account.");
@@ -65,7 +50,6 @@ export async function useAccountRegistration(_username: MaybeRef<string>) {
       username: username.value,
       address: address,
       passkey: toHex(credentialPublicKey),
-      sessionKey,
     });
 
     return true;

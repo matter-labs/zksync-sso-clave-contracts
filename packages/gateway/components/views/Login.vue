@@ -104,7 +104,6 @@
 
 <script lang="ts" setup>
 import { parseEther, toHex } from "viem";
-import { generatePrivateKey } from "viem/accounts";
 import { registerNewPasskey } from "zksync-account/client/passkey";
 import { deployAccount } from "zksync-account/client";
 
@@ -135,7 +134,7 @@ const errorState = computed<"username-taken" | "account-not-found" | undefined>(
   return undefined;
 });
 const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
-  const { newCredentialPublicKey: credentialPublicKey } = await registerNewPasskey({
+  const { credentialPublicKey } = await registerNewPasskey({
     userName: username.value,
     userDisplayName: username.value,
   });
@@ -147,7 +146,6 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
   } */
 
   const deployerClient = getRichWalletClient({ chainId: requestChain.value!.id });
-  const sessionKey = generatePrivateKey();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { address } = await deployAccount(deployerClient as any, {
@@ -163,7 +161,6 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
     username: username.value,
     address: address,
     passkey: toHex(credentialPublicKey),
-    sessionKey,
   });
 });
 const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(async () => {

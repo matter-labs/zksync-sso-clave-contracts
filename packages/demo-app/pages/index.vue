@@ -53,7 +53,6 @@ const testTransferAmount = parseEther("0.1");
 const zksyncConnector = zksyncAccountConnector({
   gatewayUrl: "http://localhost:3002/confirm",
   session: {
-    // expiry: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
     feeLimit: {
       limit: parseEther("0.1"),
     },

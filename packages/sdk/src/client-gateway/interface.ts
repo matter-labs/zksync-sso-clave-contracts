@@ -76,5 +76,5 @@ export interface SessionPreferences {
 };
 
 export interface SessionData extends SessionPreferences {
-  sessionKey: Address;
+  sessionPublicKey: Address;
 }

@@ -89,7 +89,7 @@ export const createSession = async <
     functionName: "createSession",
     args: [{
       ...getSession(args.session),
-      signer: args.session.sessionKey,
+      signer: args.session.sessionPublicKey,
     }],
   });
 
