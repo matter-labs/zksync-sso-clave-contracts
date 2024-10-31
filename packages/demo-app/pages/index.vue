@@ -5,7 +5,7 @@
     </h1>
     <button
       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-      @click="connectWallet"
+      @click="address ? disconnectWallet() : connectWallet()"
     >
       {{ address ? "Disconnect" : "Connect" }}
     </button>
@@ -38,99 +38,105 @@
   </div>
 </template>
 
-<script setup>
-import { disconnect, getBalance, watchAccount, sendTransaction } from "@wagmi/core";
-import { createWeb3Modal, defaultWagmiConfig } from "@web3modal/wagmi/vue";
-import { parseEther } from "viem";
-import { zksyncInMemoryNode } from "viem/chains";
+<script lang="ts" setup>
+import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect } from "@wagmi/core";
 import { zksyncAccountConnector } from "zksync-account/connector";
-import { getSession } from "zksync-account/utils";
+import { zksyncInMemoryNode } from "@wagmi/core/chains";
+import { http, parseEther, type Address } from "viem";
 
-const address = ref(null);
-const balance = ref(null);
-const errorMessage = ref(null);
-const projectId = "dde7b251fcfd7e11d5270497a053816e"; // TODO: Move to env
-
-const config = defaultWagmiConfig({
-  chains: [zksyncInMemoryNode],
-  projectId,
-  appName: "ZKsync SSO Demo",
-  connectors: [
-    zksyncAccountConnector({
-      metadata: {
-        name: "ZKsync SSO Demo",
-        icon: "http://localhost:3004/favicon.ico",
-      },
-      gatewayUrl: "http://localhost:3002/confirm",
-      session: getSession({
-        feeLimit: { limit: parseEther("0.01") },
-        transferPolicies: [{
-          target: sessionTarget,
-          maxValuePerUse: parseEther("0.1"),
-        }],
-      }),
-    }),
-  ],
+useHead({
+  title: "ZKsync SSO Demo App",
 });
 
-const web3modal = createWeb3Modal({ wagmiConfig: config, projectId });
-const sessionTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6"; // Rich Account 1
-
-// Check for updates to the current account
-watchAccount(config, {
-  async onChange(data) {
-    address.value = data.address;
-
-    if (!address.value) {
-      return;
-    }
-
-    const currentBalance = await getBalance(config, {
-      address: data.address,
-    });
-    balance.value = `${currentBalance.formatted} ${currentBalance.symbol}`;
+const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
+const testTransferAmount = parseEther("0.1");
+const zksyncConnector = zksyncAccountConnector({
+  gatewayUrl: "http://localhost:3002/confirm",
+  session: {
+    // expiry: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
+    feeLimit: {
+      limit: parseEther("0.1"),
+    },
+    transferPolicies: [
+      {
+        target: testTransferTarget,
+        maxValuePerUse: testTransferAmount,
+        valueLimit: {
+          limit: testTransferAmount,
+        },
+      },
+    ],
   },
 });
+const wagmiConfig = createConfig({
+  chains: [zksyncInMemoryNode],
+  connectors: [zksyncConnector],
+  transports: {
+    [zksyncInMemoryNode.id]: http(),
+  },
+});
+reconnect(wagmiConfig);
+
+const address = ref<Address | null>(null);
+const balance = ref<string | null>(null);
+const errorMessage = ref<string | null>(null);
+const updateBalance = async () => {
+  if (!address.value) {
+    balance.value = null;
+    return;
+  }
+  const currentBalance = await getBalance(wagmiConfig, {
+    address: address.value,
+  });
+  balance.value = `${currentBalance.formatted} ${currentBalance.symbol}`;
+};
+
+// Check for updates to the current account
+watchAccount(wagmiConfig, {
+  async onChange(data) {
+    address.value = data.address || null;
+  },
+});
+watch(address, () => {
+  updateBalance();
+}, { immediate: true });
 
 const connectWallet = async () => {
-  errorMessage.value = "";
-
   try {
-    if (address.value) {
-      await disconnect(config);
-      return;
-    }
-
-    await web3modal.open();
+    errorMessage.value = "";
+    connect(wagmiConfig, {
+      connector: zksyncConnector,
+      chainId: zksyncInMemoryNode.id,
+    });
   } catch (error) {
-    errorMessage.value = "Connect/Disconnect failed, see console for more info.";
+    errorMessage.value = "Connect failed, see console for more info.";
     // eslint-disable-next-line no-console
     console.error("Connection failed:", error);
   }
 };
 
+const disconnectWallet = async () => {
+  await disconnect(wagmiConfig);
+};
+
 const sendTokens = async () => {
-  if (!address.value) {
-    return;
-  }
+  if (!address.value) return;
 
   errorMessage.value = "";
-
   try {
-    await sendTransaction(config, {
-      to: sessionTarget,
+    await sendTransaction(wagmiConfig, {
+      to: testTransferTarget,
       value: parseEther("0.1"),
       gas: 100_000_000n,
     });
 
-    const currentBalance = await getBalance(config, {
-      address: address.value,
-    });
-    balance.value = `${currentBalance.formatted} ${currentBalance.symbol}`;
+    await updateBalance();
   } catch (error) {
-    let transactionFailureDetails = error.cause?.cause?.cause?.data?.originalError?.cause?.details;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let transactionFailureDetails = (error as any).cause?.cause?.cause?.data?.originalError?.cause?.details;
     if (!transactionFailureDetails) {
-      transactionFailureDetails = error.cause?.cause?.data?.originalError?.cause?.details;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transactionFailureDetails = (error as any).cause?.cause?.data?.originalError?.cause?.details;
     }
 
     if (transactionFailureDetails) {

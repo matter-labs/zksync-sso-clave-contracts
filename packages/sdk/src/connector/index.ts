@@ -48,10 +48,10 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
 
   return createConnector<Provider>((config) => ({
     icon: "https://zksync.io/favicon.ico",
-    id: "zksyncAccount",
-    name: "ZKsync Account",
+    id: "zksync-sso",
+    name: "ZKsync",
     // supportsSimulation: true,
-    type: "zksync-account",
+    type: "zksync-sso",
     async connect({ chainId } = {}) {
       try {
         const provider = await this.getProvider();
