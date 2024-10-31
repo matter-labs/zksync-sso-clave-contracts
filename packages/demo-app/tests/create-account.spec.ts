@@ -74,7 +74,7 @@ test("Create account, session key, and send ETH", async ({ page }) => {
   await popup.waitForTimeout(3000);
 
   // Add session
-  expect(popup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
+  expect(popup.getByText("Authorize ZKsync SSO Demo App")).toBeVisible();
   expect(popup.getByText("Act on your behalf")).toBeVisible();
   expect(popup.getByText("Expires tomorrow")).toBeVisible();
   await popup.getByRole("button", { name: "Connect" }).click();
