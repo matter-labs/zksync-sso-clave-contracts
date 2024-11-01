@@ -71,6 +71,7 @@
         </CommonLine>
       </div>
     </div>
+
     <button
       class="mx-auto text-center w-max px-4 py-2 flex items-center gap-1 text-sm text-neutral-800 hover:text-neutral-600 transition-colors"
       @click="advancedInfoOpened = !advancedInfoOpened"

@@ -1,28 +1,84 @@
 <template>
-  <div class="flex flex-col h-full">
+  <div class="h-dvh flex flex-col px-4">
     <AccountHeader
       message="Sending from"
     />
-    <div class="grow flex flex-col p-4">
-      <h2 class="flex items-center justify-center text-white text-center text-3xl mt-6 font-semibold">
+    <h2 class="flex items-center justify-center text-white text-center text-3xl mt-6 font-semibold">
+      <span v-if="preparingTransaction">
+        <CommonContentLoader :length="15" />
+      </span>
+      <span
+        v-else
+        :title="formatUnits(transactionValue, chainBaseToken.decimals)"
+      >
+        -{{ formatAmount(transactionValue, chainBaseToken.decimals) }}
+      </span>
+      <span>
+      &nbsp;
         <span v-if="preparingTransaction">
-          <CommonContentLoader :length="15" />
+          <CommonContentLoader :length="8" />
+        </span>
+        <span v-else>{{ chainBaseToken.symbol }}</span>
+      &nbsp;
+      </span>
+      <div class="w-8 h-8 rounded-full overflow-hidden">
+        <CommonContentLoader
+          v-if="preparingTransaction"
+          class="block w-full h-full rounded-full"
+        />
+        <img
+          v-else-if="chainBaseToken.iconUrl"
+          :src="chainBaseToken.iconUrl"
+          :alt="chainBaseToken.symbol"
+          class="h-full w-full object-cover rounded-full"
+        >
+        <div
+          v-else
+          class="w-full h-full rounded-full bg-neutral-800"
+        />
+      </div>
+    </h2>
+    <div class="text-lg flex justify-between mt-12">
+      <div class="text-neutral-400">
+        Sending to
+      </div>
+      <div
+        v-if="to"
+        class="flex items-center"
+      >
+        <div class="w-4 h-4 rounded-full flex-shrink-0">
+          <CommonContentLoader
+            v-if="preparingTransaction"
+            class="block w-full h-full rounded-full"
+          />
+          <Web3Avatar
+            v-else
+            :address="to"
+            class="w-full h-full rounded-full"
+          />
+        </div>
+        <span class="font-medium">
+        &nbsp;
+          <span v-if="preparingTransaction">
+            <CommonContentLoader :length="20" />
+          </span>
+          <span v-else>{{ shortenAddress(to) }}</span>
+        </span>
+      </div>
+    </div>
+    <div class="text-lg flex justify-between mt-4">
+      <div class="text-neutral-400">
+        Fees
+      </div>
+      <div class="flex items-center">
+        <span v-if="preparingTransaction">
+          <CommonContentLoader :length="18" />&nbsp;<CommonContentLoader :length="8" />
         </span>
         <span
           v-else
-          :title="formatUnits(transactionValue, chainBaseToken.decimals)"
-        >
-          -{{ formatAmount(transactionValue, chainBaseToken.decimals) }}
-        </span>
-        <span>
-        &nbsp;
-          <span v-if="preparingTransaction">
-            <CommonContentLoader :length="8" />
-          </span>
-          <span v-else>{{ chainBaseToken.symbol }}</span>
-        &nbsp;
-        </span>
-        <div class="w-8 h-8 rounded-full overflow-hidden">
+        >{{ formatUnits(totalFee, 18) }} ETH</span>
+      &nbsp;
+        <div class="w-5 h-5 rounded-full bg-neutral-800">
           <CommonContentLoader
             v-if="preparingTransaction"
             class="block w-full h-full rounded-full"
@@ -33,73 +89,35 @@
             :alt="chainBaseToken.symbol"
             class="h-full w-full object-cover rounded-full"
           >
-          <div
-            v-else
-            class="w-full h-full rounded-full bg-neutral-800"
-          />
-        </div>
-      </h2>
-      <div class="text-lg flex justify-between mt-12">
-        <div class="text-neutral-400">
-          Sending to
-        </div>
-        <div
-          v-if="to"
-          class="flex items-center"
-        >
-          <div class="w-4 h-4 rounded-full flex-shrink-0">
-            <CommonContentLoader
-              v-if="preparingTransaction"
-              class="block w-full h-full rounded-full"
-            />
-            <Web3Avatar
-              v-else
-              :address="to"
-              class="w-full h-full rounded-full"
-            />
-          </div>
-          <span class="font-medium">
-          &nbsp;
-            <span v-if="preparingTransaction">
-              <CommonContentLoader :length="20" />
-            </span>
-            <span v-else>{{ shortenAddress(to) }}</span>
-          </span>
         </div>
       </div>
-      <div class="text-lg flex justify-between mt-4">
-        <div class="text-neutral-400">
-          Fees
-        </div>
-        <div class="flex items-center">
-          <span v-if="preparingTransaction">
-            <CommonContentLoader :length="18" />&nbsp;<CommonContentLoader :length="8" />
-          </span>
-          <span
-            v-else
-          >{{ formatUnits(totalFee, 18) }} ETH</span>
-        &nbsp;
-          <div class="w-5 h-5 rounded-full bg-neutral-800">
-            <CommonContentLoader
-              v-if="preparingTransaction"
-              class="block w-full h-full rounded-full"
-            />
-            <img
-              v-else-if="chainBaseToken.iconUrl"
-              :src="chainBaseToken.iconUrl"
-              :alt="chainBaseToken.symbol"
-              class="h-full w-full object-cover rounded-full"
-            >
-          </div>
-        </div>
-      </div>
-      <div
-        v-if="preparingFailed || responseError"
-        class="text-xs text-error-500 border p-2 rounded-2xl border-error-500/30 mt-4 clip"
-      >
-        {{ preparingFailed || responseError }}
-      </div>
-      <div class="mt-auto flex gap-4">
+    </div>
+    <div
+      v-if="preparingFailed || responseError"
+      class="text-xs text-error-500 border p-2 rounded-2xl border-error-500/30 mt-4 clip"
+    >
+      {{ preparingFailed || responseError }}
+    </div>
+
+    <button
+      class="mx-auto mt-4 text-center w-max px-4 py-2 flex items-center gap-1 text-sm text-neutral-800 hover:text-neutral-600 transition-colors"
+      @click="advancedInfoOpened = !advancedInfoOpened"
+    >
+      <span>{{ advancedInfoOpened ? 'Hide' : 'Show' }} advanced transaction info</span>
+      <ChevronDownIcon
+        class="w-4 h-4 transition-transform"
+        :class="{ 'rotate-180': advancedInfoOpened }"
+        aria-hidden="true"
+      />
+    </button>
+    <CommonHeightTransition :opened="advancedInfoOpened">
+      <CommonLine>
+        <pre class="p-3 text-xs overflow-auto">{{ JSON.stringify(transactionParams, null, 4) }}</pre>
+      </CommonLine>
+    </CommonHeightTransition>
+
+    <div class="mt-auto">
+      <div class="-mx-3 px-3 border-t border-neutral-900 flex gap-4 py-4 mt-2">
         <CommonButton
           class="w-full"
           variant="neutral"
@@ -121,6 +139,7 @@
 </template>
 
 <script lang="ts" setup>
+import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { useIntervalFn } from "@vueuse/core";
 import { type Address, formatUnits } from "viem";
 import { chainConfig, type ZksyncRpcTransaction } from "viem/zksync";
@@ -138,6 +157,8 @@ const transactionParams = computed(() => {
   const formatted = chainConfig.formatters.transaction.format(params[0] as ZksyncRpcTransaction);
   return formatted;
 });
+
+const advancedInfoOpened = ref(false);
 
 const { result: preparedTransaction, inProgress: preparingTransaction, error: preparingFailed, execute: prepareTransaction } = useAsync(async () => {
   if (!request.value) return null;
