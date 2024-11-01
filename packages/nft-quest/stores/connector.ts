@@ -17,7 +17,7 @@ export const useConnectorStore = defineStore("connector", () => {
     },
     gatewayUrl: "http://localhost:3002/confirm",
     session: getSession({
-      feeLimit: parseEther("0.01"),
+      feeLimit: parseEther("0.001"),
       callPolicies: [{
         target: runtimeConfig.public.contracts.nft as Hash,
         selector: toFunctionSelector("mint(address)"),
