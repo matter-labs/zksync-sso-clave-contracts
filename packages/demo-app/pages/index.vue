@@ -44,10 +44,6 @@ import { zksyncAccountConnector } from "zksync-account/connector";
 import { zksyncInMemoryNode } from "@wagmi/core/chains";
 import { http, parseEther, type Address } from "viem";
 
-useHead({
-  title: "ZKsync SSO Demo App",
-});
-
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 const testTransferAmount = parseEther("0.1");
 const zksyncConnector = zksyncAccountConnector({

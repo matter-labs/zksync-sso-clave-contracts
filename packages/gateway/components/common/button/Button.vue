@@ -74,11 +74,11 @@ defineProps({
   }
   &.variant- {
     &neutral {
-      @apply bg-neutral-900;
+      @apply bg-neutral-950;
       &:enabled,
       &:is(a, label) {
         &:not([aria-disabled="true"]) {
-          @apply hover:bg-neutral-800;
+          @apply hover:bg-neutral-900;
         }
       }
     }

@@ -2,6 +2,7 @@
   <component
     :is="as"
     class="line-container"
+    :class="`variant-${variant}`"
   >
     <slot />
   </component>
@@ -13,11 +14,18 @@ defineProps({
     type: [String, Object] as PropType<string | Component>,
     default: "div",
   },
+  variant: {
+    type: String as PropType<"bordered" | "headless">,
+    default: "bordered",
+  },
 });
 </script>
 
 <style lang="scss" scoped>
 .line-container {
-  @apply w-full rounded-[1.24rem] bg-neutral-900;
+  @apply w-full;
+  &.variant-bordered {
+    @apply rounded-[28px] bg-neutral-950 border border-neutral-900;
+  }
 }
 </style>
