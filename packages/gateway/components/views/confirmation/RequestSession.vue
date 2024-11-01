@@ -171,11 +171,10 @@ const spendLimitTokens = computed(() => {
       [BASE_TOKEN_ADDRESS]: (acc[BASE_TOKEN_ADDRESS] || BigInt(0)) + BigInt(transferPolicy.valueLimit.limit),
     };
   }, spendLimits);
-  const fullData = Object.entries(spendLimits).map(([tokenAddress, amount]) => ({
+  return Object.entries(spendLimits).map(([tokenAddress, amount]) => ({
     token: tokensList.value![tokenAddress],
     amount,
   }));
-  return [...fullData, ...fullData];
 });
 
 const totalUsd = computed(() => (spendLimitTokens.value || []).reduce((acc, item) => {
