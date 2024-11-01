@@ -31,7 +31,7 @@ export const useMintNft = async (_address: MaybeRef<Address>) => {
       abi: nftAbi,
       functionName: "mint",
       args: [mintingForAddress],
-      gas: estimatedGas + (estimatedGas / 100n * 15n), // gas may be underestimated
+      gas: estimatedGas + (estimatedGas / 100n * 25n), // gas may be underestimated
       paymaster: runtimeConfig.public.contracts.paymaster as Address,
       paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
     });
