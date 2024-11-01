@@ -13,12 +13,15 @@
     "@simplewebauthn/server": "^10.0.1",
     "@simplewebauthn/types": "^10.0.0",
     "@wagmi/core": "^2.13.3",
+    "@web3modal/wagmi": "^5.1.11",
+    "cbor-web": "^9.0.2",
     "ethers": "^6.13.2",
     "nuxt": "^3.12.3",
     "viem": "2.21.14",
     "vue": "^3.4.21",
     "wagmi": "^2.12.17",
-    "zksync-account": "workspace:*"
+    "zksync-account": "workspace:*",
+    "zksync-ethers": "^6.12.1"
   },
   "devDependencies": {
     "@nuxt/eslint": "^0.5.7",
