@@ -7,17 +7,33 @@ application. It's built on top of [client SDK](../client/README.md) and
 ## Basic usage
 
 ```ts
+import { zksync } from "viem/chains";
+import { createConfig, connect } from "@wagmi/core";
 import { zksyncAccountConnector } from "zksync-account/connector";
 
-const wagmiConfig = defaultWagmiConfig({
-  connectors: [
-    zksyncAccountConnector({
-      session: {
-        spendLimit: {
-          [ETH_TOKEN.address]: parse("0.1", ETH_TOKEN.decimals).toString(), // 0.1 ETH
-        },
+const ssoConnector = zksyncAccountConnector({
+  // Optional session configuration
+  session: {
+    feeLimit: parseEther("0.1"),
+    // Allow transfers to a specific address with a limit of 0.1 ETH
+    transferPolicies: [
+      {
+        target: "0x188bd99cd7D4d78d4E605Aeea12C17B32CC3135A",
+        valueLimit: parseEther("0.1"),
       },
-    }),
-  ],
+    ],
+  },
 });
+
+const wagmiConfig = createConfig({
+  connectors: [ssoConnector],
+  ..., // your wagmi config https://wagmi.sh/core/api/createConfig
+});
+
+const connectWithSSO = () => {
+  connect(wagmiConfig, {
+    connector: ssoConnector,
+    chainId: zksync.id, // or another chain id that has SSO support
+  });
+};
 ```
