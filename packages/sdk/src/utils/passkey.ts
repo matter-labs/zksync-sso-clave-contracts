@@ -2,8 +2,8 @@ import { ECDSASigValue } from "@peculiar/asn1-ecc";
 import { AsnParser } from "@peculiar/asn1-schema";
 import { bigintToBuf, bufToBigint } from "bigint-conversion";
 import { Buffer } from "buffer";
-import { decode } from "cbor-web";
-import { type Address, encodeAbiParameters, toHex } from "viem";
+import { decode, encode } from "cbor-web";
+import { type Address, encodeAbiParameters, type Hex, toHex } from "viem";
 
 enum COSEKEYS {
   kty = 1, // Key Type
@@ -21,6 +21,25 @@ export const getPublicKeyBytesFromPasskeySignature = (publicPasskey: Uint8Array)
   const y = cosePublicKey.get(COSEKEYS.y);
 
   return [Buffer.from(x), Buffer.from(y)];
+};
+
+export const getPasskeySignatureFromPublicKeyBytes = (coordinates: [Hex, Hex]): Uint8Array => {
+  const [xHex, yHex] = coordinates;
+  const x = Buffer.from(xHex.slice(2), "hex");
+  const y = Buffer.from(yHex.slice(2), "hex");
+
+  // Construct a Map with the COSE key parameters
+  const cosePublicKey = new Map();
+  cosePublicKey.set(1, 2); // Type 2 for EC keys
+  cosePublicKey.set(3, -7); // -7 for ES256 algorithm
+  cosePublicKey.set(-1, 1); // Curve ID (1 for P-256)
+  cosePublicKey.set(COSEKEYS.x, x);
+  cosePublicKey.set(COSEKEYS.y, y);
+
+  // Encode the COSE public key back to CBOR
+  const encodedPublicKey = encode(cosePublicKey);
+
+  return new Uint8Array(encodedPublicKey);
 };
 
 /**

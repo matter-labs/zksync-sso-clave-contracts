@@ -27,3 +27,5 @@ blob-report/
 playwright/.cache/
 
 .output
+
+.DS_Store

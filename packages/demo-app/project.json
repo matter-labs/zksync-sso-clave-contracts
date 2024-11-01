@@ -40,7 +40,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/demo-app",
-        "command": "playwright test --timeout 60000"
+        "command": "playwright test"
       },
       "dependsOn": ["e2e:setup"]
     },

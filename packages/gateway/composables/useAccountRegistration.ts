@@ -1,7 +1,8 @@
-import { registerNewPasskey } from "zksync-account/client/passkey";
-import { deployAccount } from "zksync-account/client";
-import { zksyncInMemoryNode } from "viem/chains";
 import { parseEther, toHex } from "viem";
+import { zksyncInMemoryNode } from "viem/chains";
+import { deployAccount } from "zksync-account/client";
+import { registerNewPasskey } from "zksync-account/client/passkey";
+
 import { useAccountFetch } from "./useAccountFetch";
 
 export async function useAccountRegistration(_username: MaybeRef<string>) {

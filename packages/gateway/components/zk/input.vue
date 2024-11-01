@@ -55,6 +55,7 @@ type UI = {
 const {
   placeholder = "",
   postLabel,
+  // eslint-disable-next-line vue/require-valid-default-prop
   ui = {},
   error = false,
   messages,

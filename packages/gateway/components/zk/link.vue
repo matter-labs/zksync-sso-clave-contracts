@@ -8,8 +8,8 @@
 </template>
 
 <script setup lang="ts">
-import { twMerge } from "tailwind-merge";
 import type { NuxtLinkProps } from "nuxt/app";
+import { twMerge } from "tailwind-merge";
 
 const { ui, type = "inline" } = defineProps<
   NuxtLinkProps & {

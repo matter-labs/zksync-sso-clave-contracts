@@ -1,0 +1,49 @@
+{
+  "name": "nft-quest",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@matterlabs/hardhat-zksync": "1.2.0",
+    "@matterlabs/zksync-contracts": "^0.6.1",
+    "@nomiclabs/hardhat-etherscan": "^3.1.8",
+    "@nuxt/eslint": "^0.6.0",
+    "@nuxtjs/color-mode": "^3.5.1",
+    "@nuxtjs/google-fonts": "^3.2.0",
+    "@nuxtjs/seo": "2.0.0-rc.23",
+    "@openzeppelin/contracts": "4.9.6",
+    "@pinia/nuxt": "^0.5.5",
+    "@vueuse/core": "^11.1.0",
+    "@vueuse/motion": "^2.2.6",
+    "@vueuse/nuxt": "^11.1.0",
+    "@wagmi/core": "^2.13.3",
+    "@web3modal/wagmi": "^5.1.11",
+    "clsx": "^2.1.1",
+    "dotenv": "16.4.5",
+    "ethers": "^6.13.4",
+    "hardhat": "^2.22.12",
+    "nuxt": "^3.13.2",
+    "pinia": "^2.1.7",
+    "radix-vue": "^1.9.6",
+    "sass": "^1.77.6",
+    "tailwind-merge": "^2.5.2",
+    "ts-node": "^10.9.2",
+    "viem": "2.21.14",
+    "vue": "latest",
+    "vue-load-image": "^1.1.0",
+    "vue-router": "latest",
+    "zksync-account": "workspace:*",
+    "zksync-ethers": "^6.14.0"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.12.0",
+    "tailwindcss": "^3.4.14",
+    "@playwright/test": "^1.47.2",
+    "@types/node": "^22.7.5"
+  }
+}

@@ -4,3 +4,4 @@
 !ZkSync
 ZKsync
 zksync
+Zeek

@@ -1,10 +1,13 @@
 alice
+clsx
 COSEALG
 COSEKTY
+ctap
 lintstagedrc
 nuxt
 Nuxt
 nuxtjs
+testid
 verdaccio
 vueuse
 
@@ -19,3 +22,8 @@ OBAGNSGT
 OXBB
 Usdc
 usdc
+
+// packages/nft-quest
+Fren
+fren
+trxn

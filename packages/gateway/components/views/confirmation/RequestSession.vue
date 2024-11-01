@@ -110,13 +110,13 @@
 </template>
 
 <script lang="ts" setup>
-import { formatUnits, type Address } from "viem";
-import { useTimeAgo } from "@vueuse/core";
-import type { SessionPreferences } from "zksync-account";
-import type { GatewayRpcSchema, ExtractReturnType } from "zksync-account/client-gateway";
-import { getSession } from "zksync-account/utils";
-import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
+import { useTimeAgo } from "@vueuse/core";
+import { type Address, formatUnits } from "viem";
+import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
+import type { SessionPreferences } from "zksync-account";
+import type { ExtractReturnType, GatewayRpcSchema } from "zksync-account/client-gateway";
+import { getSession } from "zksync-account/utils";
 
 const props = defineProps({
   session: {

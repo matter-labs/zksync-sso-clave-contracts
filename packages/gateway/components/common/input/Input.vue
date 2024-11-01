@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts" setup>
-import { useAttrs, computed } from "vue";
+import { computed, useAttrs } from "vue";
 
 defineOptions({
   inheritAttrs: false,

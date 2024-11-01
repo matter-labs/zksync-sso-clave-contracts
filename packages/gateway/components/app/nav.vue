@@ -49,8 +49,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, watch } from "vue";
 import { useWindowSize } from "@vueuse/core";
+import { onBeforeUnmount, onMounted, watch } from "vue";
 
 const { width: windowWidth } = useWindowSize();
 const menuWrapper = useTemplateRef("menu-wrapper");

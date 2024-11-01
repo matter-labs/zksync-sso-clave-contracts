@@ -18,6 +18,7 @@
     </div>
     <button
       class="ml-auto w-5 h-5 text-neutral-400 hover:text-white transition"
+      data-testid="logout"
       @click="logout()"
     >
       <ArrowLeftEndOnRectangleIcon />
@@ -26,8 +27,8 @@
 </template>
 
 <script lang="ts" setup>
-import Web3Avatar from "web3-avatar-vue";
 import { ArrowLeftEndOnRectangleIcon } from "@heroicons/vue/24/outline";
+import Web3Avatar from "web3-avatar-vue";
 
 defineProps({
   message: {

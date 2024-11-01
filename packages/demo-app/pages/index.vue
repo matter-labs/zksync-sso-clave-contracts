@@ -19,7 +19,7 @@
       v-if="address && balance"
       class="mt-4"
     >
-      <p>Balance: {{ balance }}</p>
+      <p>Balance: {{ balance.formatted }} {{ balance.symbol }}</p>
     </div>
     <button
       v-if="address"
@@ -39,13 +39,13 @@
 </template>
 
 <script lang="ts" setup>
-import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect } from "@wagmi/core";
+import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, type GetBalanceReturnType } from "@wagmi/core";
 import { zksyncAccountConnector } from "zksync-account/connector";
 import { zksyncInMemoryNode } from "@wagmi/core/chains";
-import { http, parseEther, type Address } from "viem";
+import { createWalletClient, http, parseEther, type Address } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
-const testTransferAmount = parseEther("0.1");
 const zksyncConnector = zksyncAccountConnector({
   gatewayUrl: "http://localhost:3002/confirm",
   session: {
@@ -53,7 +53,7 @@ const zksyncConnector = zksyncAccountConnector({
     transferPolicies: [
       {
         target: testTransferTarget,
-        valueLimit: testTransferAmount,
+        valueLimit: parseEther("0.1"),
       },
     ],
   },
@@ -68,17 +68,30 @@ const wagmiConfig = createConfig({
 reconnect(wagmiConfig);
 
 const address = ref<Address | null>(null);
-const balance = ref<string | null>(null);
+const balance = ref<GetBalanceReturnType | null>(null);
 const errorMessage = ref<string | null>(null);
 const updateBalance = async () => {
   if (!address.value) {
     balance.value = null;
     return;
   }
-  const currentBalance = await getBalance(wagmiConfig, {
+  balance.value = await getBalance(wagmiConfig, {
     address: address.value,
   });
-  balance.value = `${currentBalance.formatted} ${currentBalance.symbol}`;
+};
+const fundAccount = async () => {
+  if (!address.value) throw new Error("Not connected");
+
+  const richClient = createWalletClient({
+    account: privateKeyToAccount("0x3eb15da85647edd9a1159a4a13b9e7c56877c4eb33f614546d4db06a51868b1c"),
+    chain: zksyncInMemoryNode,
+    transport: http(),
+  });
+
+  await richClient.sendTransaction({
+    to: address.value,
+    value: parseEther("1"),
+  });
 };
 
 // Check for updates to the current account
@@ -87,8 +100,11 @@ watchAccount(wagmiConfig, {
     address.value = data.address || null;
   },
 });
-watch(address, () => {
-  updateBalance();
+watch(address, async () => {
+  await updateBalance();
+  if (balance.value && balance.value.value < parseEther("0.2")) {
+    await fundAccount();
+  }
 }, { immediate: true });
 
 const connectWallet = async () => {
@@ -122,6 +138,8 @@ const sendTokens = async () => {
 
     await updateBalance();
   } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Transaction failed:", error);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let transactionFailureDetails = (error as any).cause?.cause?.cause?.data?.originalError?.cause?.details;
     if (!transactionFailureDetails) {
@@ -133,8 +151,6 @@ const sendTokens = async () => {
       errorMessage.value = transactionFailureDetails;
     } else {
       errorMessage.value = "Transaction failed, see console for more info.";
-      // eslint-disable-next-line no-console
-      console.error("Transaction failed:", error);
     }
   }
 };

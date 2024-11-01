@@ -4,6 +4,7 @@
     class="spinner animate-spin"
     viewBox="0 0 100 101"
     fill="none"
+    data-testid="spinner"
     xmlns="http://www.w3.org/2000/svg"
   >
     <path

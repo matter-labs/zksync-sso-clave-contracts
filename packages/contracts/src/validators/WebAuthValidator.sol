@@ -12,8 +12,8 @@ import "../helpers/Logger.sol";
  */
 contract WebAuthValidator is PasskeyValidator, IModuleValidator {
   // The layout is weird due to EIP-7562 storage read restrictions for validation phase.
-  mapping(string originDomain => mapping(address accountAddress => bytes32)) lowerKeyHalf;
-  mapping(string originDomain => mapping(address accountAddress => bytes32)) upperKeyHalf;
+  mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
+  mapping(string originDomain => mapping(address accountAddress => bytes32)) public upperKeyHalf;
 
   function addValidationKey(bytes memory key) external returns (bool) {
     (bytes32[2] memory key32, string memory originDomain) = abi.decode(key, (bytes32[2], string));
