@@ -1,5 +1,5 @@
 import { connect, createConfig, type CreateConnectorFn, disconnect, getAccount, http, reconnect, watchAccount } from "@wagmi/core";
-import { type Address, parseEther, toFunctionSelector } from "viem";
+import { type Address, type Hash, parseEther, toFunctionSelector } from "viem";
 import { zksyncInMemoryNode } from "viem/zksync";
 import { zksyncAccountConnector } from "zksync-account/connector";
 import { getSession } from "zksync-account/utils";
@@ -17,9 +17,9 @@ export const useConnectorStore = defineStore("connector", () => {
     },
     gatewayUrl: "http://localhost:3002/confirm",
     session: getSession({
-      feeLimit: { limit: parseEther("0.001") },
+      feeLimit: parseEther("0.001"),
       callPolicies: [{
-        target: runtimeConfig.public.contracts.nft,
+        target: runtimeConfig.public.contracts.nft as Hash,
         selector: toFunctionSelector("mint(address)"),
       }],
     }),
@@ -62,15 +62,6 @@ export const useConnectorStore = defineStore("connector", () => {
     notifyOnAccountChange(newAddress);
   });
 
-  // const getPublicClient = ({ chainId }: { chainId: SupportedChainId }) => {
-  //   // const chain = supportedChains.find((c) => c.id === chainId);
-  //   if (!chain) throw new Error(`Chain with id ${chainId} not found`);
-  //   return createPublicClient({
-  //     chain,
-  //     transport: http(),
-  //   });
-  // };
-
   return {
     wagmiConfig: computed(() => wagmiConfig),
     account: computed(() => account.value),
@@ -79,6 +70,5 @@ export const useConnectorStore = defineStore("connector", () => {
     disconnectAccount,
     address$,
     shortAddress,
-    // getPublicClient,
   };
 });
