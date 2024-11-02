@@ -11,7 +11,7 @@
     "@hexagon/base64": "1.1.28",
     "@levischuck/tiny-cbor": "0.2.2",
     "@matterlabs/hardhat-zksync": "1.2.0",
-    "@matterlabs/hardhat-zksync-deploy": "1.5.0",
+    "@matterlabs/hardhat-zksync-deploy": "1.6.0",
     "@nomicfoundation/hardhat-chai-matchers": "2.0.8",
     "@nomicfoundation/hardhat-ethers": "3.0.8",
     "@nomicfoundation/hardhat-verify": "2.0.11",

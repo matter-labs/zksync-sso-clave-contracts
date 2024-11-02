@@ -213,10 +213,10 @@ importers:
         version: 0.2.2
       '@matterlabs/hardhat-zksync':
         specifier: 1.2.0
-        version: 1.2.0(s5mnuinjslozaedgq4f5sjptyy)
+        version: 1.2.0(qd5ozkrfcqxsmujpfxu5ik4ehe)
       '@matterlabs/hardhat-zksync-deploy':
-        specifier: 1.5.0
-        version: 1.5.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.13.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
+        specifier: 1.6.0
+        version: 1.6.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.13.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@nomicfoundation/hardhat-chai-matchers':
         specifier: 2.0.8
         version: 2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(chai@4.5.0)(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
@@ -409,7 +409,7 @@ importers:
     dependencies:
       '@matterlabs/hardhat-zksync':
         specifier: 1.2.0
-        version: 1.2.0(jq27lisszh63x44gykkfav2efe)
+        version: 1.2.0(n6nkav3uss3bdbcc35q56ujrwe)
       '@matterlabs/zksync-contracts':
         specifier: ^0.6.1
         version: 0.6.1(@openzeppelin/contracts-upgradeable@4.9.6)(@openzeppelin/contracts@4.9.6)
@@ -514,13 +514,13 @@ importers:
   packages/nft-quest-contracts:
     devDependencies:
       '@matterlabs/hardhat-zksync':
-        specifier: ^1.1.0
-        version: 1.2.0(jq27lisszh63x44gykkfav2efe)
+        specifier: 1.2.0
+        version: 1.2.0(n6nkav3uss3bdbcc35q56ujrwe)
       '@matterlabs/zksync-contracts':
         specifier: ^0.6.1
         version: 0.6.1(@openzeppelin/contracts-upgradeable@4.9.6)(@openzeppelin/contracts@4.9.6)
       '@nomicfoundation/hardhat-verify':
-        specifier: ^2.0.9
+        specifier: 2.0.11
         version: 2.0.11(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@openzeppelin/contracts':
         specifier: ^4.9.2
@@ -541,7 +541,7 @@ importers:
         specifier: ^6.13.2
         version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       hardhat:
-        specifier: ^2.22.7
+        specifier: 2.22.15
         version: 2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
       mocha:
         specifier: ^10.7.0
@@ -2515,12 +2515,12 @@ packages:
     resolution: {integrity: sha512-Yhlar6v9WQgUp/He7BdgzOz8lqMQ8sU+jkCq7Wx8Myc5YFJLbEe7lgui/V7G1qB1DJykHSGwreceSaD60Y0PUQ==}
     hasBin: true
 
-  '@matterlabs/hardhat-zksync-deploy@1.5.0':
-    resolution: {integrity: sha512-7LAgYYwoKWHeR+3CyWEvA3NKBKtt7ktcr7SX6ZPgbEYqHAdXH02vxJZGwNADtMWpyYm8h+fEQkpPIgErD4NhmA==}
+  '@matterlabs/hardhat-zksync-deploy@1.6.0':
+    resolution: {integrity: sha512-yaOfhw7hmLOriBc+TnHrFOVKyi79XFqJN5D1Z4T6CadaSNLeq7pgBV81kkgVzaCJVoA/La2RGxPowsG7riZGbw==}
     peerDependencies:
       ethers: ^6.12.2
       hardhat: ^2.22.5
-      zksync-ethers: ^6.8.0
+      zksync-ethers: ^6.11.2
 
   '@matterlabs/hardhat-zksync-ethers@1.2.1':
     resolution: {integrity: sha512-J/ZpGx2Ig9AUxsKbE4IqpQ6hetqO7RPRFaSrdIcEWzurSYWb40Ih/HkQD03f5cSAjzhQEKaNlyVofefqLGkdZg==}
@@ -4873,6 +4873,7 @@ packages:
 
   '@web3modal/wagmi@5.1.11':
     resolution: {integrity: sha512-etV1qfBVvh41EMuBHXUpcO/W818jZVNh5/l9Z5kqRPZxlQmBaJbt5mTzw6nw/Lujoe1yYKugGQFhgjfEQK+eyA==}
+    deprecated: Web3Modal is now Reown AppKit. Please follow the upgrade guide at https://docs.reown.com/appkit/upgrade/from-w3m-to-reown
     peerDependencies:
       '@wagmi/connectors': '>=4'
       '@wagmi/core': '>=2.0.0'
@@ -6327,6 +6328,7 @@ packages:
 
   eciesjs@0.3.20:
     resolution: {integrity: sha512-Rz5AB8v9+xmMdS/R7RzWPe/R8DP5QfyrkA6ce4umJopoB5su2H2aDy/GcgIfwhmCwxnBkqGf/PbGzmKcGtIgGA==}
+    deprecated: Please upgrade to v0.4+
 
   eciesjs@0.4.10:
     resolution: {integrity: sha512-dYAgdXAC7/d9fEC0w6kpRWj5vHah2BQgMM639g78JI0FUUffMN2Mq60HEHPkyH8ah+FX+cQd6ouDK4kWiatzyw==}
@@ -6628,6 +6630,7 @@ packages:
 
   ethereumjs-abi@0.6.8:
     resolution: {integrity: sha512-Tx0r/iXI6r+lRsdvkFDlut0N08jWMnKRZ6Gkq+Nmw75lZe4e6o3EkSnkaBP5NF6+m5PTGAr9JP43N3LyeoglsA==}
+    deprecated: This library has been deprecated and usage is discouraged.
 
   ethereumjs-util@6.2.1:
     resolution: {integrity: sha512-W2Ktez4L01Vexijrm5EB6w7dg4n/TgpoYU4avuT5T3Vmnw/eCRtiBrJfQYS/DCSvDIOLn2k57GcHdeBcgVxAqw==}
@@ -13250,7 +13253,7 @@ snapshots:
       - encoding
       - supports-color
 
-  '@matterlabs/hardhat-zksync-deploy@1.5.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.13.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))':
+  '@matterlabs/hardhat-zksync-deploy@1.6.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.13.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))':
     dependencies:
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       chai: 4.5.0
@@ -13268,7 +13271,7 @@ snapshots:
       - encoding
       - supports-color
 
-  '@matterlabs/hardhat-zksync-deploy@1.5.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))':
+  '@matterlabs/hardhat-zksync-deploy@1.6.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))':
     dependencies:
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       chai: 4.5.0
@@ -13286,7 +13289,7 @@ snapshots:
       - encoding
       - supports-color
 
-  '@matterlabs/hardhat-zksync-deploy@1.5.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))':
+  '@matterlabs/hardhat-zksync-deploy@1.6.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))':
     dependencies:
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       chai: 4.5.0
@@ -13306,7 +13309,7 @@ snapshots:
 
   '@matterlabs/hardhat-zksync-ethers@1.2.1(bufferutil@4.0.8)(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)(zksync-ethers@6.13.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))':
     dependencies:
-      '@matterlabs/hardhat-zksync-deploy': 1.5.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.13.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
+      '@matterlabs/hardhat-zksync-deploy': 1.6.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.13.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       chai: 4.5.0
@@ -13325,7 +13328,7 @@ snapshots:
 
   '@matterlabs/hardhat-zksync-ethers@1.2.1(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))':
     dependencies:
-      '@matterlabs/hardhat-zksync-deploy': 1.5.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
+      '@matterlabs/hardhat-zksync-deploy': 1.6.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       chai: 4.5.0
@@ -13344,7 +13347,7 @@ snapshots:
 
   '@matterlabs/hardhat-zksync-ethers@1.2.1(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))':
     dependencies:
-      '@matterlabs/hardhat-zksync-deploy': 1.5.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
+      '@matterlabs/hardhat-zksync-deploy': 1.6.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       chai: 4.5.0
@@ -13435,7 +13438,7 @@ snapshots:
 
   '@matterlabs/hardhat-zksync-upgradable@1.7.0(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-verify@2.0.11(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)':
     dependencies:
-      '@matterlabs/hardhat-zksync-deploy': 1.5.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
+      '@matterlabs/hardhat-zksync-deploy': 1.6.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@matterlabs/hardhat-zksync-ethers': 1.2.1(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@openzeppelin/contracts-hardhat-zksync-upgradable': '@openzeppelin/contracts@5.1.0'
@@ -13468,7 +13471,7 @@ snapshots:
 
   '@matterlabs/hardhat-zksync-upgradable@1.7.0(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-verify@2.0.11(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)':
     dependencies:
-      '@matterlabs/hardhat-zksync-deploy': 1.5.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
+      '@matterlabs/hardhat-zksync-deploy': 1.6.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@matterlabs/hardhat-zksync-ethers': 1.2.1(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@openzeppelin/contracts-hardhat-zksync-upgradable': '@openzeppelin/contracts@5.1.0'
@@ -13537,9 +13540,9 @@ snapshots:
       - encoding
       - supports-color
 
-  '@matterlabs/hardhat-zksync@1.2.0(jq27lisszh63x44gykkfav2efe)':
+  '@matterlabs/hardhat-zksync@1.2.0(n6nkav3uss3bdbcc35q56ujrwe)':
     dependencies:
-      '@matterlabs/hardhat-zksync-deploy': 1.5.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
+      '@matterlabs/hardhat-zksync-deploy': 1.6.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@matterlabs/hardhat-zksync-ethers': 1.2.1(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)(zksync-ethers@6.14.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@matterlabs/hardhat-zksync-node': 1.2.0(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
@@ -13562,9 +13565,9 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@matterlabs/hardhat-zksync@1.2.0(s5mnuinjslozaedgq4f5sjptyy)':
+  '@matterlabs/hardhat-zksync@1.2.0(qd5ozkrfcqxsmujpfxu5ik4ehe)':
     dependencies:
-      '@matterlabs/hardhat-zksync-deploy': 1.5.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.13.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
+      '@matterlabs/hardhat-zksync-deploy': 1.6.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))(zksync-ethers@6.13.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@matterlabs/hardhat-zksync-ethers': 1.2.1(bufferutil@4.0.8)(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)(zksync-ethers@6.13.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       '@matterlabs/hardhat-zksync-node': 1.2.0(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
