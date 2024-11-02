@@ -14,7 +14,7 @@ jobs:
     outputs:
       output_urls: "${{ steps.preview_deploy.outputs.urls }}"
     steps:
-      - uses: actions/checkout@v4 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -22,7 +22,7 @@ jobs:
           version: 9.11.0
 
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
         with:
           node-version: lts/Iron
           cache: 'pnpm'
