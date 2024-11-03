@@ -16,14 +16,18 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IHookManager } from "../interfaces/IHookManager.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 
+import { ITimestampAsserter } from "../interfaces/ITimestampAsserter.sol";
+
 library SessionLib {
   using SessionLib for SessionLib.Constraint;
   using SessionLib for SessionLib.UsageLimit;
 
-  // We do not permit session keys to be reused to open multiple sessions
-  // (after one expires or is closed, e.g.).
-  // For each session key, its session status can only be changed
+  // TODO: update with the actual address / create a function that returns it depending on chain id
+  ITimestampAsserter constant TIMESTAMP_ASSERTER = ITimestampAsserter(0xDc161Fb346B180a32b770a507AFC0B5D5a65255d);
+
+  // For each session, its session status can only be changed
   // from NotInitialized to Active, and from Active to Closed.
+  // To reopen a session with the same spec, use a different signer.
   enum Status {
     NotInitialized,
     Active,
@@ -59,7 +63,7 @@ library SessionLib {
     mapping(address => uint256) lifetimeUsage;
     // Used for LimitType.Allowance
     // period => used that period
-    mapping(uint256 => mapping(address => uint256)) allowanceUsage;
+    mapping(uint64 => mapping(address => uint256)) allowanceUsage;
   }
 
   struct UsageLimit {
@@ -128,20 +132,29 @@ library SessionLib {
     LimitState[] callParams;
   }
 
-  function checkAndUpdate(UsageLimit memory limit, UsageTracker storage tracker, uint256 value) internal {
+  function checkAndUpdate(
+    UsageLimit memory limit,
+    UsageTracker storage tracker,
+    uint256 value,
+    uint64 period
+  ) internal {
     if (limit.limitType == LimitType.Lifetime) {
       require(tracker.lifetimeUsage[msg.sender] + value <= limit.limit, "Lifetime limit exceeded");
       tracker.lifetimeUsage[msg.sender] += value;
     }
-    // TODO: uncomment when it's possible to check timestamps during validation
-    // if (limit.limitType == LimitType.Allowance) {
-    //   uint256 period = block.timestamp / limit.period;
-    //   require(tracker.allowanceUsage[period] + value <= limit.limit);
-    //   tracker.allowanceUsage[period] += value;
-    // }
+    if (limit.limitType == LimitType.Allowance) {
+      TIMESTAMP_ASSERTER.assertTimestampInRange(period * limit.period, (period + 1) * limit.period);
+      require(tracker.allowanceUsage[period][msg.sender] + value <= limit.limit, "Allowance limit exceeded");
+      tracker.allowanceUsage[period][msg.sender] += value;
+    }
   }
 
-  function checkAndUpdate(Constraint memory constraint, UsageTracker storage tracker, bytes calldata data) internal {
+  function checkAndUpdate(
+    Constraint memory constraint,
+    UsageTracker storage tracker,
+    bytes calldata data,
+    uint64 period
+  ) internal {
     uint256 index = 4 + constraint.index * 32;
     bytes32 param = bytes32(data[index:index + 32]);
     Condition condition = constraint.condition;
@@ -161,18 +174,28 @@ library SessionLib {
       require(param != refValue, "NOT_EQUAL constraint not met");
     }
 
-    constraint.limit.checkAndUpdate(tracker, uint256(param));
+    constraint.limit.checkAndUpdate(tracker, uint256(param), period);
   }
 
-  function validate(SessionStorage storage state, Transaction calldata transaction, SessionSpec memory spec) internal {
+  // Here we additionally pass uint64[] periodId to check allowance limits
+  // periodId is defined as block.timestamp / limit.period if limitType == Allowance, and 0 otherwise (which will be ignored).
+  // periodIds[0] is for fee limit,
+  // periodIds[1] is for value limit,
+  // periodIds[2:] are for call constraints, if there are any.
+  // It is required to pass them in (instead of computing via block.timestamp) since during validation
+  // we can only assert the range of the timestamp, but not access the value.
+  function validate(
+    SessionStorage storage state,
+    Transaction calldata transaction,
+    SessionSpec memory spec,
+    uint64[] memory periodIds
+  ) internal {
     require(state.status[msg.sender] == Status.Active, "Session is not active");
-
-    // TODO uncomment when it's possible to check timestamps during validation
-    // require(block.timestamp <= session.expiresAt);
+    TIMESTAMP_ASSERTER.assertTimestampInRange(0, spec.expiresAt);
 
     // TODO: update fee allowance with the gasleft/refund at the end of execution
     uint256 fee = transaction.maxFeePerGas * transaction.gasLimit;
-    spec.feeLimit.checkAndUpdate(state.fee, fee);
+    spec.feeLimit.checkAndUpdate(state.fee, fee, periodIds[0]);
 
     address target = address(uint160(transaction.to));
 
@@ -191,10 +214,10 @@ library SessionLib {
 
       require(found, "Call not allowed");
       require(transaction.value <= callPolicy.maxValuePerUse, "Value exceeds limit");
-      callPolicy.valueLimit.checkAndUpdate(state.callValue[target][selector], transaction.value);
+      callPolicy.valueLimit.checkAndUpdate(state.callValue[target][selector], transaction.value, periodIds[1]);
 
       for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
-        callPolicy.constraints[i].checkAndUpdate(state.params[target][selector][i], transaction.data);
+        callPolicy.constraints[i].checkAndUpdate(state.params[target][selector][i], transaction.data, periodIds[i + 2]);
       }
     } else {
       TransferSpec memory transferPolicy;
@@ -210,7 +233,7 @@ library SessionLib {
 
       require(found, "Transfer not allowed");
       require(transaction.value <= transferPolicy.maxValuePerUse, "Value exceeds limit");
-      transferPolicy.valueLimit.checkAndUpdate(state.transferValue[target], transaction.value);
+      transferPolicy.valueLimit.checkAndUpdate(state.transferValue[target], transaction.value, periodIds[1]);
     }
   }
 
@@ -228,7 +251,7 @@ library SessionLib {
     }
     if (limit.limitType == LimitType.Allowance) {
       // this is not used during validation, so it's fine to use block.timestamp
-      uint256 period = block.timestamp / limit.period;
+      uint64 period = uint64(block.timestamp / limit.period);
       return limit.limit - tracker.allowanceUsage[period][account];
     }
   }
@@ -439,11 +462,14 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
       // This transaction is not meant to be validated by this module
       return;
     }
-    SessionLib.SessionSpec memory spec = abi.decode(hookData, (SessionLib.SessionSpec));
+    (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
+      hookData,
+      (SessionLib.SessionSpec, uint64[])
+    );
     (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, signature);
     require(recoveredAddress == spec.signer, "Invalid signer");
     bytes32 sessionHash = keccak256(abi.encode(spec));
-    sessions[sessionHash].validate(transaction, spec);
+    sessions[sessionHash].validate(transaction, spec, periodIds);
   }
 
   /**
