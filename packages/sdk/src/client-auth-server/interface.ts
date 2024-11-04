@@ -1,5 +1,5 @@
 import { EventEmitter } from "eventemitter3";
-import type { Address, Hash, RpcSchema as RpcSchemaGeneric } from "viem";
+import type { AbiFunction, Address, Hash, RpcSchema as RpcSchemaGeneric } from "viem";
 
 import type { ExtractParams, ExtractReturnType, Method, RpcSchema } from "./rpc.js";
 
@@ -55,12 +55,13 @@ export type Limit = {
 
 export type CallPolicy = {
   target: Address;
-  selector?: Hash;
+  function?: string | AbiFunction;
+  selector?: Hash; // if function is not provided
   maxValuePerUse?: bigint;
   valueLimit?: bigint | Limit;
   constraints?: {
-    condition?: Condition;
-    index: bigint;
+    index: number | bigint;
+    condition?: Condition | keyof typeof Condition;
     refValue?: Hash;
     limit?: Limit;
   }[];

@@ -1,6 +1,6 @@
-import type { Hex } from "viem";
+import { toFunctionSelector, toHex } from "viem";
 
-import type { Limit, SessionPreferences } from "../client-auth-server/interface.js";
+import { Condition, type Limit, type SessionPreferences } from "../client-auth-server/interface.js";
 
 enum LimitType {
   Unlimited = 0,
@@ -43,15 +43,16 @@ export function getSession(session: SessionPreferences) {
     feeLimit: getLimit(session.feeLimit),
     callPolicies: session.callPolicies?.map((policy) => {
       const valueLimit = getLimit(policy.valueLimit);
+      const selector = policy.function ? toFunctionSelector(policy.function) : policy.selector;
       return {
         target: policy.target,
-        selector: policy.selector ?? "0x00000000" as Hex,
-        maxValuePerUse: policy.maxValuePerUse ? BigInt(policy.maxValuePerUse) : valueLimit.limit,
+        maxValuePerUse: policy.maxValuePerUse ?? valueLimit.limit,
         valueLimit,
+        selector: selector || toHex("", { size: 4 }),
         constraints: policy.constraints?.map((constraint) => ({
-          condition: constraint.condition ?? 0,
+          condition: typeof constraint.condition == "string" ? Condition[constraint.condition] : (constraint.condition ?? 0),
           index: BigInt(constraint.index),
-          refValue: constraint.refValue ?? "0x" + "00".repeat(32) as Hex,
+          refValue: constraint.refValue ?? toHex("", { size: 32 }),
           limit: getLimit(constraint.limit),
         })) ?? [],
       };
@@ -60,7 +61,7 @@ export function getSession(session: SessionPreferences) {
       const valueLimit = getLimit(policy.valueLimit);
       return {
         target: policy.target,
-        maxValuePerUse: policy.maxValuePerUse ? BigInt(policy.maxValuePerUse) : valueLimit.limit,
+        maxValuePerUse: policy.maxValuePerUse ?? valueLimit.limit,
         valueLimit,
       };
     }) ?? [],

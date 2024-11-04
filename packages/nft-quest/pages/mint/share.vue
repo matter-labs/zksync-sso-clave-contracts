@@ -1,6 +1,6 @@
 <template>
   <div class="h-full flex items-center flex-col justify-center relative">
-    <div class="p-4 grow h-full justify-center flex flex-col mb-20 sm:mb-8">
+    <div class="p-4 grow h-full justify-center flex flex-col mb-8">
       <BlurFade
         in-view
         :delay="0"
@@ -76,7 +76,7 @@
 definePageMeta({
   middleware: [
     function (to) {
-      if (to.query.trxn === undefined) {
+      if (to.query.tx === undefined) {
         return navigateTo("/mint");
       }
     },
@@ -93,6 +93,6 @@ const route = useRoute();
 const runtimeConfig = useRuntimeConfig();
 
 const transactionURL = computed(() => {
-  return `${runtimeConfig.public.explorerUrl}/tx/${route.query.trxn}`;
+  return `${runtimeConfig.public.explorerUrl}/tx/${route.query.tx}`;
 });
 </script>
