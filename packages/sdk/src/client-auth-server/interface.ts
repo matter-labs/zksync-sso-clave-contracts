@@ -60,7 +60,7 @@ export type CallPolicy = {
   maxValuePerUse?: bigint;
   valueLimit?: bigint | Limit;
   constraints?: {
-    index: number;
+    index: number | bigint;
     condition?: Condition | keyof typeof Condition;
     refValue?: Hash;
     limit?: Limit;
