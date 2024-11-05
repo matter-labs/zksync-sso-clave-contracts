@@ -49,9 +49,9 @@ export function getSession(session: SessionPreferences) {
         maxValuePerUse: policy.maxValuePerUse ?? valueLimit.limit,
         valueLimit,
         selector: selector || toHex("", { size: 4 }),
-        constraints: policy.constraints?.map((constraint, index) => ({
+        constraints: policy.constraints?.map((constraint) => ({
           condition: typeof constraint.condition == "string" ? Condition[constraint.condition] : (constraint.condition ?? 0),
-          index: BigInt(index),
+          index: BigInt(constraint.index),
           refValue: constraint.refValue ?? toHex("", { size: 32 }),
           limit: getLimit(constraint.limit),
         })) ?? [],
