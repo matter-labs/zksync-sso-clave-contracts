@@ -51,11 +51,12 @@
 </template>
 
 <script setup lang="ts">
-const { error: mintNFTError, execute: mintNFT, status, data } = await useMintNft();
+const { account } = storeToRefs(useConnectorStore());
+const { error: mintNFTError, execute: mintNFT, status, data } = await useMintNft(computed(() => account.value.address!));
 
 watch(status, (status) => {
   if (status === "success") {
-    navigateTo({ path: "mint/share", query: { trxn: data.value.transactionHash } });
+    navigateTo({ path: "mint/share", query: { tx: data.value!.transactionHash } });
   } else if (status === "error") {
     console.error(mintNFTError.value);
   }

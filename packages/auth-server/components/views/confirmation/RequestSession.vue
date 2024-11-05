@@ -34,7 +34,10 @@
         </CommonLine>
       </div>
 
-      <div class="bg-neutral-975 rounded-[28px]">
+      <div
+        v-if="tokensLoading || spendLimitTokens?.length"
+        class="bg-neutral-975 rounded-[28px]"
+      >
         <div class="px-5 py-2 text-neutral-400">
           <div class="flex justify-between">
             <div>Allowed spending</div>
@@ -172,10 +175,12 @@ const spendLimitTokens = computed(() => {
       [BASE_TOKEN_ADDRESS]: (acc[BASE_TOKEN_ADDRESS] || BigInt(0)) + BigInt(transferPolicy.valueLimit.limit),
     };
   }, spendLimits);
-  return Object.entries(spendLimits).map(([tokenAddress, amount]) => ({
-    token: tokensList.value![tokenAddress],
-    amount,
-  }));
+  return Object.entries(spendLimits)
+    .filter(([,amount]) => amount > 0n)
+    .map(([tokenAddress, amount]) => ({
+      token: tokensList.value![tokenAddress],
+      amount,
+    }));
 });
 
 const totalUsd = computed(() => (spendLimitTokens.value || []).reduce((acc, item) => {

@@ -1,5 +1,5 @@
 import { connect, createConfig, type CreateConnectorFn, disconnect, getAccount, http, reconnect, watchAccount } from "@wagmi/core";
-import { type Address, type Hash, parseEther, toFunctionSelector } from "viem";
+import { type Address, type Hash, parseEther, parseUnits, toHex } from "viem";
 import { zksyncInMemoryNode, zksyncLocalNode, zksyncSepoliaTestnet } from "viem/chains";
 import { zksyncAccountConnector } from "zksync-sso/connector";
 import { getSession } from "zksync-sso/utils";
@@ -23,7 +23,17 @@ export const useConnectorStore = defineStore("connector", () => {
       feeLimit: parseEther("0.1"),
       callPolicies: [{
         target: runtimeConfig.public.contracts.nft as Hash,
-        selector: toFunctionSelector("mint(address)"),
+        function: "transfer(address,uint256)",
+        constraints: [
+          {
+            condition: "Equal",
+            refValue: "0x6cC8cf7f6b488C58AA909B77E6e65c631c204784",
+          },
+          {
+            condition: "LessEqual",
+            refValue: toHex(parseUnits("0.1", 6), { size: 32 }),
+          },
+        ],
       }],
     }),
   });
