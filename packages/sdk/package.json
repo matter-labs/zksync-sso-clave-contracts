@@ -33,9 +33,9 @@
   },
   "devDependencies": {
     "@simplewebauthn/types": "^10.0.0",
-    "@types/node": "^22.1.0",
+    "@types/node": "^22.8.0",
     "eventemitter3": "^5.0.1",
-    "viem": "2.21.14"
+    "viem": "2.21.40"
   },
   "files": [
     "*",

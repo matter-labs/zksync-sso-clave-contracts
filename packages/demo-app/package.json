@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@nuxtjs/google-fonts": "^3.2.0",
-    "@pinia/nuxt": "^0.5.5",
+    "@pinia/nuxt": "^0.7.0",
     "@simplewebauthn/browser": "^10.0.0",
     "@simplewebauthn/server": "^10.0.1",
     "@simplewebauthn/types": "^10.0.0",
@@ -17,16 +17,16 @@
     "cbor-web": "^9.0.2",
     "ethers": "^6.13.2",
     "nuxt": "^3.12.3",
-    "viem": "2.21.14",
+    "viem": "2.21.40",
     "vue": "^3.4.21",
     "wagmi": "^2.12.17",
     "zksync-sso": "workspace:*",
     "zksync-ethers": "^6.12.1"
   },
   "devDependencies": {
-    "@nuxt/eslint": "^0.5.7",
+    "@nuxt/eslint": "^0.6.0",
     "@nuxtjs/tailwindcss": "^6.12.0",
-    "@playwright/test": "^1.47.2",
-    "@types/node": "^22.7.5"
+    "@playwright/test": "^1.48.1",
+    "@types/node": "^22.8.0"
   }
 }
