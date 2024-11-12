@@ -8,8 +8,8 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
   const { getThrowAwayClient } = useClientStore();
 
   const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
-    // Format passkey display name similar to "ZK SSO 11/11/2024 01:46 PM"
-    let name = `ZK SSO ${(new Date()).toLocaleDateString("en-US")}`;
+    // Format passkey display name similar to "ZKsync SSO 11/11/2024 01:46 PM"
+    let name = `ZKsync SSO ${(new Date()).toLocaleDateString("en-US")}`;
     name += ` ${(new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 
     const {

@@ -1,4 +1,4 @@
-# ZKsync Account SDK
+# ZKsync SSO SDK
 
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE-MIT)
 [![CI](https://github.com/matter-labs/zksync-account-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/matter-labs/zksync-account-sdk/actions/workflows/ci.yml)
@@ -8,9 +8,7 @@ This monorepo is comprised of the following packages/products:
 - `packages/sdk` is the `zksync-sso` JavaScript SDK
 - `packages/auth-server` is the Auth Server used for account creation and
   session key management
-- `packages/contracts` are the on-chain smart contracts behind ZK SSO accounts
-
-[Link to **ZK Account Interface Details**](https://matterlabs.notion.site/ZK-Account-Interface-Details-0c15bbcb90dc466ca826b57aa24d3a69)
+- `packages/contracts` are the on-chain smart contracts behind ZKsync SSO accounts
 
 ## Running development
 
