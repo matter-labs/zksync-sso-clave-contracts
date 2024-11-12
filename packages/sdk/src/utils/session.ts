@@ -6,6 +6,11 @@ export enum LimitType {
   Allowance = 2,
 }
 
+/**
+ * Limit is the value tracked either for a lifetime or a period on-chain
+ * @member limit - The limit is exceeded if the tracked value is greater than this over the provided period
+ * @member period - The block.timestamp divisor for the limit to be enforced (eg: 60 for a minute, 86400 for a day, 604800 for a week, unset for lifetime)
+ */
 export type Limit = {
   limitType: LimitType;
   limit: bigint;
@@ -24,6 +29,9 @@ export const LimitZero = {
   period: 0n,
 };
 
+/**
+ * Common logic operators to used combine multiple constraints
+ */
 export enum ConstraintCondition {
   Unconstrained = 0,
   Equal = 1,
@@ -34,6 +42,14 @@ export enum ConstraintCondition {
   NotEqual = 6,
 }
 
+/**
+ * Constraint allows performing logic checks on any binary word (bytes32) in the transaction.
+ * This can let you set spend limits against functions on specific contracts
+ * @member index - The location of the start of the data in the transaction. This is not the index of the constraint within the containing array!
+ * @member condition - The kind of check to perform (None, =, >, <, >=, <=, !=)
+ * @member refValue - The value to compare against (as bytes32)
+ * @member limit - The limit to enforce on the parsed value (from index)
+ */
 export type Constraint = {
   index: bigint;
   condition: ConstraintCondition;
@@ -41,6 +57,14 @@ export type Constraint = {
   limit: Limit;
 };
 
+/**
+ * CallPolicy is a policy for a specific contract (address/function) call.
+ * @member target - Only one policy per target per session (unique mapping)
+ * @member functionSelector - Solidity function selector (either as function name, the ABI object, or the selector directly), also unique mapping with target
+ * @member maxValuePerUse - Will reject transaction if value is set above this amount (for transfer or call)
+ * @member valueLimit - If not set, unlimited. If a number or a limit without a period, converts to a lifetime value. Also rejects transactions that have cumulative value greater than what's set here
+ * @member constraints - Array of conditions with specific limits for performing range and logic checks (e.g. 5 > x >= 30) on the transaction data (not value!)
+ */
 export type CallPolicy = {
   target: Address;
   valueLimit: Limit;
@@ -49,6 +73,12 @@ export type CallPolicy = {
   constraints: Constraint[];
 };
 
+/**
+ * Simplified CallPolicy for transactions with less than 4 bytes of data
+ * @member target - Only one policy per target per session (unique mapping from CallPolicies)
+ * @member maxValuePerUse - Will reject transaction if value is set above this amount
+ * @member valueLimit - Validated from value
+ */
 export type TransferPolicy = {
   target: Address;
   maxValuePerUse: bigint;
