@@ -12,8 +12,6 @@ class PopupCommunicator {
   private listeners = new Map<(_: MessageEvent) => boolean, { reject: (_: Error) => void }>();
   private openerOrigin: string | null = null;
 
-  // constructor() {}
-
   /**
    * Handles incoming messages and routes them to the appropriate listeners.
    */
