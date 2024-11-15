@@ -16,14 +16,11 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IHookManager } from "../interfaces/IHookManager.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 
-import { ITimestampAsserter } from "../interfaces/ITimestampAsserter.sol";
+import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 
 library SessionLib {
   using SessionLib for SessionLib.Constraint;
   using SessionLib for SessionLib.UsageLimit;
-
-  // TODO: update with the actual address / create a function that returns it depending on chain id
-  ITimestampAsserter constant TIMESTAMP_ASSERTER = ITimestampAsserter(0xDc161Fb346B180a32b770a507AFC0B5D5a65255d);
 
   // For each session, its session status can only be changed
   // from NotInitialized to Active, and from Active to Closed.
@@ -143,7 +140,7 @@ library SessionLib {
       tracker.lifetimeUsage[msg.sender] += value;
     }
     if (limit.limitType == LimitType.Allowance) {
-      TIMESTAMP_ASSERTER.assertTimestampInRange(period * limit.period, (period + 1) * limit.period);
+      TimestampAsserterLocator.locate().assertTimestampInRange(period * limit.period, (period + 1) * limit.period);
       require(tracker.allowanceUsage[period][msg.sender] + value <= limit.limit, "Allowance limit exceeded");
       tracker.allowanceUsage[period][msg.sender] += value;
     }
@@ -183,7 +180,7 @@ library SessionLib {
   // periodIds[1] is for value limit,
   // periodIds[2:] are for call constraints, if there are any.
   // It is required to pass them in (instead of computing via block.timestamp) since during validation
-  // we can only assert the range of the timestamp, but not access the value.
+  // we can only assert the range of the timestamp, but not access its value.
   function validate(
     SessionStorage storage state,
     Transaction calldata transaction,
@@ -191,7 +188,7 @@ library SessionLib {
     uint64[] memory periodIds
   ) internal {
     require(state.status[msg.sender] == Status.Active, "Session is not active");
-    TIMESTAMP_ASSERTER.assertTimestampInRange(0, spec.expiresAt);
+    TimestampAsserterLocator.locate().assertTimestampInRange(0, spec.expiresAt);
 
     // TODO: update fee allowance with the gasleft/refund at the end of execution
     uint256 fee = transaction.maxFeePerGas * transaction.gasLimit;
@@ -212,7 +209,7 @@ library SessionLib {
         }
       }
 
-      require(found, "Call not allowed");
+      require(found, "Call to this contract is not allowed");
       require(transaction.value <= callPolicy.maxValuePerUse, "Value exceeds limit");
       callPolicy.valueLimit.checkAndUpdate(state.callValue[target][selector], transaction.value, periodIds[1]);
 
@@ -231,7 +228,7 @@ library SessionLib {
         }
       }
 
-      require(found, "Transfer not allowed");
+      require(found, "Transfer to this address is not allowed");
       require(transaction.value <= transferPolicy.maxValuePerUse, "Value exceeds limit");
       transferPolicy.valueLimit.checkAndUpdate(state.transferValue[target], transaction.value, periodIds[1]);
     }

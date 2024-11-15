@@ -129,16 +129,13 @@ type PartialSession = {
   }[];
 };
 
-async function sleep(seconds: number) {
-  return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
-}
-
 class SessionTester {
   public sessionOwner: Wallet;
   public session: SessionLib.SessionSpecStruct;
   public sessionAccount: SmartAccount;
   // having this is a bit hacky, but it's so we can provide correct period ids in the signature
   aaTransaction: ethers.TransactionLike;
+  totalTimeIncreased = 0;
 
   constructor(public proxyAccountAddress: string, sessionKeyModuleAddress: string) {
     this.sessionOwner = new Wallet(Wallet.createRandom().privateKey, provider);
@@ -157,6 +154,11 @@ class SessionTester {
       address: this.proxyAccountAddress,
       secret: this.sessionOwner.privateKey,
     }, provider);
+  }
+
+  async sleep(seconds: number) {
+    await provider.send("evm_increaseTime", [seconds]);
+    this.totalTimeIncreased += seconds;
   }
 
   async createSession(newSession: PartialSession) {
@@ -193,7 +195,7 @@ class SessionTester {
 
   periodIds(target: string, selector?: string) {
     const getId = (limit: SessionLib.UsageLimitStruct) => {
-      const timestamp = Math.floor(Date.now() / 1000);
+      const timestamp = Math.floor(Date.now() / 1000) + this.totalTimeIncreased;
       if (limit.limitType == LimitType.Allowance) {
         return Math.floor(timestamp / Number(limit.period));
       }
@@ -371,7 +373,7 @@ describe("SessionKeyModule tests", function () {
     logInfo(`Session Address                : ${await sessionModuleContract.getAddress()}`);
     logInfo(`Passkey Address                : ${await verifierContract.getAddress()}`);
     logInfo(`Account Factory Address        : ${await factoryContract.getAddress()}`);
-    // logInfo(`Account Implementation Address : ${await erc7579Contract.getAddress()}`);
+    logInfo(`Account Implementation Address : ${await erc7579Contract.getAddress()}`);
     logInfo(`Auth Server Paymaster Address  : ${await authServerPaymaster.getAddress()}`);
   });
 
@@ -419,7 +421,6 @@ describe("SessionKeyModule tests", function () {
       await tester.sendTxSuccess({
         to: sessionTarget,
         value: parseEther("0.01"),
-        gasLimit: 10_000_000n,
       });
       expect(await provider.getBalance(sessionTarget))
         .to.equal(parseEther("0.01"), "session target should have received the funds");
@@ -515,10 +516,10 @@ describe("SessionKeyModule tests", function () {
     });
   });
 
-  describe("Timestamp-based tests", function () {
+  (hre.network.name == "inMemoryNode" ? describe : describe.skip)("Timestamp-based tests", function () {
     let tester: SessionTester;
     const sessionTarget = Wallet.createRandom().address;
-    const period = 5;
+    const period = 120;
 
     it("should create a session", async () => {
       tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
@@ -538,16 +539,15 @@ describe("SessionKeyModule tests", function () {
     it("should use a session key to send a transaction", async () => {
       // We have to wait until the next period starts
       const timestamp = Math.floor(Date.now() / 1000);
-      await sleep(period - (timestamp % period));
-      // NOTE: this only works because of the custom config
-      // `timestamp_asserter.min_time_till_end_sec` = 1
-      // By default it's 60 seoncds, which is unsuitable for tests,
+      await tester.sleep(period - (timestamp % period));
+      // NOTE: this only works because `period` is > 60 seconds, since the default is
+      // `timestamp_asserter.min_time_till_end_sec = 60`
+      // We can sidestep the waiting by calling `evm_increaseTime` directly during the test,
       // but also meaans that in production, creating sessions that expire in < 60 seconds is useless.
       // Same goes for allowance time periods with duration < 60 seconds.
       await tester.sendTxSuccess({
         to: sessionTarget,
         value: parseEther("0.01"),
-        gasLimit: 10_000_000n,
       });
     });
 
@@ -559,17 +559,16 @@ describe("SessionKeyModule tests", function () {
     });
 
     it("should wait until allowance renews and send a transaction", async () => {
-      await sleep(period);
+      await tester.sleep(period);
       await tester.sendTxSuccess({
         to: sessionTarget,
         value: parseEther("0.01"),
-        gasLimit: 10_000_000n,
       });
     });
 
     // TODO: check error messages as well
     it("should reject a transaction with an expired session", async () => {
-      await sleep(period * 2);
+      await tester.sleep(period * 2);
       await tester.sendTxFail({
         to: sessionTarget,
         value: parseEther("0.01"),
