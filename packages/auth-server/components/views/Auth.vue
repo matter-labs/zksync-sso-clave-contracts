@@ -2,6 +2,7 @@
   <div class="h-full flex flex-col justify-center px-4">
     <SessionMetadata
       :app-meta="appMeta"
+      :connect="true"
       class="grow flex justify-center items-center flex-col"
     />
 

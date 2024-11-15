@@ -107,7 +107,6 @@ const sessionConfig = computed(() => formatSessionPreferences(props.sessionPrefe
 const domain = computed(() => new URL(appOrigin.value).host);
 const sessionExpiresIn = useTimeAgo(Number(sessionConfig.value.expiresAt) * 1000);
 
-// const advancedInfoOpened = ref(false);
 const sessionError = ref("");
 
 const confirmConnection = async () => {

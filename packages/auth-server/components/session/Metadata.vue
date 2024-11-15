@@ -35,10 +35,11 @@ const props = defineProps<{
   appMeta: AppMetadata;
   address?: string | null;
   domain?: string;
+  connect?: boolean;
 }>();
 
 const message = computed(() => {
-  if (props.address) {
+  if (props.address || props.connect) {
     return `Connect to ${props.appMeta.name}`;
   } else {
     return `Authorize ${props.appMeta.name}`;
