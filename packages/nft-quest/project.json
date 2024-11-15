@@ -12,7 +12,7 @@
             "prefix": "Auth-Server:"
           },
           {
-            "command": "PORT=3006 nuxt dev",
+            "command": "PORT=3006 pnpm nuxt dev",
             "prefix": "NFT-Quest:"
           }
         ]
@@ -23,9 +23,43 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/nft-quest",
-        "command": "pnpx nuxt generate"
+        "command": "pnpm nuxt generate"
       },
       "dependsOn": ["^build"]
+    },
+    "build:local": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/nft-quest",
+        "commands": [
+          {
+            "command": "pnpm nuxt generate --envName local",
+            "prefix": "NFT-Quest:"
+          },
+          {
+            "command": "pnpm nx deploy:local nft-quest-contracts",
+            "prefix": "NFT-Quest-Contracts:"
+          }
+        ]
+      },
+      "dependsOn": ["^build"]
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/nft-quest",
+        "commands": [
+          {
+            "command": "pnpm nx preview auth-server",
+            "prefix": "Auth-Server:"
+          },
+          {
+            "command": "PORT=3006 pnpm nuxt preview",
+            "prefix": "NFT-Quest:"
+          }
+        ]
+      },
+      "dependsOn": ["build:local"]
     },
     "deploy": {
       "executor": "nx:run-commands",
@@ -47,7 +81,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/nft-quest",
-        "command": "pnpm exec playwright install"
+        "command": "pnpm exec playwright install chromium"
       }
     },
     "e2e": {

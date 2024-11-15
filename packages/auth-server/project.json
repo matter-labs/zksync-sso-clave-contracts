@@ -10,17 +10,6 @@
       },
       "dependsOn": []
     },
-    "preview": {
-      "executor": "nx:run-commands",
-      "options": {
-        "cwd": "packages/auth-server",
-        "commands": [
-          {
-            "command": "pnpm nuxt preview"
-          }
-        ]
-      }
-    },
     "build": {
       "executor": "nx:run-commands",
       "options": {
@@ -31,6 +20,26 @@
           }
         ]
       }
+    },
+    "build:local": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "command": "pnpm nuxt generate --envName local"
+      },
+      "dependsOn": ["^build"]
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "commands": [
+          {
+            "command": "PORT=3002 pnpm nuxt preview"
+          }
+        ]
+      },
+      "dependsOn": ["build:local"]
     },
     "deploy": {
       "executor": "nx:run-commands",

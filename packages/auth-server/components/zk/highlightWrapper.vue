@@ -1,6 +1,6 @@
 <template>
-  <div className="highlight-effect">
-    <div className="highlight-effect-inner">
+  <div class="highlight-effect">
+    <div class="highlight-effect-inner">
       <slot />
     </div>
   </div>

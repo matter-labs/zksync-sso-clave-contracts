@@ -129,6 +129,7 @@
           class="w-full"
           :disabled="preparingTransaction"
           :loading="!appMeta || responseInProgress"
+          data-testid="confirm"
           @click="confirmTransaction()"
         >
           Confirm

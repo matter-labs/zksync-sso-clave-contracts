@@ -1,37 +1,26 @@
 <template>
-  <TransitionGroup
-    v-bind="TransitionOpacity"
-    tag="div"
-    mode="out-in"
-    class="h-dvh"
-  >
-    <ViewsLogin
-      v-if="!isLoggedIn"
-      key="login"
-    />
+  <div>
     <ViewsLoading
-      v-else-if="!appMeta || !hasRequests"
+      v-if="!hasRequests && !appMeta"
       key="loading"
     />
-    <ViewsConnect
-      v-else-if="requestMethod === 'eth_requestAccounts'"
-      key="connect"
-    />
-    <ViewsConfirmation
-      v-else
-      key="confirmation"
-    />
-  </TransitionGroup>
+    <NuxtPage v-else />
+  </div>
 </template>
 
-<script lang="ts" setup>
-const { appMeta } = useAppMeta();
-const { isLoggedIn } = storeToRefs(useAccountStore());
-const { hasRequests, requestMethod } = storeToRefs(useRequestsStore());
-
+<script setup lang="ts">
 definePageMeta({
   layout: "popup",
 });
 
-communicator.init();
+const { appMeta } = useAppMeta();
+const { hasRequests } = storeToRefs(useRequestsStore());
+
+const { init } = useCommunicatorStore();
+
+init();
+
+definePageMeta({
+  layout: "popup",
+});
 </script>

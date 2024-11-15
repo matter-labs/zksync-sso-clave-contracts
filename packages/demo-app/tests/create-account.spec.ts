@@ -79,14 +79,13 @@ test("Create account, session key, and send ETH", async ({ page }) => {
 
   // Click Sign Up
   await popup.getByTestId("signup").click();
-  await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
 
   // Add session
   await expect(popup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
   await expect(popup.getByText("Act on your behalf")).toBeVisible();
   await expect(popup.getByText("Expires tomorrow")).toBeVisible();
   await expect(popup.getByText("Permissions")).toBeVisible();
-  await popup.getByRole("button", { name: "Connect" }).click();
+  await popup.getByTestId("connect").click();
 
   // Waits for session to complete and popup to close
   await page.waitForTimeout(2000);

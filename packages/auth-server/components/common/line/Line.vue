@@ -25,7 +25,7 @@ defineProps({
 .line-container {
   @apply w-full;
   &.variant-bordered {
-    @apply rounded-[28px] bg-neutral-950 border border-neutral-900;
+    @apply rounded-[28px] bg-neutral-950 border border-neutral-800;
   }
 }
 </style>

@@ -19,7 +19,7 @@
     <button
       class="ml-auto w-5 h-5 text-neutral-400 hover:text-white transition"
       data-testid="logout"
-      @click="logout()"
+      @click="logoutAccount()"
     >
       <ArrowLeftEndOnRectangleIcon />
     </button>
@@ -40,4 +40,9 @@ defineProps({
 const { logout } = useAccountStore();
 const { address } = storeToRefs(useAccountStore());
 const { requestChain } = storeToRefs(useRequestsStore());
+
+const logoutAccount = () => {
+  logout();
+  navigateTo("/confirm");
+};
 </script>

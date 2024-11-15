@@ -27,10 +27,10 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     accountPaymaster: "0x8f8f4f03c3174ba92f131d8dfc137881A896ea3E",
   },
   [zksyncInMemoryNode.id]: {
-    session: "0xc81BdB6e98da8e23aa646969A7e942752b9B10c4",
+    session: "0x8543528a4561E3a5EC7d51Bfd3776457b0E7b7dc",
     passkey: "0x07734BA326b6AD13BfC0115b0903EB14268F1617",
     accountFactory: "0xaAF5f437fB0524492886fbA64D703df15BF619AE",
-    accountPaymaster: "0x25f2725637E9340E8f2a59eCb92F5fE0dA8e8573",
+    accountPaymaster: "0x2879853afd8d066ca66e224A8E85621aC43d6F59",
   },
 };
 
