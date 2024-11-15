@@ -60,6 +60,14 @@
       </CommonLine>
     </CommonHeightTransition>
 
+    <CommonHeightTransition :opened="!!sessionError">
+      <p class="py-1 text-sm text-error-300 text-center">
+        <span>
+          {{ sessionError }}
+        </span>
+      </p>
+    </CommonHeightTransition>
+
     <div class="mt-auto">
       <div class="-mx-3 px-3 border-t border-neutral-800 flex gap-4 py-4 mt-2">
         <ZkButton
@@ -102,7 +110,7 @@ import { useTimeAgo } from "@vueuse/core";
 import { parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import type { SessionPreferences } from "zksync-sso";
-import { formatSessionPreferences } from "zksync-sso/client-auth-server";
+import { type ExtractReturnType, formatSessionPreferences, type Method, type RPCResponseMessage } from "zksync-sso/client-auth-server";
 import { LimitType } from "zksync-sso/utils";
 
 const props = defineProps({
@@ -133,14 +141,18 @@ const domain = computed(() => new URL(appOrigin.value).host);
 const sessionExpiresIn = useTimeAgo(Number(sessionConfig.value.expiresAt) * 1000);
 
 const advancedInfoOpened = ref(false);
+const sessionError = ref("");
 
 const confirmConnection = async () => {
-  respond(async () => {
+  let response: RPCResponseMessage<ExtractReturnType<Method>>["content"];
+  sessionError.value = "";
+
+  try {
     if (!isLoggedIn.value) {
       // create a new account with initial session data
       const accountData = await createAccount(sessionConfig.value);
 
-      return {
+      response = {
         result: constructReturn(
           accountData!.address,
           accountData!.chainId,
@@ -163,7 +175,7 @@ const confirmConnection = async () => {
       };
 
       await client.createSession({ sessionConfig: session.sessionConfig });
-      return {
+      response = {
         result: constructReturn(
           client.account.address,
           client.chain.id,
@@ -171,6 +183,18 @@ const confirmConnection = async () => {
         ),
       };
     }
-  });
+  } catch (error) {
+    if ((error as Error).message.includes("Passkey validation failed")) {
+      sessionError.value = "Passkey validation failed";
+    } else {
+      sessionError.value = "Error during session creation. Please see console for more info.";
+    }
+    console.error(error);
+    return;
+  }
+
+  if (response) {
+    respond(() => response);
+  }
 };
 </script>
