@@ -1,6 +1,6 @@
 {
   "name": "zksync-account-sdk",
-  "description": "Account Abstraction tooling",
+  "description": "ZKsync SSO tooling",
   "type": "module",
   "private": true,
   "author": "Matter Labs <zksync.io>",
@@ -14,7 +14,7 @@
     "prepare": "husky",
     "registry": "pnpm nx local-registry",
     "graph": "pnpm nx graph",
-    "dev:demo": "pnpm nx run-many -t serve -p gateway demo-app",
+    "dev:demo": "pnpm nx run-many -t serve -p auth-server demo-app",
     "fmt": "pnpm prettier --write .",
     "lint": "pnpm run lint:eslint && pnpm run lint:markdown && pnpm run lint:spelling && pnpm run lint:prettier",
     "lint:fix": "pnpm eslint --fix --ignore-pattern 'packages/*' . && pnpm nx affected -t lint --fix && pnpm prettier --write . | grep -v 'unchanged' | xargs",
@@ -37,7 +37,6 @@
     "@stylistic/eslint-plugin": "2.8.0",
     "@swc-node/register": "1.10.9",
     "@swc/core": "1.7.26",
-    "cbor-web": "^9.0.2",
     "cspell": "8.14.4",
     "eslint": "9.11.1",
     "eslint-plugin-simple-import-sort": "12.1.1",
@@ -50,9 +49,9 @@
     "prettier": "3.3.3",
     "typescript": "5.6.2",
     "typescript-eslint": "8.7.0",
-    "viem": "^2.21.14",
     "verdaccio": "6.0.0",
-    "zksync-account": "workspace:*"
+    "viem": "^2.21.14",
+    "zksync-sso": "workspace:*"
   },
   "nx": {
     "includedScripts": []

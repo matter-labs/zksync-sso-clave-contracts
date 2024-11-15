@@ -14,28 +14,12 @@
   "npm": {
     "minimumReleaseAge": "1 week"
   },
+  "enabled": false,
   "packageRules": [
     {
       "extends": ["helpers:pinGitHubActionDigests"],
       "schedule": ["before 4am on Monday"],
-      "automerge": true,
-      "automergeType": "branch"
-    },
-    {
-      "matchSourceUrls": ["monorepo:vue", "monorepo:vueuse", "monorepo:nuxtjs"],
-      "groupName": "Vue"
-    },
-    {
-      "groupName": "OpenZeppelin",
-      "matchPackageNames": ["@openzeppelin/**"]
-    },
-    {
-      "groupName": "Hardhat",
-      "matchPackageNames": ["/hardhat/"]
-    },
-    {
-      "groupName": "Ethers",
-      "matchPackageNames": ["/ethers/"]
+      "enabled": true
     }
   ],
   "lockFileMaintenance": {

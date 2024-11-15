@@ -29,3 +29,5 @@ playwright/.cache/
 .output
 
 .DS_Store
+
+dist

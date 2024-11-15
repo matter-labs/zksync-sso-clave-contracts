@@ -1,2 +1,3 @@
-export type { AppMetadata, ProviderInterface, SessionData, SessionPreferences } from "./client-gateway/interface.js";
-export { WalletProvider, type WalletProviderConstructorOptions, type WalletProviderSessionPreferences } from "./client-gateway/WalletProvider.js";
+export type { AppMetadata, ProviderInterface } from "./client-auth-server/interface.js";
+export type { SessionPreferences } from "./client-auth-server/session.js";
+export { WalletProvider, type WalletProviderConstructorOptions } from "./client-auth-server/WalletProvider.js";

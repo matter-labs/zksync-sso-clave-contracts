@@ -1,0 +1,46 @@
+name: "Deploy Auth Server Testnet"
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "packages/auth-server/**"
+      - "packages/sdk/**"
+  workflow_dispatch:
+
+env:
+  HUSKY: 0
+  CI: true
+
+jobs:
+  build_and_preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.11.0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/Iron
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install -r --frozen-lockfile
+
+      - name: Build apps
+        env:
+          NUXT_PUBLIC_DEFAULT_CHAIN_ID: 300
+        run: pnpm nx build auth-server
+
+      - name: Deploy firebase hosting
+        uses: matter-labs/action-hosting-deploy@main
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_AUTH_SERVER_STAGING }}"
+          projectId: zksync-auth-server-staging
+          target: zksync-auth-server-staging
+          channelId: live

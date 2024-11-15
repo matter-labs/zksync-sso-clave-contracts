@@ -17,7 +17,6 @@
     "@simplewebauthn/types": "^10.0.0",
     "@vueuse/core": "^11.0.0",
     "@vueuse/nuxt": "^11.1.0",
-    "cbor-web": "^9.0.2",
     "nuxt": "^3.13.0",
     "pinia": "^2.1.7",
     "radix-vue": "^1.9.7",
@@ -25,6 +24,6 @@
     "viem": "^2.21.14",
     "vue": "latest",
     "vue-router": "latest",
-    "zksync-account": "workspace:*"
+    "zksync-sso": "workspace:*"
   }
 }

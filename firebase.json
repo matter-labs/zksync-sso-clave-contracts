@@ -3,7 +3,7 @@
     {
       "target": "zksync-auth-server-staging",
       "trailingSlash": false,
-      "public": "packages/gateway/.output/public",
+      "public": "packages/auth-server/.output/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     },
     {

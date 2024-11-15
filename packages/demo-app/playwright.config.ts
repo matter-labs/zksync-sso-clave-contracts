@@ -78,7 +78,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "pnpm nx serve gateway",
+      command: "pnpm nx serve auth-server",
       url: "http://localhost:3002",
       reuseExistingServer: !process.env.CI,
     },

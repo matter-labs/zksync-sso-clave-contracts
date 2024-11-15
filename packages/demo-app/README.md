@@ -18,7 +18,7 @@ Run the following commands from the root of the monorepo.
 pnpm install
 ```
 
-Running the Demo App requires the Gateway. The following will start both.
+Running the Demo App requires the Auth Server. The following will start both.
 
 ```bash
 pnpm nx dev demo-app

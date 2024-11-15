@@ -32,20 +32,12 @@ describe("Basic tests", function () {
     assert(accountImplContract != null, "No account impl deployed");
   });
 
-  it("should deploy proxy directly", async () => {
-    // deploy proxy so that its bytecode hash is registered,
-    // so we don't have to worry about passing it in factory deps
-    const proxyAccountContract = await fixtures.getProxyAccountContract();
-    assert(proxyAccountContract != null, "No account proxy deployed");
-  });
-
   it("should deploy proxy account via factory", async () => {
     const aaFactoryContract = await fixtures.getAaFactory();
     assert(aaFactoryContract != null, "No AA Factory deployed");
 
     const deployTx = await aaFactoryContract.deployProxy7579Account(
       randomBytes(32),
-      await fixtures.getAccountImplAddress(),
       "id",
       [],
       [],

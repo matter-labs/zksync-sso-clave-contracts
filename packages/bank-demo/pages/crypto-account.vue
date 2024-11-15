@@ -245,7 +245,7 @@
 
 <script setup lang="ts">
 import { createPublicClient, formatEther, http, parseEther, TransactionExecutionError, type Address, type Chain } from "viem";
-import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
+import { createZksyncPasskeyClient } from "zksync-sso/client/passkey";
 import OnRampCrypto from "~/components/app/OnRampCrypto.vue";
 
 const { appMeta, userDisplay, userId, contracts, aaveAddress, explorerUrl } = useAppMeta();

@@ -46,7 +46,7 @@ export class PopupCommunicator implements Communicator {
   };
 
   private disconnect = () => {
-    // Note: gateway popup handles closing itself. this is a fallback.
+    // Note: Auth Server popup handles closing itself. this is a fallback.
     try {
       if (this.popup && !this.popup.closed) {
         this.popup.close();

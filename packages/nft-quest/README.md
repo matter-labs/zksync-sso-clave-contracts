@@ -19,7 +19,7 @@ The contract addresses for the NFT Quest app will be set in `.env.local`. This
 `nuxt.config.ts`.
 
 You may also need to update the contract addresses for the Auth Server in
-`/packages/gateway/stores/client.ts` under the
+`/packages/auth-server/stores/client.ts` under the
 `contractsByChain[zksyncInMemoryNode.id]`
 
 ```sh

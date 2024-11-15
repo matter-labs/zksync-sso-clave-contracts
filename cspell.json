@@ -1,6 +1,7 @@
 {
   "language": "en",
   "ignorePaths": [
+    "*.svg",
     "*.css",
     "*.config.*",
     "**/node_modules/**",

@@ -1,5 +1,6 @@
 {
   "name": "sdk",
+  "tags": ["type:package"],
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "!{projectRoot}/dist"],
     "production": ["!{projectRoot}/**/*.spec.ts", "!{projectRoot}/test", "!{projectRoot}/dist"]

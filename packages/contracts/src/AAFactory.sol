@@ -5,23 +5,24 @@ import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 import "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 
 import { IClaveAccount } from "./interfaces/IClaveAccount.sol";
+import { UpgradeableBeacon } from "./UpgradeableBeacon.sol";
+
 import "./helpers/Logger.sol";
 
-contract AAFactory {
-  bytes32 public proxyAaBytecodeHash;
+contract AAFactory is UpgradeableBeacon {
+  bytes32 public immutable beaconProxyBytecodeHash;
 
   // This is a mapping from unique id => account address
   mapping(string => address) public accountMappings;
 
-  constructor(bytes32 _proxyAaBytecodeHash) {
-    proxyAaBytecodeHash = _proxyAaBytecodeHash;
+  constructor(bytes32 _beaconProxyBytecodeHash, address implementation) UpgradeableBeacon(implementation) {
+    beaconProxyBytecodeHash = _beaconProxyBytecodeHash;
   }
 
   function addNewUniqueId(bytes32 uniqueAccountId) external {}
 
   function deployProxy7579Account(
     bytes32 salt,
-    address accountImplementionLocation,
     string calldata uniqueAccountId,
     bytes[] calldata initialValidators,
     bytes[] calldata initialModules,
@@ -35,8 +36,8 @@ contract AAFactory {
         DEPLOYER_SYSTEM_CONTRACT.create2Account,
         (
           salt,
-          proxyAaBytecodeHash,
-          abi.encode(accountImplementionLocation),
+          beaconProxyBytecodeHash,
+          abi.encode(address(this), bytes("")),
           IContractDeployer.AccountAbstractionVersion.Version1
         )
       )

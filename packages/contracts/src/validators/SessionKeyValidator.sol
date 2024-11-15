@@ -331,10 +331,8 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
 
   bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
 
-  // account => hashes of session specs
-  // Can be used to revoke all session keys in case offchain storage is not available.
-  // TODO: Is emitting an event sufficient instead?
-  // mapping(address => EnumerableSet.Bytes32Set) private sessionHashes;
+  // account => number of open sessions
+  // NOTE: expired sessions are still counted if not explicitly revoked
   mapping(address => uint256) private sessionCounter;
   // session hash => session state
   mapping(bytes32 => SessionLib.SessionStorage) private sessions;
@@ -370,7 +368,6 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     require(sessionSpec.signer != address(0), "Invalid signer");
     require(sessions[sessionHash].status[msg.sender] == SessionLib.Status.NotInitialized, "Session already exists");
     require(sessionSpec.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
-    // sessionHashes[msg.sender].add(sessionHash);
     sessionCounter[msg.sender]++;
     sessions[sessionHash].status[msg.sender] = SessionLib.Status.Active;
     emit SessionCreated(msg.sender, sessionHash, sessionSpec);
@@ -379,8 +376,8 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   function init(bytes calldata data) external {
     // to prevent recursion, since addHook also calls init
     if (!_isInitialized(msg.sender)) {
-      IValidatorManager(msg.sender).addModuleValidator(address(this), data);
       IHookManager(msg.sender).addHook(abi.encodePacked(address(this)), true);
+      IValidatorManager(msg.sender).addModuleValidator(address(this), data);
     }
   }
 
@@ -406,7 +403,6 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     // is installed again later, there will be no active sessions from the past.
     // Problem: if there are too many keys, this will run out of gas.
     // Solution: before uninstalling, require that all keys are revoked manually.
-    // require(sessionHashes[msg.sender].length() == 0, "Revoke all keys first");
     require(sessionCounter[msg.sender] == 0, "Revoke all keys first");
   }
 
@@ -423,7 +419,6 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   function revokeKey(bytes32 sessionHash) public {
     require(sessions[sessionHash].status[msg.sender] == SessionLib.Status.Active, "Nothing to revoke");
     sessions[sessionHash].status[msg.sender] = SessionLib.Status.Closed;
-    // sessionHashes[msg.sender].remove(sessionHash);
     sessionCounter[msg.sender]--;
     emit SessionRevoked(msg.sender, sessionHash);
   }

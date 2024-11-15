@@ -1,7 +1,7 @@
 {
   "type": "module",
-  "name": "zksync-account",
-  "description": "ZKsync Smart Account SDK",
+  "name": "zksync-sso",
+  "description": "ZKsync Smart Sign On SDK",
   "version": "0.0.0-development",
   "publishConfig": {
     "registry": "http://localhost:4873"
@@ -60,10 +60,10 @@
       "import": "./dist/_esm/connector/index.js",
       "require": "./dist/_cjs/connector/index.js"
     },
-    "./client-gateway": {
-      "types": "./dist/_types/client-gateway/index.d.ts",
-      "import": "./dist/_esm/client-gateway/index.js",
-      "require": "./dist/_cjs/client-gateway/index.js"
+    "./client-auth-server": {
+      "types": "./dist/_types/client-auth-server/index.d.ts",
+      "import": "./dist/_esm/client-auth-server/index.js",
+      "require": "./dist/_cjs/client-auth-server/index.js"
     },
     "./client": {
       "types": "./dist/_types/client/index.d.ts",
@@ -115,8 +115,8 @@
       "client": [
         "./dist/_types/client/index.d.ts"
       ],
-      "client-gateway": [
-        "./dist/_types/client-gateway/index.d.ts"
+      "client-auth-server": [
+        "./dist/_types/client-auth-server/index.d.ts"
       ],
       "communicator": [
         "./dist/_types/communicator/index.d.ts"
@@ -143,7 +143,6 @@
     "@peculiar/asn1-schema": "^2.3.13",
     "abitype": "^1.0.6",
     "bigint-conversion": "^2.4.3",
-    "buffer": "^6.0.3",
-    "cbor-web": "^9.0.2"
+    "buffer": "^6.0.3"
   }
 }

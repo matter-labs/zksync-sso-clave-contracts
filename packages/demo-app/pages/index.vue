@@ -24,6 +24,7 @@
     <button
       v-if="address"
       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+      :disabled="isSendingEth"
       @click="sendTokens()"
     >
       Send 0.1 ETH
@@ -40,19 +41,19 @@
 
 <script lang="ts" setup>
 import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, type GetBalanceReturnType } from "@wagmi/core";
-import { zksyncAccountConnector } from "zksync-account/connector";
+import { zksyncAccountConnector } from "zksync-sso/connector";
 import { zksyncInMemoryNode } from "@wagmi/core/chains";
 import { createWalletClient, http, parseEther, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 const zksyncConnector = zksyncAccountConnector({
-  gatewayUrl: "http://localhost:3002/confirm",
+  authServerUrl: "http://localhost:3002/confirm",
   session: {
     feeLimit: parseEther("0.1"),
-    transferPolicies: [
+    transfers: [
       {
-        target: testTransferTarget,
+        to: testTransferTarget,
         valueLimit: parseEther("0.1"),
       },
     ],
@@ -70,6 +71,7 @@ reconnect(wagmiConfig);
 const address = ref<Address | null>(null);
 const balance = ref<GetBalanceReturnType | null>(null);
 const errorMessage = ref<string | null>(null);
+const isSendingEth = ref<boolean>(false);
 
 const fundAccount = async () => {
   if (!address.value) throw new Error("Not connected");
@@ -133,6 +135,7 @@ const sendTokens = async () => {
   if (!address.value) return;
 
   errorMessage.value = "";
+  isSendingEth.value = true;
   try {
     await sendTransaction(wagmiConfig, {
       to: testTransferTarget,
@@ -158,6 +161,8 @@ const sendTokens = async () => {
     } else {
       errorMessage.value = "Transaction failed, see console for more info.";
     }
+  } finally {
+    isSendingEth.value = false;
   }
 };
 </script>

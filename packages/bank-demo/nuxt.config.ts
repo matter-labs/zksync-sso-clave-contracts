@@ -27,7 +27,6 @@ export default defineNuxtConfig({
       session: "0x476F23ef274F244282252341792c8a610feF78ee",
       passkey: "0x455e8d86DC6728396f8d3B740Fc893F4E20b25Dc",
       accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
-      accountImplementation: "0x6cd5A2354Be0E656e7A1E94F1C0570E08EC4789B",
       explorerUrl: "http://localhost:3010/",
     }
   },
@@ -47,7 +46,6 @@ export default defineNuxtConfig({
         session: "0xdCdAC285612841db9Fa732098EAF04A917A71A28",
         passkey: "0xCeC63BD0f35e04F3Bef1128bA3A856A7BB4D88f1",
         accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
-        accountImplementation: "0xdc78771361134e1Ae45f9AD23ec2C12B37A99ce8",
         explorerUrl: "http://34.121.229.57:3010/",
       }
     }

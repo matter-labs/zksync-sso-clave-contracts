@@ -12,7 +12,7 @@ in the workspace's `project.json`, not the directory name.
 pnpm nx <target> <project>
 # examples
 # pnpm nx deploy contracts
-# pnpm nx serve gateway
+# pnpm nx serve auth-server
 # pnpm nx build sdk
 ```
 
@@ -28,7 +28,7 @@ pnpm nx run-many --target=build --all
 Finetune to specific projects:
 
 ```bash
-pnpm nx run-many -t serve -p demo-app gateway
+pnpm nx run-many -t serve -p demo-app auth-server
 ```
 
 ## View project commands

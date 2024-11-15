@@ -57,7 +57,6 @@ export type PasskeyRequiredContracts = {
   session: Address; // Session, spend limit, etc.
   passkey: Address; // Validator for passkey signature
   accountFactory?: Address; // For account creation
-  accountImplementation?: Address; // For account creation
 };
 type ZksyncAccountPasskeyData = {
   credentialPublicKey: Uint8Array; // Public key of the passkey

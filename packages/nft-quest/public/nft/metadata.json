@@ -1,6 +1,6 @@
 {
   "description": "A minted Zeek NFT from the NFT Quest app.",
-  "image": "http://localhost:3006/nft/zeek-nft.png",
+  "image": "https://nft.zksync.dev/nft/zeek-nft.png",
   "background_color": "000000",
-  "animation_url": "http://localhost:3006/nft/zeek-nft.mp4"
+  "animation_url": "https://nft.zksync.dev/nft/zeek-nft.mp4"
 }

@@ -1,5 +1,6 @@
 {
   "name": "contracts",
+  "tags": ["type:contracts"],
   "namedInputs": {
     "default": ["{projectRoot}/**/*"],
     "outputs": [

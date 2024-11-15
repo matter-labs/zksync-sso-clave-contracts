@@ -41,7 +41,7 @@
         </ZkLink>
         <ZkButton
           type="primary"
-          class="uppercase lg:mt-2 w-full"
+          class="uppercase mt-2 w-full"
           submit
           :loading="status === 'pending'"
         >
@@ -53,11 +53,11 @@
 </template>
 
 <script setup lang="ts">
-import { isAddress } from "viem";
+import { type Address, isAddress } from "viem";
 
 const walletAddress = ref("");
 const addressSentTo = ref("");
-const { execute: mintNFT, status, data } = await useMintNft(walletAddress);
+const { execute: mintNFT, status, data } = await useMintNft(walletAddress as Ref<Address>);
 
 watch(status, () => {
   if (status.value === "pending") {
@@ -71,7 +71,7 @@ const successMint = computed(() => {
 
 const runtimeConfig = useRuntimeConfig();
 const transactionURL = computed(() => {
-  return `${runtimeConfig.public.explorerURL}/tx/${data.value.transactionHash}`;
+  return `${runtimeConfig.public.explorerUrl}/tx/${data.value!.transactionHash}`;
 });
 
 const disabled = computed(() => {
@@ -79,9 +79,7 @@ const disabled = computed(() => {
 });
 
 const mintForFriend = () => {
-  if (disabled.value) {
-    return;
-  }
-  mintNFT(walletAddress.value);
+  if (disabled.value) return;
+  mintNFT();
 };
 </script>

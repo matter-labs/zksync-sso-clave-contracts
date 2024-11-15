@@ -119,8 +119,6 @@ const verifyTransactionData = async (
   },
   client: ClientWithZksyncAccountSessionData
 ) => {
-  if (!client.sessionKey) throw new Error('Session key is not set');
-
   const spendLimitCache = new Map<Address, bigint>(); // Prevent multiple calls to getTokenSpendLimit (mostly for ETH)
   const exceedsSpendLimit = async (tokenAddress: Address, amount: bigint): Promise<boolean> => {
     if (!spendLimitCache.has(tokenAddress)) {

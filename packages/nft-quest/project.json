@@ -1,5 +1,6 @@
 {
   "name": "nft-quest",
+  "tags": ["type:app"],
   "targets": {
     "dev": {
       "executor": "nx:run-commands",
@@ -7,10 +8,9 @@
         "cwd": "packages/nft-quest",
         "commands": [
           {
-            "command": "pnpm nx dev gateway",
-            "prefix": "Gateway:"
+            "command": "pnpm nx dev auth-server",
+            "prefix": "Auth-Server:"
           },
-
           {
             "command": "PORT=3006 nuxt dev",
             "prefix": "NFT-Quest:"

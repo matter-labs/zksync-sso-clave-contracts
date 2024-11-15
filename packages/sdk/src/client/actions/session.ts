@@ -3,9 +3,8 @@ import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
 import { SessionKeyModuleAbi } from "../../abi/SessionKeyModule.js";
-import type { SessionData } from "../../client-gateway/interface.js";
 import { noThrow } from "../../utils/helpers.js";
-import { getSession } from "../../utils/session.js";
+import type { SessionConfig } from "../../utils/session.js";
 
 /* DO NOT USE THIS. USE FUNCTION FROM PASSKEY ACTIONS INSTEAD */
 /* TODO: Remove */
@@ -70,7 +69,7 @@ export const createSessionWithPasskey = async <
 } */
 
 export type CreateSessionArgs = {
-  session: SessionData;
+  sessionConfig: SessionConfig;
   contracts: {
     session: Address; // session module
   };
@@ -87,16 +86,12 @@ export const createSession = async <
   const callData = encodeFunctionData({
     abi: SessionKeyModuleAbi,
     functionName: "createSession",
-    args: [{
-      ...getSession(args.session),
-      signer: args.session.sessionPublicKey,
-    }],
+    args: [args.sessionConfig],
   });
 
   let sendTransactionArgs = {
     to: args.contracts.session,
     data: callData,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 
   if ((client as any).paymasterAddress) {

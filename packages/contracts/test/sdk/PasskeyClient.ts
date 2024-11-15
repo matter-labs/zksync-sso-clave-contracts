@@ -1,6 +1,6 @@
 import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
-import { toSmartAccount } from "zksync-account/client/smart-account";
-import { passkeyHashSignatureResponseFormat } from "zksync-account/utils";
+import { toSmartAccount } from "zksync-sso/client/smart-account";
+import { passkeyHashSignatureResponseFormat } from "zksync-sso/utils";
 
 export function createZksyncPasskeyClient<
   transport extends Transport,
@@ -47,7 +47,6 @@ type PasskeyRequiredContracts = {
   session: Address; // Session, spend limit, etc.
   passkey: Address; // Validator for passkey signature
   accountFactory?: Address; // For account creation
-  accountImplementation?: Address; // For account creation
 };
 type ZksyncAccountPasskeyData = {
   contracts: PasskeyRequiredContracts;

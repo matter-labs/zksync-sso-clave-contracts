@@ -1,84 +1,17 @@
-import { type Address, encodeAbiParameters, type Hash, parseAbiParameters, toHex } from "viem";
+import { type Address, encodeAbiParameters, encodeFunctionData, type Hash, type Hex, parseAbiParameters, toHex } from "viem";
 
-import type { SessionData } from "../client-gateway/interface.js";
-import { getSession } from "../utils/session.js";
+import { SessionKeyModuleAbi } from "../abi/SessionKeyModule.js";
+import type { SessionConfig } from "../utils/session.js";
 
-export const encodeCreateSessionParameters = (session: SessionData) => {
-  const sessionSpec = {
-    components: [
-      { name: "signer", type: "address" },
-      { name: "expiresAt", type: "uint256" },
-      {
-        components: [
-          { name: "limitType", type: "uint8" },
-          { name: "limit", type: "uint256" },
-          { name: "period", type: "uint256" },
-        ],
-        name: "feeLimit",
-        type: "tuple",
-      },
-      {
-        components: [
-          { name: "target", type: "address" },
-          { name: "selector", type: "bytes4" },
-          { name: "maxValuePerUse", type: "uint256" },
-          {
-            components: [
-              { name: "limitType", type: "uint8" },
-              { name: "limit", type: "uint256" },
-              { name: "period", type: "uint256" },
-            ],
-            name: "valueLimit",
-            type: "tuple",
-          },
-          {
-            components: [
-              { name: "condition", type: "uint8" },
-              { name: "index", type: "uint64" },
-              { name: "refValue", type: "bytes32" },
-              {
-                components: [
-                  { name: "limitType", type: "uint8" },
-                  { name: "limit", type: "uint256" },
-                  { name: "period", type: "uint256" },
-                ],
-                name: "limit",
-                type: "tuple",
-              },
-            ],
-            name: "constraints",
-            type: "tuple[]",
-          },
-        ],
-        name: "callPolicies",
-        type: "tuple[]",
-      },
-      {
-        components: [
-          { name: "target", type: "address" },
-          { name: "maxValuePerUse", type: "uint256" },
-          {
-            components: [
-              { name: "limitType", type: "uint8" },
-              { name: "limit", type: "uint256" },
-              { name: "period", type: "uint256" },
-            ],
-            name: "valueLimit",
-            type: "tuple",
-          },
-        ],
-        name: "transferPolicies",
-        type: "tuple[]",
-      },
-    ],
-    name: "newSession",
-    type: "tuple",
-  };
-
-  return encodeAbiParameters(
-    [sessionSpec],
-    [{ ...getSession(session), signer: session.sessionPublicKey }],
-  );
+export const encodeSession = (sessionConfig: SessionConfig) => {
+  const callData = encodeFunctionData({
+    abi: SessionKeyModuleAbi,
+    functionName: "createSession",
+    args: [sessionConfig],
+  });
+  const selector = callData.slice(0, "0x".length + 8) as Hex; // first 4 bytes for function selector
+  const args = `0x${callData.slice(selector.length, callData.length)}` as Hex; // the rest is the arguments
+  return args;
 };
 
 export const encodePasskeyModuleParameters = (passkey: { passkeyPublicKey: [Buffer, Buffer]; expectedOrigin: string }) => {

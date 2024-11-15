@@ -1,31 +1,35 @@
 import { connect, createConfig, type CreateConnectorFn, disconnect, getAccount, http, reconnect, watchAccount } from "@wagmi/core";
-import { type Address, type Hash, parseEther, toFunctionSelector } from "viem";
-import { zksyncInMemoryNode } from "viem/zksync";
-import { zksyncAccountConnector } from "zksync-account/connector";
-import { getSession } from "zksync-account/utils";
-
-export const supportedChains = [zksyncInMemoryNode] as const;
-export type SupportedChainId = (typeof supportedChains)[number]["id"];
+import { zksyncInMemoryNode, zksyncLocalNode, zksyncSepoliaTestnet } from "@wagmi/core/chains";
+import { type Address, type Hash, parseEther } from "viem";
+import { zksyncAccountConnector } from "zksync-sso/connector";
 
 export const useConnectorStore = defineStore("connector", () => {
   const runtimeConfig = useRuntimeConfig();
+  const supportedChains = [
+    zksyncSepoliaTestnet,
+    zksyncInMemoryNode,
+    zksyncLocalNode,
+  ] as const;
+  const chain = supportedChains.filter((x) => x.id == runtimeConfig.public.chain.id)[0];
+  type SupportedChainId = (typeof supportedChains)[number]["id"];
+  if (!chain) throw new Error(`Chain with id ${runtimeConfig.public.chain.id} was not found in supported chains list`);
 
   const connector = zksyncAccountConnector({
     metadata: {
       name: "ZK NFT Quest",
-      icon: "http://localhost:3006/favicon.svg",
+      icon: `${runtimeConfig.public.baseUrl}/favicon.svg`,
     },
-    gatewayUrl: "http://localhost:3002/confirm",
-    session: getSession({
-      feeLimit: parseEther("0.1"),
-      callPolicies: [{
-        target: runtimeConfig.public.contracts.nft as Hash,
-        selector: toFunctionSelector("mint(address)"),
+    authServerUrl: runtimeConfig.public.authServerUrl,
+    session: {
+      feeLimit: parseEther("0.001"),
+      contractCalls: [{
+        address: runtimeConfig.public.contracts.nft as Hash,
+        function: "mint(address)",
       }],
-    }),
+    },
   });
   const wagmiConfig = createConfig({
-    chains: supportedChains,
+    chains: [chain],
     connectors: [connector as CreateConnectorFn],
     transports: (Object.fromEntries(supportedChains.map((chain) => [chain.id, http()]))) as Record<SupportedChainId, ReturnType<typeof http>>,
   });
@@ -44,7 +48,7 @@ export const useConnectorStore = defineStore("connector", () => {
   const connectAccount = async () => {
     return await connect(wagmiConfig, {
       connector,
-      chainId: supportedChains[0].id,
+      chainId: chain.id,
     });
   };
 

@@ -14,8 +14,8 @@
 <script setup lang="ts">
 import { createWalletClient, http, type Address, type Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { deployAccount } from "zksync-account/client";
-import { registerNewPasskey } from "zksync-account/client/passkey";
+import { deployAccount } from "zksync-sso/client";
+import { registerNewPasskey } from "zksync-sso/client/passkey";
 
 const { appMeta, userDisplay, userId, contracts, deployerKey } = useAppMeta();
 const isLoading = ref(false);

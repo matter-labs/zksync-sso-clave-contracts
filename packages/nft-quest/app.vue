@@ -1,6 +1,6 @@
 <template>
   <div class="h-dvh flex flex-col">
-    <div class="flex border-b border-b-neutral-900">
+    <div class="flex border-b border-b-neutral-900 pr-2">
       <div class="grow">
         <NuxtLink
           to="/"

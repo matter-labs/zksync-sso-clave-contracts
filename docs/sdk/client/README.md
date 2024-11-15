@@ -9,7 +9,7 @@ development principles in mind.
 1. Register a new passkey
 
    ```ts
-   import { registerNewPasskey } from "zksync-account/client/passkey";
+   import { registerNewPasskey } from "zksync-sso/client/passkey";
 
    // We first need to register a new passkey
    const { credentialPublicKey } = await registerNewPasskey({
@@ -25,7 +25,7 @@ development principles in mind.
 
    ```ts
    import { generatePrivateKey, privateKeyToAddress } from "viem";
-   import { deployAccount } from "zksync-account/client";
+   import { deployAccount } from "zksync-sso/client";
 
    const deployerClient = ...; // Any client for deploying the account, make sure it has enough balance to cover the deployment cost
    const sessionKey = generatePrivateKey();
@@ -50,7 +50,7 @@ development principles in mind.
 
    ```ts
    import { zksync, http } from "viem";
-   import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
+   import { createZksyncPasskeyClient } from "zksync-sso/client/passkey";
 
    const passkeyClient = createZksyncPasskeyClient({
      address: deployedAccountAddress,
@@ -71,20 +71,36 @@ development principles in mind.
    Now you can use the `passkeyClient` as a regular viem client. When signing
    transactions, user will be prompted for confirmation via passkey.
 
-4. Activating session key
+4. Creating a session
 
-   ```ts
-   await passkeyClient.createSession({
-     session: {
-       sessionPublicKey,
-       expiresAt: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 1 week
-       feeLimit: { limit: parseEther("0.01") },
-       transferPolicies: [
-         {
-           target: transferTarget.address,
-           maxValuePerUse: parseEther("0.1"),
-         },
-       ],
-     },
-   });
-   ```
+```ts
+import { parseEther } from "viem";
+import { LimitType } from "zksync-sso/utils";
+
+await passkeyClient.createSession({
+  // See packages/sdk/src/client-auth-server/session.ts for an easier way to create the sessionConfig
+  sessionConfig: {
+    signer: sessionPublicKey,
+    expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
+    feeLimit: {
+      limitType: LimitType.Lifetime,
+      limit: parseEther("0.01"),
+      period: 0n,
+    },
+    transferPolicies: [
+      {
+        target: "0x123...",
+        maxValuePerUse: parseEther("0.01"),
+        valueLimit: {
+          limitType: LimitType.Lifetime,
+          limit: parseEther("0.01"),
+          period: 0n,
+        },
+      }
+    ],
+    callPolicies: [
+      ...
+    ],
+  },
+});
+```

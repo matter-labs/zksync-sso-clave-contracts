@@ -6,14 +6,13 @@ import { ethers, parseEther } from "ethers";
 import { readFileSync } from "fs";
 import { promises } from "fs";
 import * as hre from "hardhat";
-import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-account/utils";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
+import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
 
 import { AAFactory, ERC20, ERC7579Account, ExampleAuthServerPaymaster, SessionKeyValidator, WebAuthValidator } from "../typechain-types";
 import { AAFactory__factory, ERC20__factory, ERC7579Account__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, WebAuthValidator__factory } from "../typechain-types";
 
 export class ContractFixtures {
-  // NOTE: CHANGING THE READONLY VALUES WILL REQUIRE UPDATING THE STATIC SIGNATURE
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
   readonly ethersStaticSalt = new Uint8Array([
     205, 241, 161, 186, 101, 105, 79,
@@ -25,10 +24,15 @@ export class ContractFixtures {
 
   private _aaFactory: AAFactory;
   async getAaFactory() {
+    const implAddress = await this.getAccountImplAddress();
     if (!this._aaFactory) {
-      this._aaFactory = await deployFactory("AAFactory", this.wallet);
+      this._aaFactory = await deployFactory(this.wallet, implAddress);
     }
     return this._aaFactory;
+  }
+
+  async getAaFactoryAddress() {
+    return (await this.getAaFactory()).getAddress();
   }
 
   private _sessionKeyModule: SessionKeyValidator;
@@ -81,16 +85,6 @@ export class ContractFixtures {
       this._accountImplAddress = await accountImpl.getAddress();
     }
     return this._accountImplAddress;
-  }
-
-  private _proxyAccountContract: ERC7579Account;
-  async getProxyAccountContract() {
-    const claveAddress = await this.getAccountImplAddress();
-    if (!this._proxyAccountContract) {
-      const contract = await create2("AccountProxy", this.wallet, this.ethersStaticSalt, [claveAddress]);
-      this._proxyAccountContract = ERC7579Account__factory.connect(await contract.getAddress(), this.wallet);
-    }
-    return this._proxyAccountContract;
   }
 
   async deployERC20(mintTo: string): Promise<ERC20> {
@@ -160,18 +154,34 @@ export const getProviderL1 = () => {
   return provider;
 };
 
-export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<AAFactory> {
-  const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, "utf8"));
+export async function deployFactory(wallet: Wallet, implAddress: string, expectedAddress?: string): Promise<AAFactory> {
+  const factoryArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AAFactory.sol/AAFactory.json", "utf8"));
   const proxyAaArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"));
 
   const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet);
-  const factory = await deployer.deploy(utils.hashBytecode(proxyAaArtifact.bytecode));
+  const bytecodeHash = utils.hashBytecode(proxyAaArtifact.bytecode);
+  const factory = await deployer.deploy(
+    bytecodeHash,
+    implAddress,
+    { customData: { factoryDeps: [proxyAaArtifact.bytecode] } },
+  );
   const factoryAddress = await factory.getAddress();
 
   if (expectedAddress && factoryAddress != expectedAddress) {
-    console.warn(`${factoryName}.sol address is not the expected default address (${expectedAddress}).`);
+    console.warn(`AAFactory.sol address is not the expected default address (${expectedAddress}).`);
     console.warn(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
     return AAFactory__factory.connect(expectedAddress, wallet);
+  }
+
+  if (hre.network.config.verifyURL) {
+    logInfo(`Requesting contract verification...`);
+    logInfo(`src/AAFactory.sol:AAFactory`);
+    await verifyContract({
+      address: factoryAddress,
+      contract: `src/AAFactory.sol:AAFactory`,
+      constructorArguments: deployer.interface.encodeDeploy([bytecodeHash, implAddress]),
+      bytecode: factoryArtifact.bytecode,
+    });
   }
 
   return AAFactory__factory.connect(factoryAddress, wallet);
@@ -223,6 +233,18 @@ export const create2 = async (contractName: string, wallet: Wallet, salt: ethers
   const standardCreate2Address = utils.create2Address(wallet.address, bytecodeHash, salt, args ? constructorArgs : "0x");
   const accountCode = await wallet.provider.getCode(standardCreate2Address);
   if (accountCode != "0x") {
+    logInfo(`${contractArtifact.sourceName}:${contractName}`);
+    logInfo("Contract already exists!");
+    // if (hre.network.config.verifyURL) {
+    //   logInfo(`Requesting contract verification...`);
+    //   await verifyContract({
+    //     address: standardCreate2Address,
+    //     contract: `${contractArtifact.sourceName}:${contractName}`,
+    //     constructorArguments: constructorArgs,
+    //     bytecode: accountCode,
+    //   });
+    // }
+
     return new ethers.Contract(standardCreate2Address, contractArtifact.abi, wallet);
   }
 
@@ -235,6 +257,17 @@ export const create2 = async (contractName: string, wallet: Wallet, salt: ethers
     logWarning("Unexpected Create2 address, perhaps salt is misconfigured?");
     logWarning(`addressFromCreate2: ${standardCreate2Address}`);
     logWarning(`deployedContractAddress: ${deployedContractAddress}`);
+  }
+
+  if (hre.network.config.verifyURL) {
+    logInfo(`Requesting contract verification...`);
+    logInfo(`${contractArtifact.sourceName}:${contractName}`);
+    await verifyContract({
+      address: deployedContractAddress,
+      contract: `${contractArtifact.sourceName}:${contractName}`,
+      constructorArguments: constructorArgs,
+      bytecode: accountCode,
+    });
   }
 
   return new ethers.Contract(deployedContractAddress, contractArtifact.abi, wallet);

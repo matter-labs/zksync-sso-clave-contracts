@@ -1,6 +1,8 @@
 import { type Account, type Address, type Chain, type Client, createClient, encodeAbiParameters, getAddress, type Hash, type Prettify, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
+import { encodeSession } from "../../utils/encoding.js";
+import type { SessionConfig } from "../../utils/session.js";
 import { type ZksyncAccountSessionActions, zksyncAccountSessionActions } from "../decorators/session.js";
 import { type ZksyncAccountWalletActions, zksyncAccountWalletActions } from "../decorators/session_wallet.js";
 import { toSmartAccount } from "../smart-account.js";
@@ -24,12 +26,19 @@ export function createZksyncSessionClient<
   const account = toSmartAccount({
     address: parameters.address,
     sign: async ({ hash }) => {
-      if (!parameters.sessionKey) throw new Error("Session key wasn't provided, can't sign");
       const sessionKeySigner = privateKeyToAccount(parameters.sessionKey);
       const hashSignature = await sessionKeySigner.sign({ hash });
       return encodeAbiParameters(
-        [{ type: "bytes" }, { type: "address" }, { type: "bytes[]" }],
-        [hashSignature, parameters.contracts.session, ["0x"]], // FIXME: this is assuming there are no other hooks
+        [
+          { type: "bytes" },
+          { type: "address" },
+          { type: "bytes[]" },
+        ],
+        [
+          hashSignature,
+          parameters.contracts.session,
+          [encodeSession(parameters.sessionConfig)], // FIXME: this is assuming there are no other hooks
+        ],
       );
     },
   });
@@ -40,6 +49,7 @@ export function createZksyncSessionClient<
   })
     .extend(() => ({
       sessionKey: parameters.sessionKey,
+      sessionConfig: parameters.sessionConfig,
       contracts: parameters.contracts,
     }))
     .extend(publicActions)
@@ -52,7 +62,8 @@ export type SessionRequiredContracts = {
   session: Address; // Session, spend limit, etc.
 };
 type ZksyncAccountSessionData = {
-  sessionKey?: Hash;
+  sessionKey: Hash;
+  sessionConfig: SessionConfig;
   contracts: SessionRequiredContracts;
 };
 
@@ -86,7 +97,8 @@ export interface ZksyncAccountSessionClientConfig<
 > extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, "account"> {
   chain: NonNullable<chain>;
   address: Address;
-  sessionKey?: Hash;
+  sessionKey: Hash;
+  sessionConfig: SessionConfig;
   contracts: SessionRequiredContracts;
   key?: string;
   name?: string;

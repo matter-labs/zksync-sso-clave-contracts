@@ -31,7 +31,6 @@ export const useAppMeta = () => {
     userId: "jdoe",
     contracts: {
       accountFactory: config.public.accountFactory as Address,
-      accountImplementation: config.public.accountImplementation as Address,
       passkey: config.public.passkey as Address,
       session: config.public.session as Address,
     },

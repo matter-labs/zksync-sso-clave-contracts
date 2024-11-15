@@ -3,20 +3,52 @@ export const FactoryAbi = [
     inputs: [
       {
         internalType: "bytes32",
-        name: "_proxyAaBytecodeHash",
+        name: "_beaconProxyBytecodeHash",
         type: "bytes32",
+      },
+      {
+        internalType: "address",
+        name: "implementation",
+        type: "address",
       },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
   },
   {
+    anonymous: false,
     inputs: [
       {
+        indexed: true,
         internalType: "address",
-        name: "",
+        name: "previousOwner",
         type: "address",
       },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "newOwner",
+        type: "address",
+      },
+    ],
+    name: "OwnershipTransferred",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "implementation",
+        type: "address",
+      },
+    ],
+    name: "Upgraded",
+    type: "event",
+  },
+  {
+    inputs: [
       {
         internalType: "string",
         name: "",
@@ -48,16 +80,24 @@ export const FactoryAbi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "beaconProxyBytecodeHash",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "bytes32",
         name: "salt",
         type: "bytes32",
-      },
-      {
-        internalType: "address",
-        name: "accountImplementionLocation",
-        type: "address",
       },
       {
         internalType: "string",
@@ -93,15 +133,61 @@ export const FactoryAbi = [
   },
   {
     inputs: [],
-    name: "proxyAaBytecodeHash",
+    name: "implementation",
     outputs: [
       {
-        internalType: "bytes32",
+        internalType: "address",
         name: "",
-        type: "bytes32",
+        type: "address",
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "owner",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "renounceOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "newOwner",
+        type: "address",
+      },
+    ],
+    name: "transferOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "newImplementation",
+        type: "address",
+      },
+    ],
+    name: "upgradeTo",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
 ] as const;

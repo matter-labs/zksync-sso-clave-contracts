@@ -1,6 +1,9 @@
 name: "Preview Auth Server"
 on:
   pull_request:
+    paths:
+      - "packages/auth-server/**"
+      - "packages/sdk/**"
   workflow_dispatch:
 
 env:
@@ -30,11 +33,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
 
-      - name: "Build gateway"
-        run: pnpm nx build sdk
-
-      - name: "Build gateway"
-        run: pnpm nx build-static gateway
+      - name: Build Auth Server
+        env:
+          NUXT_PUBLIC_DEFAULT_CHAIN_ID: 300
+        run: pnpm nx build auth-server
 
       - name: Deploy preview
         uses: matter-labs/action-hosting-deploy@main

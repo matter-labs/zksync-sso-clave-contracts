@@ -3,12 +3,12 @@ import fs from "fs";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import path from "path";
 
-import { deployContract, getProvider, getWallet, LOCAL_RICH_WALLETS } from "./utils";
+import { deployContract, getProvider, getWallet } from "./utils";
 
 export default async function (hre: HardhatRuntimeEnvironment) {
   const provider = getProvider();
 
-  const baseTokenURI = "http://localhost:3006/nft/metadata.json";
+  const baseTokenURI = "https://nft.zksync.dev/nft/metadata.json";
   const nftContract = await deployContract("ZeekNFTQuest", [baseTokenURI]);
 
   const paymasterContract = await deployContract("NFTQuestPaymaster", [await nftContract.getAddress()]);
@@ -35,7 +35,7 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   }
 
   // fund the paymaster contract with enough ETH to pay for transactions
-  const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
+  const wallet = getWallet();
   await (
     await wallet.sendTransaction({
       to: paymasterContract.target,
