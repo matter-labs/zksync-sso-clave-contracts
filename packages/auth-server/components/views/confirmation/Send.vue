@@ -1,6 +1,6 @@
 <template>
   <div class="h-dvh flex flex-col px-4">
-    <AccountHeader
+    <SessionAccountHeader
       message="Sending from"
     />
     <h2 class="flex items-center justify-center text-white text-center text-3xl mt-6 font-semibold">

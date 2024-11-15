@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="tokensLoading || spendLimitTokens?.length"
-    class="bg-neutral-975 rounded-[28px]"
+    class="bg-neutral-975 rounded-[28px] text-neutral-100"
   >
     <div class="px-5 py-2 text-neutral-400">
       <div class="flex justify-between">

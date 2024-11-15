@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center gap-4 -mx-4 border-b border-neutral-900 px-4 py-2.5 mb-4">
+  <div class="flex items-center gap-4">
     <div class="text-sm flex items-center whitespace-nowrap truncate">
       <span class="text-neutral-400">{{ message }}&nbsp;</span>
       <Web3Avatar
