@@ -92,6 +92,7 @@ export const createSession = async <
   let sendTransactionArgs = {
     to: args.contracts.session,
     data: callData,
+    gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
   } as any;
 
   if ((client as any).paymasterAddress) {
