@@ -1,32 +1,26 @@
 <template>
-  <div class="h-dvh flex flex-col px-4">
-    <AccountHeader
+  <SessionTemplate class="text-neutral-300">
+    <template
       v-if="isLoggedIn"
-      message="Connecting with"
+      #header
+    >
+      <SessionAccountHeader
+
+        message="Connecting with"
+      />
+    </template>
+
+    <SessionMetadata
+      :app-meta="appMeta"
+      :domain="domain"
     />
-    <div :class="[isLoggedIn ? '' : 'mt-8']">
-      <div class="w-14 h-14 rounded-md bg-neutral-950 mx-auto flex-shrink-0">
-        <img
-          v-if="appMeta.icon"
-          :src="appMeta.icon"
-          :alt="appMeta.name"
-          class="h-full w-full object-cover rounded-md"
-        >
-      </div>
-      <h1 class="text-white text-center text-xl mt-2 font-semibold">
-        Authorize {{ appMeta.name }}
-      </h1>
-      <p class="text-center border border-neutral-800 mt-2 mx-auto w-max px-4 py-1 rounded-3xl">
-        {{ domain }}
-      </p>
-    </div>
 
     <div class="space-y-2 mt-4">
       <div class="bg-neutral-975 rounded-[28px]">
         <div class="px-5 py-2 text-neutral-400">
           Permissions
         </div>
-        <CommonLine>
+        <CommonLine class="text-neutral-100">
           <div class="divide-y divide-neutral-800">
             <div class="flex items-center gap-2 py-3 px-3">
               <IconsFingerprint class="w-7 h-7" />
@@ -39,37 +33,20 @@
           </div>
         </CommonLine>
       </div>
-
-      <SessionTokens :session="sessionConfig" />
     </div>
+    <SessionTokens :session="sessionConfig" />
 
-    <button
-      class="mx-auto text-center w-max px-4 py-2 flex items-center gap-1 text-sm text-neutral-700 hover:text-neutral-300 transition-colors"
-      @click="advancedInfoOpened = !advancedInfoOpened"
-    >
-      <span>{{ advancedInfoOpened ? 'Hide' : 'Show' }} advanced session info</span>
-      <ChevronDownIcon
-        class="w-4 h-4 transition-transform"
-        :class="{ 'rotate-180': advancedInfoOpened }"
-        aria-hidden="true"
-      />
-    </button>
-    <CommonHeightTransition :opened="advancedInfoOpened">
-      <CommonLine>
-        <pre class="p-3 text-xs overflow-auto">{{ JSON.stringify(sessionConfig, null, 4) }}</pre>
-      </CommonLine>
-    </CommonHeightTransition>
+    <SessionAdvancedInfo :session-config="sessionConfig" />
 
-    <CommonHeightTransition :opened="!!sessionError">
-      <p class="py-1 text-sm text-error-300 text-center">
-        <span>
-          {{ sessionError }}
-        </span>
-      </p>
-    </CommonHeightTransition>
-
-    <div class="mt-auto">
-      <div class="-mx-3 px-3 border-t border-neutral-800 flex gap-4 py-4 mt-2">
+    <template #footer>
+      <CommonHeightTransition :opened="!!sessionError">
+        <p class="pb-2 text-sm text-error-300">
+          <span>
+            {{ sessionError }}
+          </span>
+        </p>
+      </CommonHeightTransition>
+      <div class="flex gap-4">
         <ZkButton
           class="w-full"
           type="secondary"
@@ -78,7 +55,7 @@
           Cancel
         </ZkButton>
         <ZkHighlightWrapper
-          v-if="!isLoggedIn"
+          :show-highlight="!isLoggedIn"
           class="w-full"
         >
           <ZkButton
@@ -87,25 +64,15 @@
             data-testid="connect"
             @click="confirmConnection()"
           >
-            Create
+            {{ isLoggedIn ? "Connect" : "Create" }}
           </ZkButton>
         </ZkHighlightWrapper>
-        <ZkButton
-          v-else
-          class="w-full"
-          :loading="!appMeta || responseInProgress"
-          data-testid="connect"
-          @click="confirmConnection()"
-        >
-          Connect
-        </ZkButton>
       </div>
-    </div>
-  </div>
+    </template>
+  </SessionTemplate>
 </template>
 
 <script lang="ts" setup>
-import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { useTimeAgo } from "@vueuse/core";
 import { parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
@@ -140,7 +107,6 @@ const sessionConfig = computed(() => formatSessionPreferences(props.sessionPrefe
 const domain = computed(() => new URL(appOrigin.value).host);
 const sessionExpiresIn = useTimeAgo(Number(sessionConfig.value.expiresAt) * 1000);
 
-const advancedInfoOpened = ref(false);
 const sessionError = ref("");
 
 const confirmConnection = async () => {

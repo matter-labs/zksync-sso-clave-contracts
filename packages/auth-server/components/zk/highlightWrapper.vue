@@ -1,16 +1,29 @@
 <template>
-  <div class="highlight-effect">
+  <div
+    v-if="showHighlight"
+    class="highlight-effect"
+  >
     <div class="highlight-effect-inner">
       <slot />
     </div>
   </div>
+  <div v-else>
+    <slot />
+  </div>
 </template>
+
+<script lang="ts" setup>
+const { showHighlight = true } = defineProps<{
+  showHighlight?: boolean;
+}>();
+</script>
 
 <style lang="scss" scoped>
 .highlight-effect {
   position: relative;
   border-radius: 2rem;
   padding: 4px;
+  margin: -4px;
 
   &::before, &::after {
     content: "";

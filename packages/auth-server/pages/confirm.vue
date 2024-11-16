@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="h-screen">
     <ViewsLoading
       v-if="!hasRequests && !appMeta"
       key="loading"
