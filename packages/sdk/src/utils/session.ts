@@ -8,6 +8,7 @@ export enum LimitType {
 
 /**
  * Limit is the value tracked either for a lifetime or a period on-chain
+ * @member limitType - Used to validate limit & period values (unlimited has no limit, lifetime has no period, allowance has both!)
  * @member limit - The limit is exceeded if the tracked value is greater than this over the provided period
  * @member period - The block.timestamp divisor for the limit to be enforced (eg: 60 for a minute, 86400 for a day, 604800 for a week, unset for lifetime)
  */
@@ -60,7 +61,7 @@ export type Constraint = {
 /**
  * CallPolicy is a policy for a specific contract (address/function) call.
  * @member target - Only one policy per target per session (unique mapping)
- * @member functionSelector - Solidity function selector (either as function name, the ABI object, or the selector directly), also unique mapping with target
+ * @member selector - Solidity function selector (the selector directly), also unique mapping with target
  * @member maxValuePerUse - Will reject transaction if value is set above this amount (for transfer or call)
  * @member valueLimit - If not set, unlimited. If a number or a limit without a period, converts to a lifetime value. Also rejects transactions that have cumulative value greater than what's set here
  * @member constraints - Array of conditions with specific limits for performing range and logic checks (e.g. 5 > x >= 30) on the transaction data (not value!)
@@ -85,6 +86,14 @@ export type TransferPolicy = {
   valueLimit: Limit;
 };
 
+/**
+ * SessionConfig is a set of policies and metadata to validate a transaction
+ * @member signer - The address that signs the transaction (session public key)
+ * @member expiresAt - The block.timestamp at which the session is no longer valid
+ * @member feeLimit - The maximum fee that can be paid for the transaction (maxFeePerGas * gasLimit)
+ * @member callPolicies - Used to validate the transaction data, has complex calldata parsing logic
+ * @member transferPolicies - Used to validate the transaction value when there's no additional data
+ */
 export type SessionConfig = {
   signer: Address;
   expiresAt: bigint;
