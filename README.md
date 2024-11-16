@@ -48,18 +48,18 @@ const ssoConnector = zksyncAccountConnector({
       // Allow ETH transfers to a specific address:
       transfers: [
          {
-         target: "0x188bd99cd7D4d78d4E605Aeea12C17B32CC3135A",
-         valueLimit: parseEther("0.1"),
+            to: "0x188bd99cd7D4d78d4E605Aeea12C17B32CC3135A",
+            valueLimit: parseEther("0.1"),
          },
       ],
 
       // Allow calling specific smart contracts (e.g. ERC20 transfer):
       contractCalls: [
          {
-            target: "0xa1cf087DB965Ab02Fb3CFaCe1f5c63935815f044",
+            address: "0xa1cf087DB965Ab02Fb3CFaCe1f5c63935815f044",
             function: "transfer(address,uint256)",
 
-            // Optional call constraints:
+            // Optional call constraints (unconstrained otherwise):
             constraints: [
                // Only allow transfers to this address
                {
