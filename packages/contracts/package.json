@@ -38,6 +38,7 @@
   "dependencies": {
     "@matterlabs/zksync-contracts": "^0.6.1",
     "@nomad-xyz/excessively-safe-call": "^0.0.1-rc.1",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@openzeppelin/contracts": "4.9.6",
     "@openzeppelin/contracts-upgradeable": "4.9",
     "bigint-conversion": "^2.4.3",

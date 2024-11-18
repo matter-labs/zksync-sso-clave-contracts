@@ -10,7 +10,9 @@ import { UpgradeableBeacon } from "./UpgradeableBeacon.sol";
 import "./helpers/Logger.sol";
 
 contract AAFactory is UpgradeableBeacon {
-  bytes32 public immutable beaconProxyBytecodeHash;
+  event AccountCreated(address indexed accountAddress, string uniqueAccountId);
+
+  bytes32 private immutable beaconProxyBytecodeHash;
 
   // This is a mapping from unique id => account address
   mapping(string => address) public accountMappings;
@@ -19,8 +21,6 @@ contract AAFactory is UpgradeableBeacon {
     beaconProxyBytecodeHash = _beaconProxyBytecodeHash;
   }
 
-  function addNewUniqueId(bytes32 uniqueAccountId) external {}
-
   function deployProxy7579Account(
     bytes32 salt,
     string calldata uniqueAccountId,
@@ -28,18 +28,15 @@ contract AAFactory is UpgradeableBeacon {
     bytes[] calldata initialModules,
     address[] calldata initialK1Owners
   ) external returns (address accountAddress) {
+    require(accountMappings[uniqueAccountId] == address(0), "Account already exists");
+
     (bool success, bytes memory returnData) = SystemContractsCaller.systemCallWithReturndata(
       uint32(gasleft()),
       address(DEPLOYER_SYSTEM_CONTRACT),
       uint128(0),
       abi.encodeCall(
         DEPLOYER_SYSTEM_CONTRACT.create2Account,
-        (
-          salt,
-          beaconProxyBytecodeHash,
-          abi.encode(address(this), bytes("")),
-          IContractDeployer.AccountAbstractionVersion.Version1
-        )
+        (salt, beaconProxyBytecodeHash, abi.encode(address(this)), IContractDeployer.AccountAbstractionVersion.Version1)
       )
     );
     require(success, "Deployment failed");
@@ -52,9 +49,8 @@ contract AAFactory is UpgradeableBeacon {
     // add session-key/spend-limit module (similar code)
     IClaveAccount(accountAddress).initialize(initialValidators, initialModules, initialK1Owners);
 
-    if (accountMappings[uniqueAccountId] != address(0)) {
-      revert("Account already exists");
-    }
     accountMappings[uniqueAccountId] = accountAddress;
+
+    emit AccountCreated(accountAddress, uniqueAccountId);
   }
 }
