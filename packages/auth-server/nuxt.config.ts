@@ -29,6 +29,16 @@ export default defineNuxtConfig({
   colorMode: {
     preference: "dark",
   },
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          // Fix deprecation warnings with modern API
+          api: "modern",
+        },
+      },
+    },
+  },
   eslint: {
     config: {
       stylistic: {

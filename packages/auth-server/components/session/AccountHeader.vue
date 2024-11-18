@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center gap-4 -mx-4 border-b border-neutral-900 px-4 py-2.5 mb-4">
+  <div class="flex items-center gap-4">
     <div class="text-sm flex items-center whitespace-nowrap truncate">
       <span class="text-neutral-400">{{ message }}&nbsp;</span>
       <Web3Avatar
@@ -19,7 +19,7 @@
     <button
       class="ml-auto w-5 h-5 text-neutral-400 hover:text-white transition"
       data-testid="logout"
-      @click="logout()"
+      @click="logoutAccount()"
     >
       <ArrowLeftEndOnRectangleIcon />
     </button>
@@ -40,4 +40,9 @@ defineProps({
 const { logout } = useAccountStore();
 const { address } = storeToRefs(useAccountStore());
 const { requestChain } = storeToRefs(useRequestsStore());
+
+const logoutAccount = () => {
+  logout();
+  navigateTo("/confirm");
+};
 </script>

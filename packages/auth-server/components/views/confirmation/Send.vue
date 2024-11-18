@@ -1,8 +1,11 @@
 <template>
-  <div class="h-dvh flex flex-col px-4">
-    <AccountHeader
-      message="Sending from"
-    />
+  <SessionTemplate>
+    <template #header>
+      <SessionAccountHeader
+        message="Sending from"
+      />
+    </template>
+
     <h2 class="flex items-center justify-center text-white text-center text-3xl mt-6 font-semibold">
       <span v-if="preparingTransaction">
         <CommonContentLoader :length="15" />
@@ -92,6 +95,7 @@
         </div>
       </div>
     </div>
+
     <div
       v-if="preparingFailed || responseError"
       class="text-xs text-error-500 border p-2 rounded-2xl border-error-500/30 mt-4 clip"
@@ -100,7 +104,7 @@
     </div>
 
     <button
-      class="mx-auto mt-4 text-center w-max px-4 py-2 flex items-center gap-1 text-sm text-neutral-800 hover:text-neutral-600 transition-colors"
+      class="mx-auto mt-4 text-center w-max px-4 py-2 flex items-center gap-1 text-sm text-neutral-700 hover:text-neutral-600 transition-colors"
       @click="advancedInfoOpened = !advancedInfoOpened"
     >
       <span>{{ advancedInfoOpened ? 'Hide' : 'Show' }} advanced transaction info</span>
@@ -116,32 +120,33 @@
       </CommonLine>
     </CommonHeightTransition>
 
-    <div class="mt-auto">
-      <div class="-mx-3 px-3 border-t border-neutral-900 flex gap-4 py-4 mt-2">
-        <CommonButton
+    <template #footer>
+      <div class="flex gap-4">
+        <ZkButton
           class="w-full"
-          variant="neutral"
+          type="secondary"
           @click="deny()"
         >
           Cancel
-        </CommonButton>
-        <CommonButton
+        </ZkButton>
+        <ZkButton
           class="w-full"
           :disabled="preparingTransaction"
           :loading="!appMeta || responseInProgress"
+          data-testid="confirm"
           @click="confirmTransaction()"
         >
           Confirm
-        </CommonButton>
+        </ZkButton>
       </div>
-    </div>
-  </div>
+    </template>
+  </SessionTemplate>
 </template>
 
 <script lang="ts" setup>
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { useIntervalFn } from "@vueuse/core";
-import { type Address, formatUnits } from "viem";
+import { type Address, formatUnits, type SendTransactionRequest } from "viem";
 import { chainConfig, type ZksyncRpcTransaction } from "viem/zksync";
 import Web3Avatar from "web3-avatar-vue";
 import type { ExtractParams } from "zksync-sso/client-auth-server";
@@ -155,7 +160,7 @@ const transactionParams = computed(() => {
   const params = request.value!.content.action.params as ExtractParams<"eth_sendTransaction">;
   // convert rpc formatted data to actual values (e.g. convert hex to BigInt)
   const formatted = chainConfig.formatters.transaction.format(params[0] as ZksyncRpcTransaction);
-  return formatted;
+  return formatted as SendTransactionRequest;
 });
 
 const advancedInfoOpened = ref(false);

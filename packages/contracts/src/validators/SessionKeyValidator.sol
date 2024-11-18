@@ -353,8 +353,8 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   function init(bytes calldata data) external {
     // to prevent recursion, since addHook also calls init
     if (!_isInitialized(msg.sender)) {
-      IValidatorManager(msg.sender).addModuleValidator(address(this), data);
       IHookManager(msg.sender).addHook(abi.encodePacked(address(this)), true);
+      IValidatorManager(msg.sender).addModuleValidator(address(this), data);
     }
   }
 

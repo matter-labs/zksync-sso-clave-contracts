@@ -5,14 +5,14 @@
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/nft-quest",
+        "cwd": "examples/nft-quest",
         "commands": [
           {
             "command": "pnpm nx dev auth-server",
             "prefix": "Auth-Server:"
           },
           {
-            "command": "PORT=3006 nuxt dev",
+            "command": "PORT=3006 pnpm nuxt dev",
             "prefix": "NFT-Quest:"
           }
         ]
@@ -22,15 +22,49 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/nft-quest",
-        "command": "pnpx nuxt generate"
+        "cwd": "examples/nft-quest",
+        "command": "pnpm nuxt generate"
       },
       "dependsOn": ["^build"]
+    },
+    "build:local": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/nft-quest",
+        "commands": [
+          {
+            "command": "pnpm nuxt generate --envName local",
+            "prefix": "NFT-Quest:"
+          },
+          {
+            "command": "pnpm nx deploy:local nft-quest-contracts",
+            "prefix": "NFT-Quest-Contracts:"
+          }
+        ]
+      },
+      "dependsOn": ["^build"]
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/nft-quest",
+        "commands": [
+          {
+            "command": "pnpm nx preview auth-server",
+            "prefix": "Auth-Server:"
+          },
+          {
+            "command": "PORT=3006 pnpm nuxt preview",
+            "prefix": "NFT-Quest:"
+          }
+        ]
+      },
+      "dependsOn": ["build:local"]
     },
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/nft-quest",
+        "cwd": "examples/nft-quest",
         "command": "firebase deploy --only hosting:nft-quest-testnet --project nft-quest-testnet"
       },
       "dependsOn": ["build"]
@@ -38,7 +72,7 @@
     "deploy:preview": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/nft-quest",
+        "cwd": "examples/nft-quest",
         "command": "firebase hosting:channel:deploy --only nft-quest-testnet --project nft-quest-testnet"
       },
       "dependsOn": ["build"]
@@ -46,14 +80,14 @@
     "e2e:setup": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/nft-quest",
-        "command": "pnpm exec playwright install"
+        "cwd": "examples/nft-quest",
+        "command": "pnpm exec playwright install chromium"
       }
     },
     "e2e": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/nft-quest",
+        "cwd": "examples/nft-quest",
         "command": "playwright test"
       },
       "dependsOn": ["e2e:setup"]
@@ -61,7 +95,7 @@
     "e2e:debug": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/nft-quest",
+        "cwd": "examples/nft-quest",
         "command": "playwright test --ui"
       },
       "dependsOn": ["e2e:setup"]
@@ -69,7 +103,7 @@
     "show-report": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/nft-quest",
+        "cwd": "examples/nft-quest",
         "command": "playwright show-report"
       }
     }

@@ -40,12 +40,19 @@ export default defineConfig({
     },
   ],
 
-  /* Run your local dev server before starting the tests */
+  /* Run your local server before starting the tests */
   webServer: [
     {
-      command: "pnpm nx dev nft-quest",
+      command: "pnpm nx preview nft-quest",
       url: "http://localhost:3006",
       reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+    },
+    {
+      command: "pnpm nx preview auth-server",
+      url: "http://localhost:3002",
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
     },
   ],
 });

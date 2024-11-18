@@ -2,6 +2,7 @@ import type { AuthServerRpcSchema, ExtractParams, ExtractReturnType, Method, RPC
 
 export const useRequestsStore = defineStore("requests", () => {
   const { appMeta } = useAppMeta();
+  const { onMessage, postMessage, disconnect } = useCommunicatorStore();
 
   const request = ref<RPCRequestMessage<Method> | undefined>();
   const hasRequests = computed(() => !!request.value);
@@ -12,8 +13,8 @@ export const useRequestsStore = defineStore("requests", () => {
   const requestMethod = computed(() => request.value?.content.action.method);
   const requestParams = computed(() => request.value?.content.action.method);
 
-  communicator.onMessage<RPCRequestMessage<Method>>((message) => "content" in message)
-    .then(async (message) => {
+  onMessage<RPCRequestMessage<Method>>((message: RPCRequestMessage<Method>) => "content" in message)
+    .then(async (message: RPCRequestMessage<Method>) => {
       if (message.content.action.method === "eth_requestAccounts" && message.content.action.params && "metadata" in message.content.action.params) {
         const handshakeData = message.content.action.params as ExtractParams<"eth_requestAccounts", AuthServerRpcSchema>;
         appMeta.value = handshakeData.metadata;
@@ -47,12 +48,12 @@ export const useRequestsStore = defineStore("requests", () => {
       content: await responder(),
     };
 
-    communicator.postMessage(serializeBigInts(message));
-    communicator.disconnect();
+    postMessage(serializeBigInts(message));
+    disconnect();
   });
 
   const deny = () => {
-    communicator.disconnect();
+    disconnect();
   };
 
   return {

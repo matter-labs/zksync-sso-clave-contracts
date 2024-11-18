@@ -1,27 +1,27 @@
 <template>
-  <div class="h-dvh flex flex-col px-4">
-    <AccountHeader message="Connecting with" />
-    <div class="w-14 h-14 rounded-md bg-neutral-950 mx-auto flex-shrink-0">
-      <img
-        v-if="appMeta.icon"
-        :src="appMeta.icon"
-        :alt="appMeta.name"
-        class="h-full w-full object-cover rounded-md"
-      >
-    </div>
-    <h1 class="text-white text-center text-xl mt-2 font-semibold">
-      Authorize {{ appMeta.name }}
-    </h1>
-    <p class="text-center border border-neutral-900 mt-2 mx-auto w-max px-4 py-1 rounded-3xl">
-      {{ domain }}
-    </p>
+  <SessionTemplate class="text-neutral-300">
+    <template
+      v-if="isLoggedIn"
+      #header
+    >
+      <SessionAccountHeader
+
+        message="Connecting with"
+      />
+    </template>
+
+    <SessionMetadata
+      :app-meta="appMeta"
+      :domain="domain"
+    />
+
     <div class="space-y-2 mt-4">
       <div class="bg-neutral-975 rounded-[28px]">
         <div class="px-5 py-2 text-neutral-400">
           Permissions
         </div>
-        <CommonLine>
-          <div class="divide-y divide-neutral-900">
+        <CommonLine class="text-neutral-100">
+          <div class="divide-y divide-neutral-800">
             <div class="flex items-center gap-2 py-3 px-3">
               <IconsFingerprint class="w-7 h-7" />
               <div>Act on your behalf</div>
@@ -33,94 +33,51 @@
           </div>
         </CommonLine>
       </div>
-
-      <div
-        v-if="tokensLoading || spendLimitTokens?.length"
-        class="bg-neutral-975 rounded-[28px]"
-      >
-        <div class="px-5 py-2 text-neutral-400">
-          <div class="flex justify-between">
-            <div>Allowed spending</div>
-            <div v-if="totalUsd">
-              {{ formatPricePretty(totalUsd) }}
-            </div>
-          </div>
-        </div>
-        <CommonLine>
-          <div class="divide-y divide-neutral-900">
-            <template v-if="tokensLoading">
-              <TokenAmountLoader
-                v-for="item in []"
-                :key="item"
-                variant="headless"
-              />
-            </template>
-            <template v-else>
-              <TokenAmount
-                v-for="item in spendLimitTokens"
-                :key="item.token.address"
-                as="div"
-                size="sm"
-                variant="headless"
-                :symbol="item.token.symbol"
-                :decimals="item.token.decimals"
-                :address="item.token.address"
-                :price="item.token.price"
-                :icon-url="item.token.iconUrl"
-                :amount="item.amount.toString()"
-              />
-            </template>
-          </div>
-        </CommonLine>
-      </div>
     </div>
+    <SessionTokens :session="sessionConfig" />
 
-    <button
-      class="mx-auto text-center w-max px-4 py-2 flex items-center gap-1 text-sm text-neutral-800 hover:text-neutral-600 transition-colors"
-      @click="advancedInfoOpened = !advancedInfoOpened"
-    >
-      <span>{{ advancedInfoOpened ? 'Hide' : 'Show' }} advanced session info</span>
-      <ChevronDownIcon
-        class="w-4 h-4 transition-transform"
-        :class="{ 'rotate-180': advancedInfoOpened }"
-        aria-hidden="true"
-      />
-    </button>
-    <CommonHeightTransition :opened="advancedInfoOpened">
-      <CommonLine>
-        <pre class="p-3 text-xs overflow-auto">{{ JSON.stringify(sessionConfig, null, 4) }}</pre>
-      </CommonLine>
-    </CommonHeightTransition>
+    <SessionAdvancedInfo :session-config="sessionConfig" />
 
-    <div class="mt-auto">
-      <div class="-mx-3 px-3 border-t border-neutral-900 flex gap-4 py-4 mt-2">
-        <CommonButton
+    <template #footer>
+      <CommonHeightTransition :opened="!!sessionError">
+        <p class="pb-2 text-sm text-error-300">
+          <span>
+            {{ sessionError }}
+          </span>
+        </p>
+      </CommonHeightTransition>
+      <div class="flex gap-4">
+        <ZkButton
           class="w-full"
-          variant="neutral"
+          type="secondary"
           @click="deny()"
         >
           Cancel
-        </CommonButton>
-        <CommonButton
+        </ZkButton>
+        <ZkHighlightWrapper
+          :show-highlight="!isLoggedIn"
           class="w-full"
-          :loading="!appMeta || responseInProgress"
-          @click="confirmConnection()"
         >
-          Connect
-        </CommonButton>
+          <ZkButton
+            class="w-full"
+            :loading="!appMeta || responseInProgress"
+            data-testid="connect"
+            @click="confirmConnection()"
+          >
+            {{ isLoggedIn ? "Connect" : "Create" }}
+          </ZkButton>
+        </ZkHighlightWrapper>
       </div>
-    </div>
-  </div>
+    </template>
+  </SessionTemplate>
 </template>
 
 <script lang="ts" setup>
-import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { useTimeAgo } from "@vueuse/core";
-import { type Address, formatUnits, parseEther } from "viem";
+import { parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import type { SessionPreferences } from "zksync-sso";
-import type { AuthServerRpcSchema, ExtractReturnType } from "zksync-sso/client-auth-server";
-import { formatSessionPreferences } from "zksync-sso/client-auth-server";
+import { type ExtractReturnType, formatSessionPreferences, type Method, type RPCResponseMessage } from "zksync-sso/client-auth-server";
 import { LimitType } from "zksync-sso/utils";
 
 const props = defineProps({
@@ -130,10 +87,11 @@ const props = defineProps({
   },
 });
 
-const { appMeta, origin } = useAppMeta();
+const { appMeta, appOrigin } = useAppMeta();
+const { isLoggedIn } = storeToRefs(useAccountStore());
+const { createAccount } = useAccountCreate(computed(() => requestChain.value!.id));
 const { respond, deny } = useRequestsStore();
 const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
-const { fetchTokenInfo } = useTokenUtilities(computed(() => requestChain.value!.id));
 const { getClient } = useClientStore();
 
 const defaults = {
@@ -146,99 +104,63 @@ const defaults = {
 };
 const sessionConfig = computed(() => formatSessionPreferences(props.sessionPreferences, defaults));
 
-const domain = computed(() => new URL(origin.value).host);
+const domain = computed(() => new URL(appOrigin.value).host);
 const sessionExpiresIn = useTimeAgo(Number(sessionConfig.value.expiresAt) * 1000);
 
-const advancedInfoOpened = ref(false);
-
-const { result: tokensList, inProgress: tokensLoading, execute: fetchTokens } = useAsync(async () => {
-  const fetchSingleToken = async (tokenAddress: Address): Promise<Token> => {
-    try {
-      return fetchTokenInfo(tokenAddress);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to fetch token info for ${tokenAddress}`, error);
-      return {
-        address: tokenAddress,
-        name: "Unknown",
-        symbol: "unknown",
-        decimals: 0,
-      };
-    }
-  };
-  /* const promises = (props.session.transferPolicies || []).map(async (tokenAddress) => fetchSingleToken(tokenAddress as Address));
-  if (!Object.keys(props.session.spendLimit).includes(BASE_TOKEN_ADDRESS)) { // Fetch base token info if not present
-    promises.push(fetchSingleToken(BASE_TOKEN_ADDRESS));
-  } */
-  const promises = [fetchSingleToken(BASE_TOKEN_ADDRESS)];
-  return Object.fromEntries((await Promise.all(promises)).map((e) => [e.address, e]));
-});
-
-const spendLimitTokens = computed(() => {
-  if (!sessionConfig.value || !tokensList.value) return;
-  let spendLimits: { [tokenAddress: string]: bigint } = {
-    [BASE_TOKEN_ADDRESS]: sessionConfig.value.feeLimit.limit,
-  };
-  spendLimits = (sessionConfig.value.transferPolicies || []).reduce((acc, transferPolicy) => {
-    return {
-      ...acc,
-      [BASE_TOKEN_ADDRESS]: (acc[BASE_TOKEN_ADDRESS] || BigInt(0)) + BigInt(transferPolicy.valueLimit.limit),
-    };
-  }, spendLimits);
-  return Object.entries(spendLimits)
-    .filter(([,amount]) => amount > 0n)
-    .map(([tokenAddress, amount]) => ({
-      token: tokensList.value![tokenAddress],
-      amount,
-    }));
-});
-
-const totalUsd = computed(() => (spendLimitTokens.value || []).reduce((acc, item) => {
-  if (!item.token.price) return acc;
-  const formattedTokenAmount = formatUnits(BigInt(item.amount), item.token.decimals);
-  return acc + (parseFloat(formattedTokenAmount) * item.token.price);
-}, 0));
+const sessionError = ref("");
 
 const confirmConnection = async () => {
-  respond(async () => {
-    const client = getClient({ chainId: requestChain.value!.id });
-    const sessionKey = generatePrivateKey();
-    const session = {
-      sessionKey,
-      sessionConfig: {
-        signer: privateKeyToAddress(sessionKey),
-        ...sessionConfig.value,
-      },
-    };
+  let response: RPCResponseMessage<ExtractReturnType<Method>>["content"];
+  sessionError.value = "";
 
-    const _session = await client.createSession({ sessionConfig: session.sessionConfig });
-    const response: ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> = {
-      account: {
-        address: client.account.address,
-        activeChainId: client.chain.id,
-        session,
-      },
-      chainsInfo: supportedChains.map((chain) => ({
-        id: chain.id,
-        capabilities: {
-          paymasterService: {
-            supported: true,
+  try {
+    if (!isLoggedIn.value) {
+      // create a new account with initial session data
+      const accountData = await createAccount(sessionConfig.value);
+
+      response = {
+        result: constructReturn(
+          accountData!.address,
+          accountData!.chainId,
+          {
+            sessionConfig: accountData!.sessionConfig!,
+            sessionKey: accountData!.sessionKey!,
           },
-          atomicBatch: {
-            supported: true,
-          },
-          auxiliaryFunds: {
-            supported: true,
-          },
+        ),
+      };
+    } else {
+      // create a new session for the existing account
+      const client = getClient({ chainId: requestChain.value!.id });
+      const sessionKey = generatePrivateKey();
+      const session = {
+        sessionKey,
+        sessionConfig: {
+          signer: privateKeyToAddress(sessionKey),
+          ...sessionConfig.value,
         },
-        contracts: contractsByChain[chain.id],
-      })),
-    };
-    return {
-      result: response,
-    };
-  });
-};
+      };
 
-fetchTokens();
+      await client.createSession({ sessionConfig: session.sessionConfig });
+      response = {
+        result: constructReturn(
+          client.account.address,
+          client.chain.id,
+          session,
+        ),
+      };
+    }
+  } catch (error) {
+    if ((error as Error).message.includes("Passkey validation failed")) {
+      sessionError.value = "Passkey validation failed";
+    } else {
+      sessionError.value = "Error during session creation. Please see console for more info.";
+    }
+    console.error(error);
+    return;
+  }
+
+  if (response) {
+    respond(() => response);
+  }
+};
 </script>

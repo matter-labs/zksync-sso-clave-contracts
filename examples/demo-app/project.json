@@ -5,7 +5,7 @@
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/demo-app",
+        "cwd": "examples/demo-app",
         "commands": [
           {
             "command": "pnpm nx dev auth-server",
@@ -22,7 +22,7 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/demo-app",
+        "cwd": "examples/demo-app",
         "commands": [
           {
             "command": "pnpm nuxt generate"
@@ -30,17 +30,42 @@
         ]
       }
     },
+    "build:local": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "pnpm nuxt generate --envName local"
+      },
+      "dependsOn": ["^build"]
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "commands": [
+          {
+            "command": "pnpm nx preview auth-server",
+            "prefix": "Auth-Server:"
+          },
+          {
+            "command": "PORT=3004 pnpm nuxt preview",
+            "prefix": "Demo-App:"
+          }
+        ]
+      },
+      "dependsOn": ["build:local"]
+    },
     "e2e:setup": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/demo-app",
-        "command": "pnpm exec playwright install"
+        "cwd": "examples/demo-app",
+        "command": "pnpm exec playwright install chromium"
       }
     },
     "e2e": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/demo-app",
+        "cwd": "examples/demo-app",
         "command": "playwright test"
       },
       "dependsOn": ["e2e:setup"]
@@ -48,7 +73,7 @@
     "e2e:debug": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/demo-app",
+        "cwd": "examples/demo-app",
         "command": "playwright test --ui"
       },
       "dependsOn": ["e2e:setup"]
@@ -56,7 +81,7 @@
     "show-report": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/demo-app",
+        "cwd": "examples/demo-app",
         "command": "playwright show-report"
       }
     }

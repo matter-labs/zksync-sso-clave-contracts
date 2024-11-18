@@ -2,7 +2,7 @@ import { type Address, erc20Abi } from "viem";
 
 export const useTokenUtilities = (_chainId: MaybeRef<SupportedChainId>) => {
   const chainId = toRef(_chainId);
-  const { getClient } = useClientStore();
+  const { getPublicClient } = useClientStore();
 
   const fetchTokenFromBlockExplorerApi = async (tokenAddress: Address): Promise<Token> => {
     const { result } = await $fetch<{
@@ -25,7 +25,7 @@ export const useTokenUtilities = (_chainId: MaybeRef<SupportedChainId>) => {
     };
   };
   const fetchTokenInfoFromRpc = async (tokenAddress: Address): Promise<Token> => {
-    const client = getClient({ chainId: chainId.value });
+    const client = getPublicClient({ chainId: chainId.value });
     const [symbol, name, decimals] = await Promise.all([
       client.readContract({
         abi: erc20Abi,

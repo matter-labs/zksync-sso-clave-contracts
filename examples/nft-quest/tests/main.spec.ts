@@ -79,16 +79,20 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
 
   // Click Sign Up
   await popup.getByTestId("signup").click();
-  await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
 
   // Save credentials.id for later tests
-  const getCredentialsResult = await client.send("WebAuthn.getCredentials", { authenticatorId });
-  console.log(getCredentialsResult);
+  let newCredential = null;
+  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
+    console.log("New Passkey credential added");
+    console.log(`Authenticator ID: ${credentialAdded.authenticatorId}`);
+    console.log(`Credential: ${credentialAdded.credential}`);
+    newCredential = credentialAdded.credential;
+  });
 
   // Add session
   await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
   await expect(popup.getByText("Permissions")).toBeVisible();
-  await popup.getByRole("button", { name: "Connect" }).click();
+  await popup.getByTestId("connect").click();
 
   // Waits for session to complete and popup to close
   await page.waitForTimeout(2000);
@@ -128,9 +132,10 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
       automaticPresenceSimulation: true,
     },
   });
+  await expect(newCredential).not.toBeNull();
   await client.send("WebAuthn.addCredential", {
     authenticatorId: result.authenticatorId,
-    credential: getCredentialsResult.credentials[0],
+    credential: newCredential!,
   });
   await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
 
@@ -140,12 +145,11 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
 
   // Sign In
   await popup.getByTestId("login").click();
-  await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
 
   // Add session
   await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
   await expect(popup.getByText("Permissions")).toBeVisible();
-  await popup.getByRole("button", { name: "Connect" }).click();
+  await popup.getByTestId("connect").click();
 
   // Waits for session to complete and popup to close
   await page.waitForTimeout(2000);
