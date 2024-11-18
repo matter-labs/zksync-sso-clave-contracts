@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen w-full flex flex-col">
+  <div class="h-[100dvh] w-full flex flex-col">
     <div
       v-if="$slots.header"
       class="bg-neutral-900/70 border-b border-neutral-800 p-2"

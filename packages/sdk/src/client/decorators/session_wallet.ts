@@ -1,15 +1,17 @@
-import { /* decodeFunctionData, erc20Abi, getAddress, */ type Account, type Chain, type Transport, type WalletActions } from "viem";
-import { deployContract, getAddresses, getChainId, prepareTransactionRequest, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
-import { getGeneralPaymasterInput, sendEip712Transaction, sendTransaction, signTransaction } from "viem/zksync";
+import { type Account, /* bytesToHex, */ type Chain, /* formatTransaction, */ type Hex, type PublicActions, type Transport, type WalletActions } from "viem";
+import { /* deployContract, */ estimateContractGas, estimateGas, /* getAddresses, getChainId, */ prepareTransactionRequest, /* sendRawTransaction, signMessage, */ signTypedData, simulateContract, writeContract } from "viem/actions";
+import { getGeneralPaymasterInput, signEip712Transaction /* type ZksyncEip712Meta */ } from "viem/zksync";
 
-import type { ClientWithZksyncAccountSessionData } from "../clients/session.js";
-/* import { getTokenSpendLimit } from '../actions/session.js'; */
+import { sendEip712Transaction } from "../actions/sendEip712Transaction.js";
+import { type ClientWithZksyncAccountSessionData, signSessionTransaction } from "../clients/session.js";
 
-export type ZksyncAccountWalletActions<chain extends Chain, account extends Account> = Omit<
-  WalletActions<chain, account>, "addChain" | "getPermissions" | "requestAddresses" | "requestPermissions" | "switchChain" | "watchAsset"
->;
+const emptySignature = "0x" + "1b".padStart(65 * 2, "0") as Hex;
 
-export function zksyncAccountWalletActions<
+export type ZksyncAccountWalletActions<chain extends Chain, account extends Account> =
+  Omit<WalletActions<chain, account>, "addChain" | "getPermissions" | "requestAddresses" | "requestPermissions" | "switchChain" | "watchAsset" | "prepareTransactionRequest"> &
+  Pick<PublicActions<Transport, chain, account>, "estimateContractGas" | "estimateGas" | "prepareTransactionRequest" | "simulateContract">;
+
+/* export function zksyncAccountWalletActions<
   transport extends Transport,
   chain extends Chain,
   account extends Account,
@@ -18,40 +20,205 @@ export function zksyncAccountWalletActions<
     deployContract: (args) => deployContract(client, args),
     getAddresses: () => getAddresses(client),
     getChainId: () => getChainId(client),
-    prepareTransactionRequest: (args) =>
-      prepareTransactionRequest(client, args),
     sendRawTransaction: (args) => sendRawTransaction(client, args),
     sendTransaction: async (args) => {
-      const tx = client.chain.formatters?.transaction?.format(args) || args;
-      /* await verifyTransactionData({
-        value: tx.value,
-        chain: tx.chain || undefined,
-        to: tx.to || undefined,
-        data: tx.data,
-        gas: tx.gas,
-        gasPrice: tx.gasPrice,
-        maxFeePerGas: tx.maxFeePerGas,
-        maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
-      }, client); */
-      if (tx.eip712Meta) {
-        const transaction = {
-          ...tx,
-          account: client.account,
-          paymaster: tx.eip712Meta.paymasterParams.paymaster,
-          // TODO: Find permanent fix as this only works for general paymasters with no input
-          paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
-        };
-        return await sendEip712Transaction(client, transaction);
+      console.log("Send transaction", args);
+      const formatters = client.chain?.formatters;
+      const format = formatters?.transaction?.format || formatTransaction;
+
+      const unformattedTx: any = args;
+
+      if ("eip712Meta" in unformattedTx) {
+        const eip712Meta = unformattedTx.eip712Meta as ZksyncEip712Meta;
+        unformattedTx.gasPerPubdata = eip712Meta.gasPerPubdata ? BigInt(eip712Meta.gasPerPubdata) : undefined;
+        unformattedTx.factoryDeps = eip712Meta.factoryDeps;
+        unformattedTx.customSignature = eip712Meta.customSignature;
+        unformattedTx.paymaster = eip712Meta.paymasterParams?.paymaster;
+        unformattedTx.paymasterInput = eip712Meta.paymasterParams?.paymasterInput ? bytesToHex(new Uint8Array(eip712Meta.paymasterParams?.paymasterInput)) : undefined;
       }
-      return await sendTransaction(client, tx);
+
+      const tx = {
+        ...format(unformattedTx),
+        type: "eip712",
+      };
+
+      return await sendEip712Transaction(client, tx);
     },
     signMessage: (args) => signMessage(client, args),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    signTransaction: (args) => signTransaction(client, args as any),
+    signTransaction: (args) => signEip712Transaction(client, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...args as any,
+      type: "eip712",
+    }),
     signTypedData: (args) => signTypedData(client, args),
-    writeContract: (args) => writeContract(client, args),
+    writeContract: (args) => {
+      console.log("Write contract", client, args);
+      return writeContract(client, args);
+    },
+    prepareTransactionRequest: async (args) => {
+      console.log("prepareTransactionRequest", args);
+      if (!("customSignature" in args)) {
+        (args as any).customSignature = signSessionTransaction({
+          sessionKeySignedHash: emptySignature,
+          sessionContract: client.contracts.session,
+          sessionConfig: client.sessionConfig,
+        });
+      }
+      console.log("Initial args", args);
+      const request = await prepareTransactionRequest(client, args as any) as any;
+      console.log("After prepare", request);
+      return request;
+    },
+    estimateContractGas: (args) => {
+      console.log("estimateContractGas", args);
+      if (!("customSignature" in args)) {
+        (args as any).customSignature = signSessionTransaction({
+          sessionKeySignedHash: emptySignature,
+          sessionContract: client.contracts.session,
+          sessionConfig: client.sessionConfig,
+        });
+      }
+      return estimateContractGas(client, args as any);
+    },
+    estimateGas: async (args) => {
+      console.log("estimateGas", args);
+      if (!("customSignature" in args)) {
+        (args as any).customSignature = signSessionTransaction({
+          sessionKeySignedHash: emptySignature,
+          sessionContract: client.contracts.session,
+          sessionConfig: client.sessionConfig,
+        });
+      }
+      const estimated = await estimateGas(client, args);
+      console.log("Estimated", estimated);
+      return estimated;
+    },
+    simulateContract: (args) => {
+      console.log("simulateContract", args);
+      if (!("customSignature" in args)) {
+        (args as any).customSignature = signSessionTransaction({
+          sessionKeySignedHash: emptySignature,
+          sessionContract: client.contracts.session,
+          sessionConfig: client.sessionConfig,
+        });
+      }
+      return simulateContract(client, args);
+    },
   };
-}
+} */
+export const walletActions = {
+  signTypedData: (client: ClientWithZksyncAccountSessionData, args: any) => {
+    console.log("Sign typed data", args);
+    return signTypedData(client, args);
+  },
+  signTransaction: (client: ClientWithZksyncAccountSessionData, args: any) => {
+    console.log("Sign transaction", args);
+    return signEip712Transaction(client, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...args as any,
+      type: "eip712",
+    });
+  },
+  estimateGas: async (client: ClientWithZksyncAccountSessionData, args: any) => {
+    console.log("estimateGas", args);
+    if (!("customSignature" in args)) {
+      (args as any).customSignature = signSessionTransaction({
+        sessionKeySignedHash: emptySignature,
+        sessionContract: client.contracts.session,
+        sessionConfig: client.sessionConfig,
+      });
+    }
+    console.log("Before estimate");
+    const estimated = await estimateGas(client, args);
+    console.log("After estimate");
+    console.log("Estimated", estimated);
+    return estimated;
+  },
+  estimateContractGas: (client: ClientWithZksyncAccountSessionData, args: any) => {
+    console.log("estimateContractGas", args);
+    if (!("customSignature" in args)) {
+      (args as any).customSignature = signSessionTransaction({
+        sessionKeySignedHash: emptySignature,
+        sessionContract: client.contracts.session,
+        sessionConfig: client.sessionConfig,
+      });
+    }
+    return estimateContractGas(client, args as any);
+  },
+  prepareTransactionRequest: async (client: ClientWithZksyncAccountSessionData, args: any) => {
+    console.log("prepareTransactionRequest", args);
+    if (!("customSignature" in args)) {
+      (args as any).customSignature = signSessionTransaction({
+        sessionKeySignedHash: emptySignature,
+        sessionContract: client.contracts.session,
+        sessionConfig: client.sessionConfig,
+      });
+    }
+    console.log("Initial args", args, client);
+    // const request = await prepareTransactionRequest(client, args as any) as any;
+    const request = await prepareTransactionRequest(client, {
+      chainId: client.chain.id,
+      ...args,
+      type: "eip712",
+    } as any) as any;
+    console.log("After prepare", request);
+    return request;
+  },
+  sendTransaction: async (client: ClientWithZksyncAccountSessionData, args: any) => {
+    /* console.log("Send transaction", args);
+    const formatters = client.chain?.formatters;
+    const format = formatters?.transaction?.format || formatTransaction;
+
+    const unformattedTx: any = format(args);
+
+    if ("eip712Meta" in unformattedTx) {
+      const eip712Meta = unformattedTx.eip712Meta as ZksyncEip712Meta;
+      unformattedTx.gasPerPubdata = eip712Meta.gasPerPubdata ? BigInt(eip712Meta.gasPerPubdata) : undefined;
+      unformattedTx.factoryDeps = eip712Meta.factoryDeps;
+      unformattedTx.customSignature = eip712Meta.customSignature;
+      unformattedTx.paymaster = eip712Meta.paymasterParams?.paymaster;
+      unformattedTx.paymasterInput = eip712Meta.paymasterParams?.paymasterInput ? bytesToHex(new Uint8Array(eip712Meta.paymasterParams?.paymasterInput)) : undefined;
+      delete unformattedTx.eip712Meta;
+    }
+
+    const tx = {
+      ...unformattedTx,
+      type: "eip712",
+    };
+
+    return await sendEip712Transaction(client, tx); */
+    const tx: any = {
+      ...(client.chain.formatters?.transaction?.format(args) || args),
+      type: "eip712",
+    };
+    if (tx.eip712Meta) {
+      const transaction = {
+        ...tx,
+        paymaster: tx.eip712Meta.paymasterParams.paymaster,
+        // TODO: Find permanent fix as this only works for general paymasters with no input
+        paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
+      };
+      return await sendEip712Transaction(client, transaction);
+    }
+
+    return await sendEip712Transaction(client, tx);
+  },
+  simulateContract: (client: ClientWithZksyncAccountSessionData, args: any) => {
+    console.log("simulateContract", args);
+    if (!("customSignature" in args)) {
+      (args as any).customSignature = signSessionTransaction({
+        sessionKeySignedHash: emptySignature,
+        sessionContract: client.contracts.session,
+        sessionConfig: client.sessionConfig,
+      });
+    }
+    return simulateContract(client, args);
+  },
+  writeContract: (client: ClientWithZksyncAccountSessionData, args: any) => {
+    console.log("Write contract", client, args);
+    return writeContract(client, args);
+  },
+} as const;
 
 /* export class SpendLimitError extends Error {
   public tokenAddress: Address;

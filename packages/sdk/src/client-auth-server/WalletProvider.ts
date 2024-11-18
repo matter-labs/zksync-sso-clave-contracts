@@ -52,6 +52,10 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
     return this.signer.accounts.length > 0;
   }
 
+  public getClient(parameters?: { chainId?: number }) {
+    return this.signer.getClient(parameters);
+  }
+
   public async request<M extends Method>(request: RequestArguments<M>): Promise<ExtractReturnType<M>> {
     try {
       switch (request.method) {

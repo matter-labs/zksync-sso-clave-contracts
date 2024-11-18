@@ -20,6 +20,7 @@ type Account = {
 interface SignerInterface {
   accounts: Address[];
   chain: Chain;
+  getClient(parameters?: { chainId?: number }): ZksyncAccountSessionClient;
   handshake(): Promise<Address[]>;
   request<TMethod extends Method>(request: RequestArguments<TMethod>): Promise<ExtractReturnType<TMethod>>;
   disconnect: () => Promise<void>;
@@ -124,6 +125,15 @@ export class Signer implements SignerInterface {
     } else {
       this.walletClient = undefined;
     }
+  }
+
+  getClient(parameters?: { chainId?: number }) {
+    const chainId = parameters?.chainId || this.chain.id;
+    const chain = this.chains.find((e) => e.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+
+    if (!this.walletClient) throw new Error("Wallet client is not created");
+    return this.walletClient;
   }
 
   async handshake(): Promise<Address[]> {

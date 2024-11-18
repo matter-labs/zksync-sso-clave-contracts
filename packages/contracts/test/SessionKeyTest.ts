@@ -311,7 +311,7 @@ describe("SessionKeyModule tests", function () {
       await tester.sendTxSuccess({
         to: sessionTarget,
         value: parseEther("0.01"),
-        gasLimit: 10_000_000n,
+        // gasLimit: 10_000_000n,
       });
       expect(await provider.getBalance(sessionTarget))
         .to.equal(parseEther("0.01"), "session target should have received the funds");

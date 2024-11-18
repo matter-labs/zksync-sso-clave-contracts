@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen">
+  <div class="h-[100dvh]">
     <ViewsLoading
       v-if="loading"
       key="loading"

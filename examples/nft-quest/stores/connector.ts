@@ -25,6 +25,7 @@ export const useConnectorStore = defineStore("connector", () => {
       contractCalls: [{
         address: runtimeConfig.public.contracts.nft as Hash,
         function: "mint(address)",
+        valueLimit: parseEther("1"),
       }],
     },
   });
