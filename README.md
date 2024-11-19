@@ -117,7 +117,9 @@ This monorepo is comprised of the following packages, products, and examples:
    pnpm install
    ```
 
-2. If creating new packages: use pnpm and [workspace protocol](https://pnpm.io/workspaces#workspace-protocol-workspace) to link SDK in the new folder.
+2. If creating new packages: use pnpm and
+   [workspace protocol](https://pnpm.io/workspaces#workspace-protocol-workspace)
+   to link SDK in the new folder.
 
 ## Running commands
 
