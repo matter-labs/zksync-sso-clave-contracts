@@ -1,8 +1,8 @@
 import "@nomicfoundation/hardhat-toolbox";
 
+import { ethers } from "ethers";
 import { task } from "hardhat/config";
 import { Wallet } from "zksync-ethers";
-import { ethers } from "ethers";
 
 const ethersStaticSalt = new Uint8Array([
   205, 241, 161, 186, 101, 105, 79,
