@@ -8,7 +8,7 @@
         "cwd": "packages/auth-server",
         "command": "PORT=3002 nuxt dev"
       },
-      "dependsOn": []
+      "dependsOn": ["^build"]
     },
     "build": {
       "executor": "nx:run-commands",
