@@ -2,6 +2,7 @@ import "@nomicfoundation/hardhat-toolbox";
 
 import { task } from "hardhat/config";
 import { Wallet } from "zksync-ethers";
+import { ethers } from "ethers";
 
 const ethersStaticSalt = new Uint8Array([
   205, 241, 161, 186, 101, 105, 79,
@@ -39,6 +40,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
   .addOptionalParam("implementation", "address of the account implementation to use in the factory")
   .addOptionalParam("factory", "address of the factory to use in the paymaster")
   .addOptionalParam("sessions", "address of the sessions module to use in the paymaster")
+  .addOptionalParam("fund", "amount of ETH to send to the paymaster", "0")
   .setAction(async (cmd, hre) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { LOCAL_RICH_WALLETS, getProvider } = require("../test/utils");
@@ -51,6 +53,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
     } else if (hre.network.name == "inMemoryNode" || hre.network.name == "dockerizedNode") {
       console.log("Using local rich wallet");
       privateKey = LOCAL_RICH_WALLETS[0].privateKey;
+      cmd.fund = "1";
     } else {
       throw new Error("Private key must be provided to deploy on non-local network");
     }
@@ -59,11 +62,24 @@ task("deploy", "Deploys ZKsync SSO contracts")
     console.log("Deployer address:", deployer.address);
 
     if (!cmd.only) {
-      const implementation = await deploy("ERC7579Account", deployer, false);
-      const factory = await deploy("AAFactory", deployer, !cmd.noProxy, [implementation]);
       await deploy("WebAuthValidator", deployer, !cmd.noProxy);
       const sessions = await deploy("SessionKeyValidator", deployer, !cmd.noProxy);
-      await deploy("ExampleAuthServerPaymaster", deployer, false, [factory, sessions]);
+      const implementation = await deploy("ERC7579Account", deployer, false);
+      const factory = await deploy("AAFactory", deployer, !cmd.noProxy, [implementation]);
+      const paymaster = await deploy("ExampleAuthServerPaymaster", deployer, false, [factory, sessions]);
+
+      if (cmd.fund != 0) {
+        console.log("Funding paymaster with", cmd.fund, "ETH...");
+        await (
+          await deployer.sendTransaction({
+            to: paymaster,
+            value: ethers.parseEther(cmd.fund),
+          })
+        ).wait();
+        console.log("Paymaster funded\n");
+      } else {
+        console.log("--fund flag not provided, skipping funding paymaster\n");
+      }
     } else {
       let args: any[] = [];
       if (cmd.only == "AAFactory") {

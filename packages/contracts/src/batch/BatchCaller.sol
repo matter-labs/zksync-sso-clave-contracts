@@ -19,7 +19,9 @@ contract BatchCaller {
   /// @notice Make multiple calls, ensure success if required
   /// @dev Reverts if not called via delegatecall
   /// @param calls Call[] calldata - An array of Call structs
-  function batchCall(Call[] calldata calls) external {
+  function batchCall(Call[] calldata calls) external payable {
+    require(msg.sender == address(this), "External calls not allowed");
+
     bool isDelegateCall = SystemContractHelper.getCodeAddress() != address(this);
     if (!isDelegateCall) {
       revert Errors.ONLY_DELEGATECALL();
@@ -27,12 +29,14 @@ contract BatchCaller {
 
     // Execute each call
     uint256 len = calls.length;
+    uint256 totalValue = 0;
     Call calldata calli;
     for (uint256 i = 0; i < len; ) {
       calli = calls[i];
       address target = calli.target;
       uint256 value = calli.value;
       bytes calldata callData = calli.callData;
+      totalValue += calli.value;
 
       bool success = EfficientCall.rawCall(gasleft(), target, value, callData, false);
       if (!calls[i].allowFailure && !success) {
@@ -43,5 +47,7 @@ contract BatchCaller {
         i++;
       }
     }
+
+    require(totalValue == msg.value, "Incorrect value for batch call");
   }
 }

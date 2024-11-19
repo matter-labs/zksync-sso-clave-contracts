@@ -113,9 +113,9 @@ describe("Basic tests", function () {
 
     const aaTx = {
       ...await aaTxTemplate(),
-      to: await account.BATCH_CALLER(),
+      to: proxyAccountAddress,
       data: account.interface.encodeFunctionData("batchCall", [calls]),
-      // value: value * 2n,
+      value: value * 2n,
     };
     aaTx.gasLimit = await provider.estimateGas(aaTx);
 

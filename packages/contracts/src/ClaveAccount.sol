@@ -12,7 +12,6 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 
 import { HookManager } from "./managers/HookManager.sol";
 import { ModuleManager } from "./managers/ModuleManager.sol";
-import { UpgradeManager } from "./managers/UpgradeManager.sol";
 
 import { TokenCallbackHandler, IERC165 } from "./helpers/TokenCallbackHandler.sol";
 
@@ -34,7 +33,6 @@ import "./helpers/Logger.sol";
 
 contract ClaveAccount is
   Initializable,
-  UpgradeManager,
   HookManager,
   ModuleManager,
   ERC1271Handler,
@@ -44,9 +42,6 @@ contract ClaveAccount is
 {
   // Helper library for the Transaction struct
   using TransactionHelper for Transaction;
-  // Batch transaction helper contract
-  // TODO: Address should probably be keccak256("BatchCaller"), but for now it is "0xbatch"
-  address public constant BATCH_CALLER = address(0xba7c4);
 
   /**
    * @notice Constructor for the account implementation
@@ -260,11 +255,6 @@ contract ClaveAccount is
           let size := mload(returnData)
           revert(add(returnData, 0x20), size)
         }
-      }
-    } else if (to == BATCH_CALLER) {
-      bool success = EfficientCall.rawDelegateCall(gas, address(this), data);
-      if (!success && !allowFailure) {
-        EfficientCall.propagateRevert();
       }
     } else {
       bool success = EfficientCall.rawCall(gas, to, value, data, false);
