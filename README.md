@@ -117,34 +117,7 @@ This monorepo is comprised of the following packages, products, and examples:
    pnpm install
    ```
 
-You have two options for using the SDK in the monorepo workspaces, via PNPM
-workspace protocol or using Verdaccio. The project is currently configured to
-use the SDK package via PNPM. If you want to use the SDK outside of the monorepo
-in another local project, setup the Verdaccio option to easily use the SDK
-package.
-
-### Using the SDK package via PNPM
-
-PNPM provides a way to "link" workspaces together via `package.json`
-dependencies using the
-[Workspace protocol](https://pnpm.io/workspaces#workspace-protocol-workspace).
-
-### Using the SDK package locally via Verdaccio
-
-2. Start up the Verdaccio proxy registry.
-
-   ```bash
-   pnpm run registry
-   ```
-
-3. Publish the SDK package to your proxy registry.
-
-   ```bash
-   pnpm nx publish:local sdk
-   ```
-
-4. Edit the respective `package.json` dependency for the SDK to use the version
-   that is published to Verdaccio.
+2. If creating new packages: use pnpm and [workspace protocol](https://pnpm.io/workspaces#workspace-protocol-workspace) to link SDK in the new folder.
 
 ## Running commands
 
