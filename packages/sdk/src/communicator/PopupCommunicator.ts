@@ -75,7 +75,7 @@ export class PopupCommunicator implements Communicator {
 
     const popup = window.open(
       url,
-      "ZKsync Account",
+      "ZKsync SSO",
       `width=${width}, height=${height}, left=${left}, top=${top}`,
     );
     if (!popup) {

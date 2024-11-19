@@ -9,9 +9,9 @@ your application. It's built on top of [client SDK](../client/README.md) and
 ```ts
 import { zksync } from "viem/chains";
 import { createConfig, connect } from "@wagmi/core";
-import { zksyncAccountConnector } from "zksync-sso/connector";
+import { zksyncSsoConnector } from "zksync-sso/connector";
 
-const ssoConnector = zksyncAccountConnector({
+const ssoConnector = zksyncSsoConnector({
   // Optional session configuration
   session: {
     feeLimit: parseEther("0.1"),

@@ -40,7 +40,9 @@ export const generatePasskeyRegistrationOptions = async (args: GeneratePasskeyRe
     // See "Guiding use of authenticators via authenticatorSelection" below
     authenticatorSelection: {
       residentKey: "required",
+      userVerification: "discouraged",
     },
+    supportedAlgorithmIDs: [-7], // only supports ES256 (no windows hello)
   };
   const params: GenerateRegistrationOptionsOpts = Object.assign({}, defaultOptions, args);
   const options = await generateRegistrationOptions(params);
