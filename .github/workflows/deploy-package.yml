@@ -38,15 +38,6 @@ jobs:
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
 
-      - name: Validate NPM Token
-        run: |
-          if [ -z "${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" ]; then
-            echo "Error: NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN is not set or is empty."
-            exit 1
-          else
-            echo "NPM Token is set."
-          fi
-      
       - name: Create .npmrc
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" > ~/.npmrc
       
