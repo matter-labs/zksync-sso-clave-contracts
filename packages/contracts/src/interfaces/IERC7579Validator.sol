@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import { IERC7579Module } from "./IERC7579Module.sol";
 import { PackedUserOperation } from "./PackedUserOperation.sol";
 
-interface IUserOpValidator is IERC7579Module {
+interface IUserOpValidatERC7579or is IERC7579Module {
   error InvalidTargetAddress(address target);
 
   /**

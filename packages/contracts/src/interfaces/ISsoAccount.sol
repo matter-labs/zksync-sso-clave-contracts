@@ -15,11 +15,11 @@ import { IUpgradeManager } from "./IUpgradeManager.sol";
 import { IValidatorManager } from "./IValidatorManager.sol";
 
 /**
- * @title IClaveAccount
- * @notice Interface for the Clave contract
- * @dev Implementations of this interface are contract that can be used as a Clave
+ * @title ISsoAccount
+ * @notice Interface for the SSO contract
+ * @dev Implementations of this interface are contract that can be used as an SSO account (it's no longer Clave compatible)
  */
-interface IClaveAccount is
+interface ISsoAccount is
   IERC1271Upgradeable,
   IERC721Receiver,
   IERC1155Receiver,
