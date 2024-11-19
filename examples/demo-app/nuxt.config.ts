@@ -34,4 +34,14 @@ export default defineNuxtConfig({
       },
     },
   },
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          // Fix deprecation warnings with modern API
+          api: "modern",
+        },
+      },
+    },
+  },
 });
