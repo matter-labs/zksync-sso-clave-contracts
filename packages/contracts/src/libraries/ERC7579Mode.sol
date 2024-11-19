@@ -49,7 +49,6 @@ pragma solidity ^0.8.24;
  * ExecutionCallData: n bytes
  * single, delegatecall or batch exec abi.encoded as bytes
  */
-import { Execution } from "../interfaces/IERC7579Account.sol";
 
 // Custom type for improved developer experience
 type ModeCode is bytes32;

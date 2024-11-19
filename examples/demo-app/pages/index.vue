@@ -41,13 +41,13 @@
 
 <script lang="ts" setup>
 import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, type GetBalanceReturnType } from "@wagmi/core";
-import { zksyncAccountConnector } from "zksync-sso/connector";
+import { zksyncSsoConnector } from "zksync-sso/connector";
 import { zksyncInMemoryNode } from "@wagmi/core/chains";
 import { createWalletClient, http, parseEther, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
-const zksyncConnector = zksyncAccountConnector({
+const zksyncConnector = zksyncSsoConnector({
   authServerUrl: "http://localhost:3002/confirm",
   session: {
     feeLimit: parseEther("0.1"),

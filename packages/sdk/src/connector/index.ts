@@ -12,13 +12,13 @@ import {
 
 import { type AppMetadata, type ProviderInterface, type SessionPreferences, WalletProvider } from "../index.js";
 
-export type ZksyncAccountConnectorOptions = {
+export type ZksyncSsoConnectorOptions = {
   metadata?: Partial<AppMetadata>;
   session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
   authServerUrl?: string;
 };
 
-export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions) => {
+export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
   type Provider = ProviderInterface;
 
   let walletProvider: WalletProvider | undefined;
