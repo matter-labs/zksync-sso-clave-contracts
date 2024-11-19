@@ -30,7 +30,7 @@ jobs:
         run: pnpm install -r --frozen-lockfile
 
       - name: Build the package
-        run: pnpm nx run build sdk
+        run: pnpm nx build sdk
 
       - name: Prepare package.json
         working-directory: packages/sdk
