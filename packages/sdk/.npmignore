@@ -7,4 +7,11 @@
 !README.md
 
 # Ignore unnecessary files
+.gitignore
+.lintstagedrc.js
+eslint.config.js
+prepare-package.mjs
+project.json
+tsconfig.json
+tsconfig.base.json
 *.tsbuildinfo

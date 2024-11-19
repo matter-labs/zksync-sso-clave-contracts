@@ -1,3 +1,3 @@
-# zksync-sso-sdk
+# zksync-sso
 
 ZKsync SSO SDK
