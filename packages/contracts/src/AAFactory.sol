@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 import "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 
-import { IClaveAccount } from "./interfaces/IClaveAccount.sol";
+import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 import { UpgradeableBeacon } from "./UpgradeableBeacon.sol";
 
 import "./helpers/Logger.sol";
@@ -22,6 +22,16 @@ contract AAFactory is UpgradeableBeacon {
   }
 
   function deployProxy7579Account(
+    bytes32 salt,
+    string calldata uniqueAccountId,
+    bytes[] calldata initialValidators,
+    bytes[] calldata initialModules,
+    address[] calldata initialK1Owners
+  ) external returns (address) {
+    return this.deployProxySsoAccount(salt, uniqueAccountId, initialValidators, initialModules, initialK1Owners);
+  }
+
+  function deployProxySsoAccount(
     bytes32 salt,
     string calldata uniqueAccountId,
     bytes[] calldata initialValidators,
@@ -47,7 +57,7 @@ contract AAFactory is UpgradeableBeacon {
     Logger.logAddress(accountAddress);
 
     // add session-key/spend-limit module (similar code)
-    IClaveAccount(accountAddress).initialize(initialValidators, initialModules, initialK1Owners);
+    ISsoAccount(accountAddress).initialize(initialValidators, initialModules, initialK1Owners);
 
     accountMappings[uniqueAccountId] = accountAddress;
 

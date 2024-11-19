@@ -1,0 +1,17 @@
+# Ignore everything by default
+*
+
+# Include specific files and folders
+!dist/
+!src/
+!README.md
+
+# Ignore unnecessary files
+.gitignore
+.lintstagedrc.js
+eslint.config.js
+prepare-package.mjs
+project.json
+tsconfig.json
+tsconfig.base.json
+*.tsbuildinfo

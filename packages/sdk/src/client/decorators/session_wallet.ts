@@ -2,18 +2,18 @@ import { /* decodeFunctionData, erc20Abi, getAddress, */ type Account, type Chai
 import { deployContract, getAddresses, getChainId, prepareTransactionRequest, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
 import { getGeneralPaymasterInput, sendEip712Transaction, sendTransaction, signTransaction } from "viem/zksync";
 
-import type { ClientWithZksyncAccountSessionData } from "../clients/session.js";
+import type { ClientWithZksyncSsoSessionData } from "../clients/session.js";
 /* import { getTokenSpendLimit } from '../actions/session.js'; */
 
-export type ZksyncAccountWalletActions<chain extends Chain, account extends Account> = Omit<
+export type ZksyncSsoWalletActions<chain extends Chain, account extends Account> = Omit<
   WalletActions<chain, account>, "addChain" | "getPermissions" | "requestAddresses" | "requestPermissions" | "switchChain" | "watchAsset"
 >;
 
-export function zksyncAccountWalletActions<
+export function zksyncSsoWalletActions<
   transport extends Transport,
   chain extends Chain,
   account extends Account,
->(client: ClientWithZksyncAccountSessionData<transport, chain, account>): ZksyncAccountWalletActions<chain, account> {
+>(client: ClientWithZksyncSsoSessionData<transport, chain, account>): ZksyncSsoWalletActions<chain, account> {
   return {
     deployContract: (args) => deployContract(client, args),
     getAddresses: () => getAddresses(client),
@@ -117,7 +117,7 @@ const verifyTransactionData = async (
     maxFeePerGas?: bigint,
     maxPriorityFeePerGas?: bigint,
   },
-  client: ClientWithZksyncAccountSessionData
+  client: ClientWithZksyncSsoSessionData
 ) => {
   const spendLimitCache = new Map<Address, bigint>(); // Prevent multiple calls to getTokenSpendLimit (mostly for ETH)
   const exceedsSpendLimit = async (tokenAddress: Address, amount: bigint): Promise<boolean> => {

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-import { ClaveStorage } from "../libraries/ClaveStorage.sol";
+import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { BytesLinkedList, AddressLinkedList } from "../libraries/LinkedList.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { Auth } from "../auth/Auth.sol";
-import { IClaveAccount } from "../interfaces/IClaveAccount.sol";
+import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 import { IOwnerManager } from "../interfaces/IOwnerManager.sol";
 
 /**
@@ -113,11 +113,11 @@ abstract contract OwnerManager is IOwnerManager, Auth {
   }
 
   function _r1OwnersLinkedList() internal view returns (mapping(bytes => bytes) storage r1Owners) {
-    r1Owners = ClaveStorage.layout().r1Owners;
+    r1Owners = SsoStorage.layout().r1Owners;
   }
 
   function _k1OwnersLinkedList() internal view returns (mapping(address => address) storage k1Owners) {
-    k1Owners = ClaveStorage.layout().k1Owners;
+    k1Owners = SsoStorage.layout().k1Owners;
   }
 
   function _r1ClearOwners() private {

@@ -25,7 +25,7 @@ export type WalletProviderConstructorOptions = {
 };
 
 export class WalletProvider extends EventEmitter implements ProviderInterface {
-  readonly isZksyncAccount = true;
+  readonly isZksyncSso = true;
   private signer: Signer;
 
   constructor({ metadata, chains, transports, session, authServerUrl }: WalletProviderConstructorOptions) {

@@ -9,8 +9,8 @@ import * as hre from "hardhat";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
 
-import { AAFactory, ERC20, ERC7579Account, ExampleAuthServerPaymaster, SessionKeyValidator, WebAuthValidator } from "../typechain-types";
-import { AAFactory__factory, ERC20__factory, ERC7579Account__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, WebAuthValidator__factory } from "../typechain-types";
+import { AAFactory, ERC20, ExampleAuthServerPaymaster, SessionKeyValidator, SsoAccount, WebAuthValidator } from "../typechain-types";
+import { AAFactory__factory, ERC20__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, SsoAccount__factory, WebAuthValidator__factory } from "../typechain-types";
 
 export class ContractFixtures {
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
@@ -67,12 +67,11 @@ export class ContractFixtures {
     return this._passkeyModuleAddress;
   }
 
-  private _accountImplContract: ERC7579Account;
-  // wraps the clave account
+  private _accountImplContract: SsoAccount;
   async getAccountImplContract() {
     if (!this._accountImplContract) {
-      const contract = await create2("ERC7579Account", this.wallet, this.ethersStaticSalt);
-      this._accountImplContract = ERC7579Account__factory.connect(await contract.getAddress(), this.wallet);
+      const contract = await create2("SsoAccount", this.wallet, this.ethersStaticSalt);
+      this._accountImplContract = SsoAccount__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._accountImplContract;
   }

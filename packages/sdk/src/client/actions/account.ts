@@ -88,7 +88,7 @@ export const deployAccount = async <
     chain: client.chain!,
     address: args.contracts.accountFactory,
     abi: FactoryAbi,
-    functionName: "deployProxy7579Account",
+    functionName: "deployProxySsoAccount",
     args: [
       toHex(args.salt),
       accountId,
