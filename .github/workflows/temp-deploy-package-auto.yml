@@ -33,8 +33,18 @@ jobs:
         env:
           INPUT_VERSION: "0.0.0-beta.1"
       
+      - name: Validate NPM Token
+        run: |
+          if [ -z "${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" ]; then
+            echo "Error: NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN is not set or is empty."
+            exit 1
+          else
+            echo "NPM Token is set."
+          fi
+      
+      - name: Create .npmrc
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" > ~/.npmrc
+      
       - name: Publish to NPM
         working-directory: packages/sdk
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}
         run: npm publish --access public
