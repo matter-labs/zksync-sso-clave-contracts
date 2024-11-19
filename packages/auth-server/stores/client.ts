@@ -28,8 +28,8 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   },
   [zksyncInMemoryNode.id]: {
     session: "0x8543528a4561E3a5EC7d51Bfd3776457b0E7b7dc",
-    passkey: "0x07734BA326b6AD13BfC0115b0903EB14268F1617",
-    accountFactory: "0xaAF5f437fB0524492886fbA64D703df15BF619AE",
+    passkey: "0x975df0c7f5CB728ae9F96480491Ec5d1E17296f4",
+    accountFactory: "0xC86Be232B7f65Db88a3B25afE68E8E1c298231A2",
     accountPaymaster: "0x2879853afd8d066ca66e224A8E85621aC43d6F59",
   },
 };
