@@ -1,0 +1,46 @@
+name: Deploy NPM Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g., 1.0.0)"
+        default: "1.0.0"
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.11.0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/Iron
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install -r --frozen-lockfile
+
+      - name: Build the package
+        run: pnpm nx build sdk
+
+      - name: Prepare package.json
+        working-directory: packages/sdk
+        run: node prepare-package.mjs
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+
+      - name: Create .npmrc
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" > ~/.npmrc
+      
+      - name: Publish to NPM
+        working-directory: packages/sdk
+        run: npm publish --access public

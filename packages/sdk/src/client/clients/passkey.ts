@@ -3,14 +3,14 @@ import { eip712WalletActions } from "viem/zksync";
 
 import { passkeyHashSignatureResponseFormat } from "../../utils/passkey.js";
 import { requestPasskeyAuthentication } from "../actions/passkey.js";
-import { type ZksyncAccountPasskeyActions, zksyncAccountPasskeyActions } from "../decorators/passkey.js";
+import { type ZksyncSsoPasskeyActions, zksyncSsoPasskeyActions } from "../decorators/passkey.js";
 import { toSmartAccount } from "../smart-account.js";
 
 export function createZksyncPasskeyClient<
   transport extends Transport,
   chain extends Chain,
   rpcSchema extends RpcSchema | undefined = undefined,
->(_parameters: ZksyncAccountPasskeyClientConfig<transport, chain, rpcSchema>): ZksyncAccountPasskeyClient<transport, chain, rpcSchema> {
+>(_parameters: ZksyncSsoPasskeyClientConfig<transport, chain, rpcSchema>): ZksyncSsoPasskeyClient<transport, chain, rpcSchema> {
   type WalletClientParameters = typeof _parameters;
   const parameters: WalletClientParameters & {
     key: NonNullable<WalletClientParameters["key"]>;
@@ -19,7 +19,7 @@ export function createZksyncPasskeyClient<
     ..._parameters,
     address: getAddress(_parameters.address),
     key: _parameters.key || "wallet",
-    name: _parameters.name || "ZKsync Account Passkey Client",
+    name: _parameters.name || "ZKsync SSO Passkey Client",
   };
 
   const account = toSmartAccount({
@@ -49,7 +49,7 @@ export function createZksyncPasskeyClient<
     .extend(publicActions)
     .extend(walletActions)
     .extend(eip712WalletActions())
-    .extend(zksyncAccountPasskeyActions);
+    .extend(zksyncSsoPasskeyActions);
   return client;
 }
 
@@ -58,7 +58,7 @@ export type PasskeyRequiredContracts = {
   passkey: Address; // Validator for passkey signature
   accountFactory?: Address; // For account creation
 };
-type ZksyncAccountPasskeyData = {
+type ZksyncSsoPasskeyData = {
   credentialPublicKey: Uint8Array; // Public key of the passkey
   userName: string; // Basically unique user id (which is called `userName` in webauthn)
   userDisplayName: string; // Also option required for webauthn
@@ -67,12 +67,12 @@ type ZksyncAccountPasskeyData = {
   paymasterInput?: Hex;
 };
 
-export type ClientWithZksyncAccountPasskeyData<
+export type ClientWithZksyncSsoPasskeyData<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
-> = Client<transport, chain, Account> & ZksyncAccountPasskeyData;
+> = Client<transport, chain, Account> & ZksyncSsoPasskeyData;
 
-export type ZksyncAccountPasskeyClient<
+export type ZksyncSsoPasskeyClient<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
   rpcSchema extends RpcSchema | undefined = undefined,
@@ -85,11 +85,11 @@ export type ZksyncAccountPasskeyClient<
     rpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema],
-    PublicActions<transport, chain, account> & WalletActions<chain, account> & ZksyncAccountPasskeyActions
-  > & ZksyncAccountPasskeyData
+    PublicActions<transport, chain, account> & WalletActions<chain, account> & ZksyncSsoPasskeyActions
+  > & ZksyncSsoPasskeyData
 >;
 
-export interface ZksyncAccountPasskeyClientConfig<
+export interface ZksyncSsoPasskeyClientConfig<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
   rpcSchema extends RpcSchema | undefined = undefined,

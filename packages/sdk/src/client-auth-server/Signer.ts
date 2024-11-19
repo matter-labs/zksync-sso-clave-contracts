@@ -1,6 +1,6 @@
 import { type Address, type Chain, type Hash, hexToNumber, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, type Transport } from "viem";
 
-import { createZksyncSessionClient, type ZksyncAccountSessionClient } from "../client/index.js";
+import { createZksyncSessionClient, type ZksyncSsoSessionClient } from "../client/index.js";
 import type { Communicator } from "../communicator/index.js";
 import { type SessionConfig } from "../utils/session.js";
 import { StorageItem } from "../utils/storage.js";
@@ -51,7 +51,7 @@ export class Signer implements SignerInterface {
 
   private _account: StorageItem<Account | null>;
   private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey("chainsInfo"), []);
-  private walletClient: ZksyncAccountSessionClient | undefined;
+  private walletClient: ZksyncSsoSessionClient | undefined;
 
   constructor({ metadata, communicator, updateListener, session, chains, transports }: SignerConstructorParams) {
     if (!chains.length) throw new Error("At least one chain must be included in the config");
