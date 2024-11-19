@@ -19,36 +19,34 @@
       </span>
       <span class="text-sm text-neutral-500 leading-3">The NFT is minted and sent using a Paymaster and a Session key.</span>
     </div>
-    <form @submit.prevent="mintForFriend">
-      <ZkInput
-        v-model="walletAddress"
-        placeholder="Wallet address"
-        required
-      />
-      <div class="flex flex-col lg:flex-row items-center gap-4">
-        <ZkLink
-          v-if="successMint"
-          :to="transactionURL"
-          target="_blank"
-          type="secondary"
-          class="w-full mt-4 lg:mt-0"
-        >
-          Transaction details
-          <ZkIcon
-            icon="open_in_new"
-            class="ml-2"
-          />
-        </ZkLink>
-        <ZkButton
-          type="primary"
-          class="uppercase mt-2 w-full"
-          submit
-          :loading="status === 'pending'"
-        >
-          Mint and send {{ successMint ? "again" : "" }}
-        </ZkButton>
-      </div>
-    </form>
+    <ZkInput
+      v-model="walletAddress"
+      placeholder="Wallet address"
+      required
+    />
+    <div class="flex flex-col lg:flex-row items-center gap-4">
+      <ZkLink
+        v-if="successMint"
+        :to="transactionURL"
+        target="_blank"
+        type="secondary"
+        class="w-full mt-4 lg:mt-0"
+      >
+        Transaction details
+        <ZkIcon
+          icon="open_in_new"
+          class="ml-2"
+        />
+      </ZkLink>
+      <ZkButton
+        type="primary"
+        class="uppercase mt-2 w-full"
+        :loading="status === 'pending'"
+        @click="mintForFriend"
+      >
+        Mint and send {{ successMint ? "again" : "" }}
+      </ZkButton>
+    </div>
   </div>
 </template>
 
