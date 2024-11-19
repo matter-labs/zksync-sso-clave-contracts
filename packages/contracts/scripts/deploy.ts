@@ -64,7 +64,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
     if (!cmd.only) {
       await deploy("WebAuthValidator", deployer, !cmd.noProxy);
       const sessions = await deploy("SessionKeyValidator", deployer, !cmd.noProxy);
-      const implementation = await deploy("ERC7579Account", deployer, false);
+      const implementation = await deploy("SsoAccount", deployer, false);
       const factory = await deploy("AAFactory", deployer, !cmd.noProxy, [implementation]);
       const paymaster = await deploy("ExampleAuthServerPaymaster", deployer, false, [factory, sessions]);
 
