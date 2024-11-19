@@ -1,0 +1,10 @@
+# Ignore everything by default
+*
+
+# Include specific files and folders
+!dist/
+!src/
+!README.md
+
+# Ignore unnecessary files
+*.tsbuildinfo

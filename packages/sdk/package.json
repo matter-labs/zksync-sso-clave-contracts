@@ -1,4 +1,5 @@
 {
+  "private": true,
   "type": "module",
   "name": "zksync-sso",
   "description": "ZKsync Smart Sign On SDK",

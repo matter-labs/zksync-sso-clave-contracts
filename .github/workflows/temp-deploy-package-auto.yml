@@ -1,0 +1,40 @@
+name: Temp Deploy NPM Package
+
+on:
+  pull_request:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.11.0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/Iron
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install -r --frozen-lockfile
+
+      - name: Build the package
+        run: pnpm nx run build sdk
+
+      - name: Prepare package.json
+        working-directory: packages/sdk
+        run: node prepare-package.mjs
+        env:
+          INPUT_VERSION: "0.0.0-beta.1"
+      
+      - name: Publish to NPM
+        working-directory: packages/sdk
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}
+        run: npm publish --access public
