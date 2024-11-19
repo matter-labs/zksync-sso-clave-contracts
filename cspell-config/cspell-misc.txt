@@ -8,7 +8,6 @@ nuxt
 Nuxt
 nuxtjs
 testid
-verdaccio
 vueuse
 
 // examples/bank-demo
