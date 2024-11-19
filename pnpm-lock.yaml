@@ -97,6 +97,275 @@ importers:
         specifier: workspace:*
         version: link:packages/sdk
 
+  examples/bank-demo:
+    dependencies:
+      '@heroicons/vue':
+        specifier: ^2.1.5
+        version: 2.1.5(vue@3.5.13(typescript@5.6.2))
+      '@nuxt/eslint':
+        specifier: ^0.5.7
+        version: 0.5.7(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
+      '@nuxt/icon':
+        specifier: ^1.5.5
+        version: 1.5.7(magicast@0.3.5)(rollup@4.24.0)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))(vue@3.5.13(typescript@5.6.2))
+      '@nuxtjs/google-fonts':
+        specifier: ^3.2.0
+        version: 3.2.0(magicast@0.3.5)(rollup@4.24.0)
+      '@nuxtjs/tailwindcss':
+        specifier: ^6.12.0
+        version: 6.12.2(magicast@0.3.5)(rollup@4.24.0)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
+      '@pinia/nuxt':
+        specifier: ^0.5.5
+        version: 0.5.5(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
+      '@simplewebauthn/browser':
+        specifier: ^10.0.0
+        version: 10.0.0
+      '@simplewebauthn/server':
+        specifier: ^10.0.1
+        version: 10.0.1
+      '@simplewebauthn/types':
+        specifier: ^10.0.0
+        version: 10.0.0
+      '@vueuse/core':
+        specifier: ^11.0.0
+        version: 11.1.0(vue@3.5.13(typescript@5.6.2))
+      '@vueuse/nuxt':
+        specifier: ^11.1.0
+        version: 11.1.0(magicast@0.3.5)(nuxt@3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0)))(rollup@4.24.0)(vue@3.5.13(typescript@5.6.2))
+      nuxt:
+        specifier: ^3.13.0
+        version: 3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
+      pinia:
+        specifier: ^2.1.7
+        version: 2.2.4(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
+      radix-vue:
+        specifier: ^1.9.7
+        version: 1.9.7(vue@3.5.13(typescript@5.6.2))
+      tailwind-merge:
+        specifier: ^2.5.3
+        version: 2.5.4
+      viem:
+        specifier: ^2.21.14
+        version: 2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4)
+      vue:
+        specifier: latest
+        version: 3.5.13(typescript@5.6.2)
+      vue-router:
+        specifier: latest
+        version: 4.4.5(vue@3.5.13(typescript@5.6.2))
+      zksync-sso:
+        specifier: workspace:*
+        version: link:../../packages/sdk
+
+  examples/demo-app:
+    dependencies:
+      '@nuxtjs/google-fonts':
+        specifier: ^3.2.0
+        version: 3.2.0(magicast@0.3.5)(rollup@4.24.0)
+      '@pinia/nuxt':
+        specifier: ^0.5.5
+        version: 0.5.5(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
+      '@simplewebauthn/browser':
+        specifier: ^10.0.0
+        version: 10.0.0
+      '@simplewebauthn/server':
+        specifier: ^10.0.1
+        version: 10.0.1
+      '@simplewebauthn/types':
+        specifier: ^10.0.0
+        version: 10.0.0
+      '@wagmi/core':
+        specifier: ^2.13.3
+        version: 2.14.1(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.2.0(react@18.3.1))(viem@2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))
+      '@web3modal/wagmi':
+        specifier: ^5.1.11
+        version: 5.1.11(5j7jpllrx6ok2s4ilftvrlnbie)
+      ethers:
+        specifier: ^6.13.2
+        version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      nuxt:
+        specifier: ^3.12.3
+        version: 3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
+      viem:
+        specifier: 2.21.14
+        version: 2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4)
+      vue:
+        specifier: ^3.4.21
+        version: 3.5.13(typescript@5.6.2)
+      wagmi:
+        specifier: ^2.12.17
+        version: 2.12.25(@tanstack/query-core@5.59.16)(@tanstack/react-query@5.59.16(react@18.3.1))(bufferutil@4.0.8)(immer@10.0.2)(ioredis@5.4.1)(react-native@0.76.0(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4)
+      zksync-ethers:
+        specifier: ^6.15.0
+        version: 6.15.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))
+      zksync-sso:
+        specifier: workspace:*
+        version: link:../../packages/sdk
+    devDependencies:
+      '@nuxt/eslint':
+        specifier: ^0.5.7
+        version: 0.5.7(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
+      '@nuxtjs/tailwindcss':
+        specifier: ^6.12.0
+        version: 6.12.2(magicast@0.3.5)(rollup@4.24.0)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
+      '@playwright/test':
+        specifier: ^1.47.2
+        version: 1.48.1
+      '@types/node':
+        specifier: ^22.7.5
+        version: 22.8.0
+
+  examples/nft-quest:
+    dependencies:
+      '@matterlabs/hardhat-zksync':
+        specifier: 1.2.0
+        version: 1.2.0(gzbl74e4hs234pcoapof4dgi5a)
+      '@matterlabs/zksync-contracts':
+        specifier: ^0.6.1
+        version: 0.6.1(@openzeppelin/contracts-upgradeable@4.9.6)(@openzeppelin/contracts@4.9.6)
+      '@nomiclabs/hardhat-etherscan':
+        specifier: ^3.1.8
+        version: 3.1.8(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
+      '@nuxt/eslint':
+        specifier: ^0.6.0
+        version: 0.6.0(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
+      '@nuxtjs/color-mode':
+        specifier: ^3.5.1
+        version: 3.5.2(magicast@0.3.5)(rollup@4.24.0)
+      '@nuxtjs/google-fonts':
+        specifier: ^3.2.0
+        version: 3.2.0(magicast@0.3.5)(rollup@4.24.0)
+      '@nuxtjs/seo':
+        specifier: 2.0.0-rc.23
+        version: 2.0.0-rc.23(h3@1.13.0)(magicast@0.3.5)(rollup@4.24.0)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))(vue@3.5.13(typescript@5.6.2))
+      '@openzeppelin/contracts':
+        specifier: 4.9.6
+        version: 4.9.6
+      '@pinia/nuxt':
+        specifier: ^0.5.5
+        version: 0.5.5(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
+      '@vueuse/core':
+        specifier: ^11.1.0
+        version: 11.1.0(vue@3.5.13(typescript@5.6.2))
+      '@vueuse/motion':
+        specifier: ^2.2.6
+        version: 2.2.6(magicast@0.3.5)(rollup@4.24.0)(vue@3.5.13(typescript@5.6.2))
+      '@vueuse/nuxt':
+        specifier: ^11.1.0
+        version: 11.1.0(magicast@0.3.5)(nuxt@3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0)))(rollup@4.24.0)(vue@3.5.13(typescript@5.6.2))
+      '@wagmi/core':
+        specifier: ^2.13.3
+        version: 2.14.1(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.2.0(react@18.3.1))(viem@2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))
+      '@web3modal/wagmi':
+        specifier: ^5.1.11
+        version: 5.1.11(5j7jpllrx6ok2s4ilftvrlnbie)
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      ethers:
+        specifier: ^6.13.4
+        version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      hardhat:
+        specifier: ^2.22.12
+        version: 2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
+      nuxt:
+        specifier: ^3.13.2
+        version: 3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
+      pinia:
+        specifier: ^2.1.7
+        version: 2.2.4(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
+      radix-vue:
+        specifier: ^1.9.6
+        version: 1.9.7(vue@3.5.13(typescript@5.6.2))
+      sass:
+        specifier: ^1.77.6
+        version: 1.80.4
+      tailwind-merge:
+        specifier: ^2.5.2
+        version: 2.5.4
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2)
+      viem:
+        specifier: 2.21.14
+        version: 2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4)
+      vue:
+        specifier: latest
+        version: 3.5.13(typescript@5.6.2)
+      vue-load-image:
+        specifier: ^1.1.0
+        version: 1.1.0(vue@3.5.13(typescript@5.6.2))
+      vue-router:
+        specifier: latest
+        version: 4.4.5(vue@3.5.13(typescript@5.6.2))
+      zksync-ethers:
+        specifier: ^6.15.0
+        version: 6.15.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))
+      zksync-sso:
+        specifier: workspace:*
+        version: link:../../packages/sdk
+    devDependencies:
+      '@nuxtjs/tailwindcss':
+        specifier: ^6.12.0
+        version: 6.12.2(magicast@0.3.5)(rollup@4.24.0)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
+      '@playwright/test':
+        specifier: ^1.47.2
+        version: 1.48.1
+      '@types/node':
+        specifier: ^22.7.5
+        version: 22.8.0
+      tailwindcss:
+        specifier: ^3.4.14
+        version: 3.4.14(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
+
+  examples/nft-quest-contracts:
+    devDependencies:
+      '@matterlabs/hardhat-zksync':
+        specifier: ^1.1.0
+        version: 1.2.0(gzbl74e4hs234pcoapof4dgi5a)
+      '@matterlabs/zksync-contracts':
+        specifier: ^0.6.1
+        version: 0.6.1(@openzeppelin/contracts-upgradeable@4.9.6)(@openzeppelin/contracts@4.9.6)
+      '@nomicfoundation/hardhat-verify':
+        specifier: ^2.0.9
+        version: 2.0.11(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
+      '@openzeppelin/contracts':
+        specifier: ^4.9.2
+        version: 4.9.6
+      '@types/chai':
+        specifier: ^4.3.16
+        version: 4.3.20
+      '@types/mocha':
+        specifier: ^10.0.7
+        version: 10.0.8
+      chai:
+        specifier: ^4.5.0
+        version: 4.5.0
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.4.5
+      ethers:
+        specifier: ^6.13.2
+        version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      hardhat:
+        specifier: ^2.22.7
+        version: 2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
+      mocha:
+        specifier: ^10.7.0
+        version: 10.7.3
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2)
+      typescript:
+        specifier: ^5.5.4
+        version: 5.6.2
+      zksync-ethers:
+        specifier: ^6.15.0
+        version: 6.15.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))
+
   packages/auth-server:
     dependencies:
       '@heroicons/vue':
@@ -159,66 +428,6 @@ importers:
       web3-avatar-vue:
         specifier: ^1.0.4
         version: 1.0.4(typescript@5.6.2)
-      zksync-sso:
-        specifier: workspace:*
-        version: link:../sdk
-
-  packages/bank-demo:
-    dependencies:
-      '@heroicons/vue':
-        specifier: ^2.1.5
-        version: 2.1.5(vue@3.5.13(typescript@5.6.2))
-      '@nuxt/eslint':
-        specifier: ^0.5.7
-        version: 0.5.7(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
-      '@nuxt/icon':
-        specifier: ^1.5.5
-        version: 1.5.7(magicast@0.3.5)(rollup@4.24.0)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))(vue@3.5.13(typescript@5.6.2))
-      '@nuxtjs/google-fonts':
-        specifier: ^3.2.0
-        version: 3.2.0(magicast@0.3.5)(rollup@4.24.0)
-      '@nuxtjs/tailwindcss':
-        specifier: ^6.12.0
-        version: 6.12.2(magicast@0.3.5)(rollup@4.24.0)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
-      '@pinia/nuxt':
-        specifier: ^0.5.5
-        version: 0.5.5(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
-      '@simplewebauthn/browser':
-        specifier: ^10.0.0
-        version: 10.0.0
-      '@simplewebauthn/server':
-        specifier: ^10.0.1
-        version: 10.0.1
-      '@simplewebauthn/types':
-        specifier: ^10.0.0
-        version: 10.0.0
-      '@vueuse/core':
-        specifier: ^11.0.0
-        version: 11.1.0(vue@3.5.13(typescript@5.6.2))
-      '@vueuse/nuxt':
-        specifier: ^11.1.0
-        version: 11.1.0(magicast@0.3.5)(nuxt@3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0)))(rollup@4.24.0)(vue@3.5.13(typescript@5.6.2))
-      nuxt:
-        specifier: ^3.13.0
-        version: 3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
-      pinia:
-        specifier: ^2.1.7
-        version: 2.2.4(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
-      radix-vue:
-        specifier: ^1.9.7
-        version: 1.9.7(vue@3.5.13(typescript@5.6.2))
-      tailwind-merge:
-        specifier: ^2.5.3
-        version: 2.5.4
-      viem:
-        specifier: ^2.21.14
-        version: 2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4)
-      vue:
-        specifier: latest
-        version: 3.5.13(typescript@5.6.2)
-      vue-router:
-        specifier: latest
-        version: 4.4.5(vue@3.5.13(typescript@5.6.2))
       zksync-sso:
         specifier: workspace:*
         version: link:../sdk
@@ -337,215 +546,6 @@ importers:
       zksync-ethers:
         specifier: 6.15.0
         version: 6.15.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))
-
-  packages/demo-app:
-    dependencies:
-      '@nuxtjs/google-fonts':
-        specifier: ^3.2.0
-        version: 3.2.0(magicast@0.3.5)(rollup@4.24.0)
-      '@pinia/nuxt':
-        specifier: ^0.5.5
-        version: 0.5.5(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(vue@3.5.12(typescript@5.6.2))
-      '@simplewebauthn/browser':
-        specifier: ^10.0.0
-        version: 10.0.0
-      '@simplewebauthn/server':
-        specifier: ^10.0.1
-        version: 10.0.1
-      '@simplewebauthn/types':
-        specifier: ^10.0.0
-        version: 10.0.0
-      '@wagmi/core':
-        specifier: ^2.13.3
-        version: 2.14.1(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.2.0(react@18.3.1))(viem@2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))
-      '@web3modal/wagmi':
-        specifier: ^5.1.11
-        version: 5.1.11(wnabdd5ukmzyqtgegjoghcocru)
-      ethers:
-        specifier: ^6.13.2
-        version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
-      nuxt:
-        specifier: ^3.12.3
-        version: 3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
-      viem:
-        specifier: 2.21.14
-        version: 2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4)
-      vue:
-        specifier: ^3.4.21
-        version: 3.5.12(typescript@5.6.2)
-      wagmi:
-        specifier: ^2.12.17
-        version: 2.12.25(@tanstack/query-core@5.59.16)(@tanstack/react-query@5.59.16(react@18.3.1))(bufferutil@4.0.8)(immer@10.0.2)(ioredis@5.4.1)(react-native@0.76.0(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4)
-      zksync-ethers:
-        specifier: ^6.15.0
-        version: 6.15.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))
-      zksync-sso:
-        specifier: workspace:*
-        version: link:../sdk
-    devDependencies:
-      '@nuxt/eslint':
-        specifier: ^0.5.7
-        version: 0.5.7(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
-      '@nuxtjs/tailwindcss':
-        specifier: ^6.12.0
-        version: 6.12.2(magicast@0.3.5)(rollup@4.24.0)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
-      '@playwright/test':
-        specifier: ^1.47.2
-        version: 1.48.1
-      '@types/node':
-        specifier: ^22.7.5
-        version: 22.8.0
-
-  packages/nft-quest:
-    dependencies:
-      '@matterlabs/hardhat-zksync':
-        specifier: 1.2.0
-        version: 1.2.0(gzbl74e4hs234pcoapof4dgi5a)
-      '@matterlabs/zksync-contracts':
-        specifier: ^0.6.1
-        version: 0.6.1(@openzeppelin/contracts-upgradeable@4.9.6)(@openzeppelin/contracts@4.9.6)
-      '@nomiclabs/hardhat-etherscan':
-        specifier: ^3.1.8
-        version: 3.1.8(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
-      '@nuxt/eslint':
-        specifier: ^0.6.0
-        version: 0.6.0(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
-      '@nuxtjs/color-mode':
-        specifier: ^3.5.1
-        version: 3.5.2(magicast@0.3.5)(rollup@4.24.0)
-      '@nuxtjs/google-fonts':
-        specifier: ^3.2.0
-        version: 3.2.0(magicast@0.3.5)(rollup@4.24.0)
-      '@nuxtjs/seo':
-        specifier: 2.0.0-rc.23
-        version: 2.0.0-rc.23(h3@1.13.0)(magicast@0.3.5)(rollup@4.24.0)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))(vue@3.5.13(typescript@5.6.2))
-      '@openzeppelin/contracts':
-        specifier: 4.9.6
-        version: 4.9.6
-      '@pinia/nuxt':
-        specifier: ^0.5.5
-        version: 0.5.5(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
-      '@vueuse/core':
-        specifier: ^11.1.0
-        version: 11.1.0(vue@3.5.13(typescript@5.6.2))
-      '@vueuse/motion':
-        specifier: ^2.2.6
-        version: 2.2.6(magicast@0.3.5)(rollup@4.24.0)(vue@3.5.13(typescript@5.6.2))
-      '@vueuse/nuxt':
-        specifier: ^11.1.0
-        version: 11.1.0(magicast@0.3.5)(nuxt@3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0)))(rollup@4.24.0)(vue@3.5.13(typescript@5.6.2))
-      '@wagmi/core':
-        specifier: ^2.13.3
-        version: 2.14.1(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.2.0(react@18.3.1))(viem@2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))
-      '@web3modal/wagmi':
-        specifier: ^5.1.11
-        version: 5.1.11(5j7jpllrx6ok2s4ilftvrlnbie)
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
-      dotenv:
-        specifier: 16.4.5
-        version: 16.4.5
-      ethers:
-        specifier: ^6.13.4
-        version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
-      hardhat:
-        specifier: ^2.22.12
-        version: 2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
-      nuxt:
-        specifier: ^3.13.2
-        version: 3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
-      pinia:
-        specifier: ^2.1.7
-        version: 2.2.4(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
-      radix-vue:
-        specifier: ^1.9.6
-        version: 1.9.7(vue@3.5.13(typescript@5.6.2))
-      sass:
-        specifier: ^1.77.6
-        version: 1.80.4
-      tailwind-merge:
-        specifier: ^2.5.2
-        version: 2.5.4
-      ts-node:
-        specifier: ^10.9.2
-        version: 10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2)
-      viem:
-        specifier: 2.21.14
-        version: 2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4)
-      vue:
-        specifier: latest
-        version: 3.5.13(typescript@5.6.2)
-      vue-load-image:
-        specifier: ^1.1.0
-        version: 1.1.0(vue@3.5.13(typescript@5.6.2))
-      vue-router:
-        specifier: latest
-        version: 4.4.5(vue@3.5.13(typescript@5.6.2))
-      zksync-ethers:
-        specifier: ^6.15.0
-        version: 6.15.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))
-      zksync-sso:
-        specifier: workspace:*
-        version: link:../sdk
-    devDependencies:
-      '@nuxtjs/tailwindcss':
-        specifier: ^6.12.0
-        version: 6.12.2(magicast@0.3.5)(rollup@4.24.0)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
-      '@playwright/test':
-        specifier: ^1.47.2
-        version: 1.48.1
-      '@types/node':
-        specifier: ^22.7.5
-        version: 22.8.0
-      tailwindcss:
-        specifier: ^3.4.14
-        version: 3.4.14(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
-
-  packages/nft-quest-contracts:
-    devDependencies:
-      '@matterlabs/hardhat-zksync':
-        specifier: ^1.1.0
-        version: 1.2.0(gzbl74e4hs234pcoapof4dgi5a)
-      '@matterlabs/zksync-contracts':
-        specifier: ^0.6.1
-        version: 0.6.1(@openzeppelin/contracts-upgradeable@4.9.6)(@openzeppelin/contracts@4.9.6)
-      '@nomicfoundation/hardhat-verify':
-        specifier: ^2.0.9
-        version: 2.0.11(hardhat@2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
-      '@openzeppelin/contracts':
-        specifier: ^4.9.2
-        version: 4.9.6
-      '@types/chai':
-        specifier: ^4.3.16
-        version: 4.3.20
-      '@types/mocha':
-        specifier: ^10.0.7
-        version: 10.0.8
-      chai:
-        specifier: ^4.5.0
-        version: 4.5.0
-      dotenv:
-        specifier: ^16.4.5
-        version: 16.4.5
-      ethers:
-        specifier: ^6.13.2
-        version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
-      hardhat:
-        specifier: ^2.22.7
-        version: 2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
-      mocha:
-        specifier: ^10.7.0
-        version: 10.7.3
-      ts-node:
-        specifier: ^10.9.2
-        version: 10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2)
-      typescript:
-        specifier: ^5.5.4
-        version: 5.6.2
-      zksync-ethers:
-        specifier: ^6.15.0
-        version: 6.15.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))
 
   packages/sdk:
     dependencies:
@@ -15952,19 +15952,6 @@ snapshots:
       esquery: 1.6.0
       typescript: 5.6.2
 
-  '@pinia/nuxt@0.5.5(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(vue@3.5.12(typescript@5.6.2))':
-    dependencies:
-      '@nuxt/kit': 3.13.2(magicast@0.3.5)(rollup@4.24.0)
-      pinia: 2.2.4(typescript@5.6.2)(vue@3.5.12(typescript@5.6.2))
-    transitivePeerDependencies:
-      - '@vue/composition-api'
-      - magicast
-      - rollup
-      - supports-color
-      - typescript
-      - vue
-      - webpack-sources
-
   '@pinia/nuxt@0.5.5(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))':
     dependencies:
       '@nuxt/kit': 3.13.2(magicast@0.3.5)(rollup@4.24.0)
@@ -16326,7 +16313,7 @@ snapshots:
 
   '@scure/bip32@1.4.0':
     dependencies:
-      '@noble/curves': 1.4.0
+      '@noble/curves': 1.4.2
       '@noble/hashes': 1.4.0
       '@scure/base': 1.1.9
 
@@ -17395,7 +17382,7 @@ snapshots:
       '@vue/shared': 3.5.12
       estree-walker: 2.0.2
       magic-string: 0.30.12
-      postcss: 8.4.47
+      postcss: 8.4.49
       source-map-js: 1.2.1
 
   '@vue/compiler-sfc@3.5.13':
@@ -18377,43 +18364,6 @@ snapshots:
     optionalDependencies:
       react: 18.3.1
       vue: 3.5.13(typescript@5.6.2)
-    transitivePeerDependencies:
-      - '@azure/app-configuration'
-      - '@azure/cosmos'
-      - '@azure/data-tables'
-      - '@azure/identity'
-      - '@azure/keyvault-secrets'
-      - '@azure/storage-blob'
-      - '@capacitor/preferences'
-      - '@netlify/blobs'
-      - '@planetscale/database'
-      - '@react-native-async-storage/async-storage'
-      - '@types/react'
-      - '@upstash/redis'
-      - '@vercel/kv'
-      - bufferutil
-      - encoding
-      - ioredis
-      - uWebSockets.js
-      - utf-8-validate
-
-  '@web3modal/wagmi@5.1.11(wnabdd5ukmzyqtgegjoghcocru)':
-    dependencies:
-      '@wagmi/connectors': 5.3.3(@wagmi/core@2.14.1(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.2.0(react@18.3.1))(viem@2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4)))(bufferutil@4.0.8)(ioredis@5.4.1)(react-native@0.76.0(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4)
-      '@wagmi/core': 2.14.1(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.2.0(react@18.3.1))(viem@2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))
-      '@walletconnect/ethereum-provider': 2.16.1(bufferutil@4.0.8)(ioredis@5.4.1)(react@18.3.1)(utf-8-validate@5.0.10)
-      '@walletconnect/utils': 2.16.1(ioredis@5.4.1)
-      '@web3modal/base': 5.1.11(ioredis@5.4.1)(react@18.3.1)
-      '@web3modal/common': 5.1.11
-      '@web3modal/polyfills': 5.1.11
-      '@web3modal/scaffold-utils': 5.1.11(react@18.3.1)
-      '@web3modal/siwe': 5.1.11(ioredis@5.4.1)(react@18.3.1)
-      '@web3modal/wallet': 5.1.11
-      viem: 2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4)
-      wagmi: 2.12.25(@tanstack/query-core@5.59.16)(@tanstack/react-query@5.59.16(react@18.3.1))(bufferutil@4.0.8)(immer@10.0.2)(ioredis@5.4.1)(react-native@0.76.0(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4)
-    optionalDependencies:
-      react: 18.3.1
-      vue: 3.5.12(typescript@5.6.2)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -22819,7 +22769,7 @@ snapshots:
 
   mlly@1.7.2:
     dependencies:
-      acorn: 8.12.1
+      acorn: 8.13.0
       pathe: 1.1.2
       pkg-types: 1.2.1
       ufo: 1.5.4
@@ -23831,14 +23781,6 @@ snapshots:
 
   pify@5.0.0: {}
 
-  pinia@2.2.4(typescript@5.6.2)(vue@3.5.12(typescript@5.6.2)):
-    dependencies:
-      '@vue/devtools-api': 6.6.4
-      vue: 3.5.12(typescript@5.6.2)
-      vue-demi: 0.14.10(vue@3.5.12(typescript@5.6.2))
-    optionalDependencies:
-      typescript: 5.6.2
-
   pinia@2.2.4(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2)):
     dependencies:
       '@vue/devtools-api': 6.6.4
@@ -23971,24 +23913,24 @@ snapshots:
     dependencies:
       postcss: 8.4.47
 
-  postcss-import@15.1.0(postcss@8.4.47):
+  postcss-import@15.1.0(postcss@8.4.49):
     dependencies:
-      postcss: 8.4.47
+      postcss: 8.4.49
       postcss-value-parser: 4.2.0
       read-cache: 1.0.0
       resolve: 1.22.8
 
-  postcss-js@4.0.1(postcss@8.4.47):
+  postcss-js@4.0.1(postcss@8.4.49):
     dependencies:
       camelcase-css: 2.0.1
-      postcss: 8.4.47
+      postcss: 8.4.49
 
-  postcss-load-config@4.0.2(postcss@8.4.47)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2)):
+  postcss-load-config@4.0.2(postcss@8.4.49)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2)):
     dependencies:
       lilconfig: 3.1.2
       yaml: 2.6.0
     optionalDependencies:
-      postcss: 8.4.47
+      postcss: 8.4.49
       ts-node: 10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2)
 
   postcss-merge-longhand@7.0.4(postcss@8.4.47):
@@ -24030,9 +23972,9 @@ snapshots:
       postcss: 8.4.47
       postcss-selector-parser: 6.1.2
 
-  postcss-nested@6.2.0(postcss@8.4.47):
+  postcss-nested@6.2.0(postcss@8.4.49):
     dependencies:
-      postcss: 8.4.47
+      postcss: 8.4.49
       postcss-selector-parser: 6.1.2
 
   postcss-nesting@13.0.1(postcss@8.4.47):
@@ -25276,11 +25218,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.4.47
-      postcss-import: 15.1.0(postcss@8.4.47)
-      postcss-js: 4.0.1(postcss@8.4.47)
-      postcss-load-config: 4.0.2(postcss@8.4.47)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
-      postcss-nested: 6.2.0(postcss@8.4.47)
+      postcss: 8.4.49
+      postcss-import: 15.1.0(postcss@8.4.49)
+      postcss-js: 4.0.1(postcss@8.4.49)
+      postcss-load-config: 4.0.2(postcss@8.4.49)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
+      postcss-nested: 6.2.0(postcss@8.4.49)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.8
       sucrase: 3.35.0
@@ -25343,7 +25285,7 @@ snapshots:
   terser@5.36.0:
     dependencies:
       '@jridgewell/source-map': 0.3.6
-      acorn: 8.12.1
+      acorn: 8.13.0
       commander: 2.20.3
       source-map-support: 0.5.21
 
@@ -26082,7 +26024,7 @@ snapshots:
   vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0):
     dependencies:
       esbuild: 0.21.5
-      postcss: 8.4.47
+      postcss: 8.4.49
       rollup: 4.24.0
     optionalDependencies:
       '@types/node': 22.8.0
@@ -26152,10 +26094,6 @@ snapshots:
   vue-bundle-renderer@2.1.1:
     dependencies:
       ufo: 1.5.4
-
-  vue-demi@0.14.10(vue@3.5.12(typescript@5.6.2)):
-    dependencies:
-      vue: 3.5.12(typescript@5.6.2)
 
   vue-demi@0.14.10(vue@3.5.13(typescript@5.6.2)):
     dependencies:
@@ -26276,8 +26214,8 @@ snapshots:
 
   webauthn-p256@0.0.5:
     dependencies:
-      '@noble/curves': 1.4.0
-      '@noble/hashes': 1.4.0
+      '@noble/curves': 1.6.0
+      '@noble/hashes': 1.5.0
 
   webextension-polyfill@0.10.0: {}
 

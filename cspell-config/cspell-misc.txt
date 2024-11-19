@@ -11,7 +11,7 @@ testid
 verdaccio
 vueuse
 
-// packages/bank-demo
+// examples/bank-demo
 ctap
 Aave
 aave
@@ -23,7 +23,7 @@ OXBB
 Usdc
 usdc
 
-// packages/nft-quest
+// examples/nft-quest
 Fren
 fren
 trxn

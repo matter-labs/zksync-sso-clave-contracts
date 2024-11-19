@@ -3,7 +3,7 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - "packages/nft-quest/**"
+      - "examples/nft-quest/**"
       - "packages/sdk/**"
   workflow_dispatch:
 

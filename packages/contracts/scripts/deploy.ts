@@ -1,5 +1,6 @@
 import "@nomicfoundation/hardhat-toolbox";
 
+import { task } from "hardhat/config";
 import { Wallet } from "zksync-ethers";
 
 const ethersStaticSalt = new Uint8Array([
@@ -22,10 +23,13 @@ async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any
   }
   const implAddress = await implContract.getAddress();
   if (!proxy) {
+    console.log(name, "contract deployed at:", implAddress, "\n");
     return implAddress;
   }
   const proxyContract = await create2("TransparentProxy", deployer, ethersStaticSalt, [implAddress]);
-  return await proxyContract.getAddress();
+  const proxyAddress = await proxyContract.getAddress();
+  console.log(name, "proxy contract deployed at:", proxyAddress, "\n");
+  return proxyAddress;
 }
 
 task("deploy", "Deploys ZKsync SSO contracts")
