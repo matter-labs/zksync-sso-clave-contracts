@@ -4,14 +4,15 @@ pragma solidity ^0.8.24;
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/ExcessivelySafeCall.sol";
 
-import { SsoStorage } from "../libraries/SsoStorage.sol";
+import { ClaveStorage } from "../libraries/ClaveStorage.sol";
 import { Auth } from "../auth/Auth.sol";
 import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { IInitable } from "../interfaces/IInitable.sol";
-import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
+import { IClaveAccount } from "../interfaces/IClaveAccount.sol";
 import { IModuleManager } from "../interfaces/IModuleManager.sol";
+import { IUserOpValidator } from "../interfaces/IERC7579Validator.sol";
 import { IERC7579Module, IExecutor } from "../interfaces/IERC7579Module.sol";
 
 /**
@@ -92,6 +93,15 @@ abstract contract ModuleManager is IModuleManager, Auth {
     emit AddModule(moduleAddress);
   }
 
+  function _addUserOpValidator(address module, bytes calldata data) internal virtual {
+    // Could do more validation on the validator (like does it exist already)
+    _userOpValidators().add(module);
+
+    IUserOpValidator(module).onInstall(data);
+
+    emit AddModule(module);
+  }
+
   function _addExternalExecutorPermission(address module, bytes calldata data) internal virtual {
     _externalExecutorModule().add(module);
 
@@ -101,7 +111,7 @@ abstract contract ModuleManager is IModuleManager, Auth {
   }
 
   function _addFallbackModule(address module, bytes calldata data) internal virtual {
-    SsoStorage.layout().fallbackContractBySelector[bytes4(data[0:4])] = module;
+    ClaveStorage.layout().fallbackContractBySelector[bytes4(data[0:4])] = module;
 
     IERC7579Module(module).onInstall(data);
 
@@ -109,7 +119,7 @@ abstract contract ModuleManager is IModuleManager, Auth {
   }
 
   function _removeFallbackModule(address module, bytes calldata data) internal virtual {
-    SsoStorage.layout().fallbackContractBySelector[bytes4(data[0:4])] = address(0);
+    ClaveStorage.layout().fallbackContractBySelector[bytes4(data[0:4])] = address(0);
 
     IERC7579Module(module).onUninstall(data);
 
@@ -130,11 +140,23 @@ abstract contract ModuleManager is IModuleManager, Auth {
   }
 
   function _modulesLinkedList() private view returns (mapping(address => address) storage modules) {
-    modules = SsoStorage.layout().modules;
+    modules = ClaveStorage.layout().modules;
+  }
+
+  function _userOpValidators() private view returns (mapping(address => address) storage modules) {
+    modules = ClaveStorage.layout().userOpValidators;
+  }
+
+  function _uninstallValidator(address validator, bytes calldata data) internal {
+    _userOpValidators().remove(validator);
+
+    IUserOpValidator(validator).onUninstall(data);
+
+    emit RemoveModule(validator);
   }
 
   function _externalExecutorModule() private view returns (mapping(address => address) storage modules) {
-    modules = SsoStorage.layout().execModules;
+    modules = ClaveStorage.layout().execModules;
   }
 
   function _removeExternalExecutorModule(address module, bytes calldata data) internal {

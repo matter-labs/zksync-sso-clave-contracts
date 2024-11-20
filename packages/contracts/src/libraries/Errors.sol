@@ -115,7 +115,7 @@ library Errors {
   error INVALID_MARKUP();
   error USER_LIMIT_REACHED();
   error INVALID_USER_LIMIT();
-  error NOT_SSO_ACCOUNT();
+  error NOT_CLAVE_ACCOUNT();
   error EXCEEDS_MAX_SPONSORED_ETH();
 
   /*//////////////////////////////////////////////////////////////

@@ -6,7 +6,7 @@ import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
 
 import type { ERC20 } from "../typechain-types";
-import { AAFactory__factory, SsoAccount__factory } from "../typechain-types";
+import { AAFactory__factory, ERC7579Account__factory } from "../typechain-types";
 import type { AAFactory } from "../typechain-types/src/AAFactory";
 import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
 import { ContractFixtures, getProvider, logInfo } from "./utils";
@@ -250,8 +250,8 @@ describe("SessionKeyModule tests", function () {
     assert(verifierContract != null, "No verifier deployed");
     const sessionModuleContract = await fixtures.getSessionKeyContract();
     assert(sessionModuleContract != null, "No session module deployed");
-    const ssoContract = await fixtures.getAccountImplContract();
-    assert(ssoContract != null, "No SSO Account deployed");
+    const erc7579Contract = await fixtures.getAccountImplContract();
+    assert(erc7579Contract != null, "No ERC7579 deployed");
     const factoryContract = await fixtures.getAaFactory();
     assert(factoryContract != null, "No AA Factory deployed");
     const authServerPaymaster = await fixtures.deployExampleAuthServerPaymaster(
@@ -263,7 +263,7 @@ describe("SessionKeyModule tests", function () {
     logInfo(`Session Address                : ${await sessionModuleContract.getAddress()}`);
     logInfo(`Passkey Address                : ${await verifierContract.getAddress()}`);
     logInfo(`Account Factory Address        : ${await factoryContract.getAddress()}`);
-    // logInfo(`Account Implementation Address : ${await ssoContract.getAddress()}`);
+    // logInfo(`Account Implementation Address : ${await erc7579Contract.getAddress()}`);
     logInfo(`Auth Server Paymaster Address  : ${await authServerPaymaster.getAddress()}`);
   });
 
@@ -272,7 +272,7 @@ describe("SessionKeyModule tests", function () {
     const sessionKeyModuleAddress = await fixtures.getSessionKeyModuleAddress();
     const sessionKeyPayload = abiCoder.encode(["address", "bytes"], [sessionKeyModuleAddress, "0x"]);
 
-    const deployTx = await factoryContract.deployProxySsoAccount(
+    const deployTx = await factoryContract.deployProxy7579Account(
       randomBytes(32),
       "id",
       [],
@@ -287,7 +287,7 @@ describe("SessionKeyModule tests", function () {
     const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("1"), to: proxyAccountAddress });
     await fundTx.wait();
 
-    const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
+    const account = ERC7579Account__factory.connect(proxyAccountAddress, provider);
     assert(await account.k1IsOwner(fixtures.wallet.address));
     assert(await account.isHook(sessionKeyModuleAddress), "session key module should be a hook");
     assert(await account.isModuleValidator(sessionKeyModuleAddress), "session key module should be a validator");

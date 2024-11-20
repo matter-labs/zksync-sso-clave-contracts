@@ -23,7 +23,7 @@ import { ModeCode } from "./libraries/ERC7579Mode.sol";
 import { ERC1271Handler } from "./handlers/ERC1271Handler.sol";
 import { BatchCaller } from "./batch/BatchCaller.sol";
 
-import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
+import { IClaveAccount } from "./interfaces/IClaveAccount.sol";
 
 import "./helpers/Logger.sol";
 
@@ -32,7 +32,7 @@ import "./helpers/Logger.sol";
  * @author https://getclave.io
  */
 
-contract SsoAccount is
+contract ClaveAccount is
   Initializable,
   UpgradeManager,
   HookManager,
@@ -40,7 +40,7 @@ contract SsoAccount is
   ERC1271Handler,
   TokenCallbackHandler,
   BatchCaller,
-  ISsoAccount
+  IClaveAccount
 {
   // Helper library for the Transaction struct
   using TransactionHelper for Transaction;
@@ -201,9 +201,9 @@ contract SsoAccount is
     transaction.processPaymasterInput();
   }
 
-  /// @dev type(ISsoAccount).interfaceId indicates SSO accounts
+  /// @dev type(IClave).interfaceId indicates Clave accounts
   function supportsInterface(bytes4 interfaceId) public view override(IERC165, TokenCallbackHandler) returns (bool) {
-    return interfaceId == type(ISsoAccount).interfaceId || super.supportsInterface(interfaceId);
+    return interfaceId == type(IClaveAccount).interfaceId || super.supportsInterface(interfaceId);
   }
 
   function _validateTransaction(

@@ -5,7 +5,7 @@ import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC16
 
 import { Auth } from "../auth/Auth.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { SsoStorage } from "../libraries/SsoStorage.sol";
+import { ClaveStorage } from "../libraries/ClaveStorage.sol";
 import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { IR1Validator, IK1Validator } from "../interfaces/IValidator.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
@@ -160,14 +160,14 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   }
 
   function _r1ValidatorsLinkedList() private view returns (mapping(address => address) storage r1Validators) {
-    r1Validators = SsoStorage.layout().r1Validators;
+    r1Validators = ClaveStorage.layout().r1Validators;
   }
 
   function _moduleValidatorsLinkedList() private view returns (mapping(address => address) storage moduleValidators) {
-    moduleValidators = SsoStorage.layout().moduleValidators;
+    moduleValidators = ClaveStorage.layout().moduleValidators;
   }
 
   function _k1ValidatorsLinkedList() private view returns (mapping(address => address) storage k1Validators) {
-    k1Validators = SsoStorage.layout().k1Validators;
+    k1Validators = ClaveStorage.layout().k1Validators;
   }
 }

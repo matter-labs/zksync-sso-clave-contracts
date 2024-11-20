@@ -4,7 +4,7 @@ import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
 
-import { SsoAccount__factory } from "../typechain-types";
+import { ERC7579Account__factory } from "../typechain-types";
 import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
 import { ContractFixtures, getProvider } from "./utils";
 
@@ -36,7 +36,7 @@ describe("Basic tests", function () {
     const aaFactoryContract = await fixtures.getAaFactory();
     assert(aaFactoryContract != null, "No AA Factory deployed");
 
-    const deployTx = await aaFactoryContract.deployProxySsoAccount(
+    const deployTx = await aaFactoryContract.deployProxy7579Account(
       randomBytes(32),
       "id",
       [],
@@ -48,7 +48,7 @@ describe("Basic tests", function () {
 
     expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
 
-    const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
+    const account = ERC7579Account__factory.connect(proxyAccountAddress, provider);
     assert(await account.k1IsOwner(fixtures.wallet.address));
   });
 
@@ -109,7 +109,7 @@ describe("Basic tests", function () {
       },
     ];
 
-    const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
+    const account = ERC7579Account__factory.connect(proxyAccountAddress, provider);
 
     const aaTx = {
       ...await aaTxTemplate(),
