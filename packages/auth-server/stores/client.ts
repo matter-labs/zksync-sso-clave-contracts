@@ -30,7 +30,7 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     session: "0x8543528a4561E3a5EC7d51Bfd3776457b0E7b7dc",
     passkey: "0x975df0c7f5CB728ae9F96480491Ec5d1E17296f4",
     accountFactory: "0xaAF5f437fB0524492886fbA64D703df15BF619AE",
-    accountPaymaster: "0x351cB880A2B9E1Cf3060ea58Ec5280CBCe87579A",
+    accountPaymaster: "0xcE98d6E9456CdFE5eDC1Ce6c32eEce8F71AF6b74",
   },
 };
 
