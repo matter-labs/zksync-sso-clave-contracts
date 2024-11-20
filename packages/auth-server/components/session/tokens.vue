@@ -73,9 +73,17 @@ const onchainActionsCount = computed(() => {
 
 const { result: tokensList, inProgress: tokensLoading, execute: fetchTokens } = useAsync(async () => {
   const contracts: Address[] = [BASE_TOKEN_ADDRESS, ...props.session.callPolicies.map((policy) => policy.target)];
-  const tokens = (await Promise.all(contracts.map(async (contract) => {
+  const tokens: Token[] = (await Promise.all(contracts.map(async (contract) => {
     return await fetchTokenFromBlockExplorerApi(contract)
       .catch((error) => {
+        if (contract === BASE_TOKEN_ADDRESS) {
+          return {
+            address: BASE_TOKEN_ADDRESS,
+            name: requestChain.value!.nativeCurrency.name,
+            symbol: requestChain.value!.nativeCurrency.symbol,
+            decimals: requestChain.value!.nativeCurrency.decimals,
+          };
+        }
         if (error instanceof FetchError && error.statusCode === 404) return undefined;
         // eslint-disable-next-line no-console
         console.error(`Failed to fetch token info for ${contract}`, error);
