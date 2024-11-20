@@ -40,8 +40,10 @@ export default defineNuxtConfig({
   app: {
     head: {
       link: [
-        { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
-        { rel: "icon", type: "image/png", href: "/favicon_48x48.png", sizes: "48x48" },
+        { rel: "icon", type: "image/x-icon", href: "/favicon.ico", sizes: "32x32" },
+        { rel: "icon", type: "image/png", href: "/icon-96x96.png", sizes: "96x96" },
+        { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+        { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       ],
       bodyAttrs: {
         class: "dark-mode",

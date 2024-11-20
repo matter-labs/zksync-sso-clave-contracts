@@ -1,7 +1,7 @@
 import type { Account, Chain, Hex, PublicActions, Transport } from "viem";
 import { estimateContractGas, estimateGas, prepareTransactionRequest } from "viem/actions";
 
-import { type ClientWithZksyncAccountSessionData, signSessionTransaction } from "../clients/session.js";
+import { type ClientWithZksyncSsoSessionData, signSessionTransaction } from "../clients/session.js";
 
 const emptySignature = "0x" + "1b".padStart(65 * 2, "0") as Hex;
 
@@ -10,7 +10,7 @@ export function publicActionsRewrite<
   chain extends Chain,
   account extends Account,
 >(
-  client: ClientWithZksyncAccountSessionData<transport, chain, account>,
+  client: ClientWithZksyncSsoSessionData<transport, chain, account>,
 ): Pick<PublicActions<transport, chain, account>, "estimateContractGas" | "estimateGas" | "prepareTransactionRequest"> {
   return {
     prepareTransactionRequest: async (args) => {
