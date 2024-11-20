@@ -130,8 +130,8 @@ library Errors {
                             BatchCaller
     //////////////////////////////////////////////////////////////*/
 
-  error ONLY_DELEGATECALL();
   error CALL_FAILED();
+  error MsgValueMismatch(uint256 actualValue, uint256 expectedValue);
 
   /*//////////////////////////////////////////////////////////////
                             INITABLE

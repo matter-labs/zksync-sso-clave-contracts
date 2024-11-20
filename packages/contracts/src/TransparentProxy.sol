@@ -1,12 +1,20 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
 
-// This proxy is placed in front of AAFactory and all modules (WebAuthValidator, SessionKeyValidator).
-
-// TODO: use this to optimize gas?
-// import { EfficientCall } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/EfficientCall.sol";
+import { EfficientProxy } from "./EfficientProxy.sol";
+import { Proxy } from "@openzeppelin/contracts/proxy/Proxy.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-contract TransparentProxy is TransparentUpgradeableProxy {
+/// @title TransparentProxy
+/// @author Matter Labs
+/// @custom:security-contact security@matterlabs.dev
+/// @notice This contract is modification of OpenZeppelin `TransparentUpgradeableProxy` with optimisation for
+/// cheap delegate calls on ZKsync.
+/// @dev This proxy is placed in front of `AAFactory` and all modules (`WebAuthValidator`, `SessionKeyValidator`).
+contract TransparentProxy is TransparentUpgradeableProxy, EfficientProxy {
   constructor(address implementation) TransparentUpgradeableProxy(implementation, msg.sender, bytes("")) {}
+
+  function _delegate(address implementation) internal override(EfficientProxy, Proxy) {
+    EfficientProxy._delegate(implementation);
+  }
 }
