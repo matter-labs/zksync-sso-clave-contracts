@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
+import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
 
 library SessionLib {
   using SessionLib for SessionLib.Constraint;
@@ -162,6 +163,14 @@ library SessionLib {
     spec.feeLimit.checkAndUpdate(state.fee, fee);
 
     address target = address(uint160(transaction.to));
+
+    if (transaction.paymasterInput.length >= 4) {
+      bytes4 paymasterInputSelector = bytes4(transaction.paymasterInput[0:4]);
+      require(
+        paymasterInputSelector != IPaymasterFlow.approvalBased.selector,
+        "Approval based paymaster flow not allowed"
+      );
+    }
 
     if (transaction.data.length >= 4) {
       bytes4 selector = bytes4(transaction.data[:4]);
