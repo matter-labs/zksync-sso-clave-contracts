@@ -7,8 +7,6 @@ import "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContrac
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 import { UpgradeableBeacon } from "./UpgradeableBeacon.sol";
 
-import "./helpers/Logger.sol";
-
 contract AAFactory is UpgradeableBeacon {
   event AccountCreated(address indexed accountAddress, string uniqueAccountId);
 
@@ -42,9 +40,6 @@ contract AAFactory is UpgradeableBeacon {
     require(success, "Deployment failed");
 
     (accountAddress) = abi.decode(returnData, (address));
-
-    Logger.logString("accountAddress");
-    Logger.logAddress(accountAddress);
 
     // add session-key/spend-limit module (similar code)
     ISsoAccount(accountAddress).initialize(initialValidators, initialModules, initialK1Owners);

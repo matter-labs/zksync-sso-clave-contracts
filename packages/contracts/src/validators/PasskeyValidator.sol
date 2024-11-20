@@ -9,8 +9,6 @@ import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
-import "../helpers/Logger.sol";
-
 /**
  * @title validator contract for passkey r1 signatures
  * @author https://getclave.io

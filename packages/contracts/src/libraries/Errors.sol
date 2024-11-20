@@ -10,6 +10,7 @@ library Errors {
   error FEE_PAYMENT_FAILED();
   error UNAUTHORIZED_OUTSIDE_TRANSACTION();
   error VALIDATION_HOOK_FAILED();
+  error METHOD_NOT_IMPLEMENTED();
 
   /*//////////////////////////////////////////////////////////////
                                LINKED LIST

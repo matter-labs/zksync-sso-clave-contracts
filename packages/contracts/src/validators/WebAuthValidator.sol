@@ -4,8 +4,6 @@ pragma solidity ^0.8.24;
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import "./PasskeyValidator.sol";
 
-import "../helpers/Logger.sol";
-
 /**
  * @title validator contract for passkey r1 signatures
  * @author https://getclave.io
@@ -29,10 +27,6 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
   }
 
   function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
-    // Printing this hash makes capturing this for a replay test easier
-    Logger.logString("signed hash");
-    Logger.logBytes32(signedHash);
-
     return webAuthVerify(signedHash, signature);
   }
 
@@ -42,13 +36,11 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
     );
 
     if (rs[1] > lowSmax) {
-      Logger.logString("malleability check failed");
       return false;
     }
 
     // check if the flags are set
     if (authenticatorData[32] & AUTH_DATA_MASK != AUTH_DATA_MASK) {
-      Logger.logString("auth data mask failed");
       return false;
     }
 
@@ -56,8 +48,6 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
     // TODO: test if the parse fails for more than 10 elements, otherwise can have a malicious header
     (uint returnValue, JsmnSolLib.Token[] memory tokens, uint actualNum) = JsmnSolLib.parse(clientDataJSON, 20);
     if (returnValue != 0) {
-      Logger.logString("failed to parse json");
-      Logger.logUint(returnValue);
       return false;
     }
 
@@ -76,38 +66,30 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
           string memory challengeValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
           // this should only be set once, otherwise this is an error
           if (validChallenge) {
-            Logger.logString("duplicate challenge, bad json!");
             return false;
           }
           // this is the key part to ensure the signature is for the provided transaction
           bytes memory challengeDataArray = Base64.decode(challengeValue);
           if (challengeDataArray.length != 32) {
             // wrong hash size
-            Logger.logString("invalid hash data length in json challenge field");
             return false;
           }
           bytes32 challengeData = abi.decode(challengeDataArray, (bytes32));
 
           validChallenge = challengeData == transactionHash;
-          Logger.logString("validChallenge");
-          Logger.logBool(validChallenge);
         } else if (Strings.equal(keyOrValue, "type")) {
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory typeValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
           // this should only be set once, otherwise this is an error
           if (validType) {
-            Logger.logString("duplicate type field, bad json");
             return false;
           }
           validType = Strings.equal("webauthn.get", typeValue);
-          Logger.logString("valid type");
-          Logger.logBool(validType);
         } else if (Strings.equal(keyOrValue, "origin")) {
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory originValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
           // this should only be set once, otherwise this is an error
           if (validOrigin) {
-            Logger.logString("duplicate origin field, bad json");
             return false;
           }
           pubKey[0] = lowerKeyHalf[originValue][msg.sender];
@@ -121,7 +103,6 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
     }
 
     if (!validChallenge || !validType) {
-      Logger.logString("invalid challenge or type");
       return false;
     }
 
