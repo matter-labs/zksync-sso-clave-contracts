@@ -213,25 +213,6 @@ const spendLimitTokens = computed(() => {
 
 const hasUnlimitedSpend = computed(() => spendLimitTokens.value.some((item) => item.amount === "unlimited"));
 
-/* const spendLimitTokens = computed(() => {
-  if (!props.session || !tokensList.value) return;
-  let spendLimits: { [tokenAddress: string]: bigint } = {
-    [BASE_TOKEN_ADDRESS]: props.session.feeLimit?.limit,
-  };
-  spendLimits = (props.session.transferPolicies || []).reduce((acc, transferPolicy) => {
-    return {
-      ...acc,
-      [BASE_TOKEN_ADDRESS]: (acc[BASE_TOKEN_ADDRESS] || BigInt(0)) + BigInt(transferPolicy.valueLimit.limit),
-    };
-  }, spendLimits);
-  return Object.entries(spendLimits)
-    .filter(([,amount]) => amount > 0n)
-    .map(([tokenAddress, amount]) => ({
-      token: tokensList.value![tokenAddress],
-      amount,
-    }));
-}); */
-
 const totalUsd = computed(() => (spendLimitTokens.value || []).reduce((acc, item) => {
   if (!item.token.price) return acc;
   const formattedTokenAmount = formatUnits(BigInt(item.amount), item.token.decimals);
