@@ -60,7 +60,7 @@ contract SsoAccount is
     address[] calldata _initialK1Owners
   ) external initializer {
     for (uint256 i = 0; i < _initialValidators.length; ++i) {
-      (address validatorAddr, bytes memory validationKey) = abi.decode(initialValidators[i], (address, bytes));
+      (address validatorAddr, bytes memory validationKey) = abi.decode(_initialValidators[i], (address, bytes));
       _addModuleValidator(validatorAddr, validationKey);
     }
     for (uint256 i = 0; i < _initialModules.length; ++i) {
@@ -117,13 +117,13 @@ contract SsoAccount is
     address to = _safeCastToAddress(_transaction.to);
     uint128 value = Utils.safeCastToU128(_transaction.value);
 
-    _executeCall(to, value, transaction.data);
+    _executeCall(to, value, _transaction.data);
   }
 
   /// @notice Executes a call to a given address with a specified value and calldata.
-  /// @param to The address to which the call is made.
-  /// @param value The value to send along with the call.
-  /// @param data The calldata to pass along with the call.
+  /// @param _to The address to which the call is made.
+  /// @param _value The value to send along with the call.
+  /// @param _data The calldata to pass along with the call.
   function _executeCall(address _to, uint128 _value, bytes calldata _data) internal {
     uint32 gas = Utils.safeCastToU32(gasleft());
 
@@ -185,7 +185,7 @@ contract SsoAccount is
   /// @param _signedHash The signed hash of the transaction.
   /// @param _transaction The transaction data.
   /// @return The magic value if the validation was successful and bytes4(0) otherwise.
-  function _validateTransaction(bytes32 _signedHash, bytes calldata _transaction) internal returns (bytes4) {
+  function _validateTransaction(bytes32 _signedHash, Transaction calldata _transaction) internal returns (bytes4) {
     if (_transaction.signature.length == 65) {
       (address signer, ) = ECDSA.tryRecover(_signedHash, _transaction.signature);
       return _k1IsOwner(signer) ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
@@ -222,6 +222,6 @@ contract SsoAccount is
   /// @dev Revert if the value exceeds the maximum size for an address (160 bits).
   function _safeCastToAddress(uint256 _value) internal pure returns (address) {
     if (_value > type(uint160).max) revert();
-    return address(uint160(value));
+    return address(uint160(_value));
   }
 }
