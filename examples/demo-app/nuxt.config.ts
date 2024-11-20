@@ -7,7 +7,7 @@ export default defineNuxtConfig({
   modules: ["@nuxt/eslint", "@pinia/nuxt", "@nuxtjs/tailwindcss", "@nuxtjs/google-fonts"],
   app: {
     head: {
-      title: "ZKsync SSO Demo App",
+      title: "ZKsync SSO Demo",
       link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }],
     },
   },
@@ -31,6 +31,16 @@ export default defineNuxtConfig({
         arrowParens: true,
         quoteProps: "as-needed",
         braceStyle: "1tbs",
+      },
+    },
+  },
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          // Fix deprecation warnings with modern API
+          api: "modern",
+        },
       },
     },
   },

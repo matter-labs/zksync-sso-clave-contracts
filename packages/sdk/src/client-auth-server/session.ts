@@ -1,4 +1,4 @@
-import { type AbiFunction, type Address, type Hash, toFunctionSelector, toHex } from "viem";
+import { type AbiFunction, type Address, getAddress, type Hash, toFunctionSelector, toHex } from "viem";
 
 import { ConstraintCondition, type Limit, LimitType, LimitUnlimited, LimitZero, type SessionConfig } from "../utils/session.js";
 
@@ -115,13 +115,13 @@ export function formatSessionPreferences(
       const selector = policy.function ? toFunctionSelector(policy.function) : policy.selector;
       if (!selector) throw new Error("Missing function or selector in contract call policy");
       return {
-        target: policy.address,
+        target: getAddress(policy.address.toLowerCase()),
         maxValuePerUse: policy.maxValuePerUse ?? valueLimit.limit,
         valueLimit,
         selector: selector,
         constraints: policy.constraints?.map((constraint) => ({
           index: BigInt(constraint.index),
-          condition: typeof constraint.condition == "string" ? ConstraintCondition[constraint.condition] : (constraint.condition ?? 0),
+          condition: typeof constraint.condition == "string" ? ConstraintCondition[constraint.condition] : (constraint.condition ?? ConstraintCondition.Unconstrained),
           refValue: constraint.refValue ?? toHex("", { size: 32 }),
           limit: constraint.limit ? formatLimitPreferences(constraint.limit) : LimitUnlimited,
         })) ?? [],
@@ -130,7 +130,7 @@ export function formatSessionPreferences(
     transferPolicies: preferences.transfers?.map((policy) => {
       const valueLimit = policy.valueLimit ? formatLimitPreferences(policy.valueLimit) : LimitZero;
       return {
-        target: policy.to,
+        target: getAddress(policy.to.toLowerCase()),
         maxValuePerUse: policy.maxValuePerUse ?? valueLimit.limit,
         valueLimit,
       };
