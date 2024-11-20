@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import { DEPLOYER_SYSTEM_CONTRACT, IContractDeployer } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 import { SystemContractsCaller } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
-import { UpgradeableBeacon } from "./UpgradeableBeacon.sol";
 
 contract AAFactory is UpgradeableBeacon {
   event AccountCreated(address indexed accountAddress, string uniqueAccountId);
