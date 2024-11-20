@@ -46,15 +46,6 @@ import { isEIP712Transaction } from "../utils/isEip712Transaction.js";
  *   value: 1000000000000000000n,
  * })
  */
-const defaultParameters = [
-  "blobVersionedHashes",
-  "chainId",
-  "fees",
-  "gas",
-  "nonce",
-  "type",
-] as const;
-
 export async function sendEip712Transaction<
   chain extends ChainEIP712 | undefined,
   account extends Account | undefined,
@@ -78,41 +69,32 @@ export async function sendEip712Transaction<
   if (!account_)
     throw new Error("Account not found.");
   const account = parseAccount(account_);
-  console.log("sendEip712Transaction", parameters);
 
-  try {
-    assertEip712Request(parameters);
+  assertEip712Request(parameters);
 
-    const request = await getAction(
-      client,
-      prepareTransactionRequest,
-      "prepareTransactionRequest",
-    )({
-      account,
-      chain,
-      nonceManager: account.nonceManager,
-      parameters: [...defaultParameters, "sidecars"],
-      ...rest,
-      // gasPerPubdata: 50000n,
-      // data: "0x",
-    } as any);
+  const request = await getAction(
+    client,
+    prepareTransactionRequest,
+    "prepareTransactionRequest",
+  )({
+    account,
+    chain,
+    nonceManager: account.nonceManager,
+    ...rest,
+  } as any);
 
-    const serializer = chain?.serializers?.transaction;
-    const serializedTransaction = (await account.signTransaction!(request, {
-      serializer,
-    })) as Hash;
+  const serializer = chain?.serializers?.transaction;
+  const serializedTransaction = (await account.signTransaction!(request, {
+    serializer,
+  })) as Hash;
 
-    return await getAction(
-      client,
-      sendRawTransaction,
-      "sendRawTransaction",
-    )({
-      serializedTransaction,
-    });
-  } catch (err) {
-    console.error("sendeip712transaction error");
-    throw err;
-  }
+  return await getAction(
+    client,
+    sendRawTransaction,
+    "sendRawTransaction",
+  )({
+    serializedTransaction,
+  });
 }
 
 /**

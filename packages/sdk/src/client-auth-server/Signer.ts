@@ -20,6 +20,7 @@ type Account = {
 interface SignerInterface {
   accounts: Address[];
   chain: Chain;
+  getClient(parameters?: { chainId?: number }): ZksyncSsoSessionClient;
   handshake(): Promise<Address[]>;
   request<TMethod extends Method>(request: RequestArguments<TMethod>): Promise<ExtractReturnType<TMethod>>;
   disconnect: () => Promise<void>;
@@ -81,6 +82,15 @@ export class Signer implements SignerInterface {
       console.error("Logging out to prevent crash loop");
       this.clearState();
     }
+  }
+
+  getClient(parameters?: { chainId?: number }) {
+    const chainId = parameters?.chainId || this.chain.id;
+    const chain = this.chains.find((e) => e.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+
+    if (!this.walletClient) throw new Error("Wallet client is not created");
+    return this.walletClient;
   }
 
   private get account(): Account | null {
@@ -199,7 +209,6 @@ export class Signer implements SignerInterface {
       case "eth_estimateGas": {
         if (!this.walletClient || !this.session) return undefined;
         const params = request.params as ExtractParams<"eth_estimateGas">;
-        console.log("eth_estimateGas", params);
         const res = await this.walletClient.request({ method: request.method, params: params });
         return res as ExtractReturnType<TMethod>;
       }
@@ -207,7 +216,6 @@ export class Signer implements SignerInterface {
         if (!this.walletClient || !this.session) return undefined;
         const params = request.params as ExtractParams<"eth_sendTransaction">;
         const transactionRequest = params[0];
-        console.log("eth_sendTransaction", transactionRequest);
         const res = await this.walletClient.sendTransaction(transactionRequest as unknown as SendTransactionParameters);
         return res as ExtractReturnType<TMethod>;
       }

@@ -140,8 +140,6 @@ const sendTokens = async () => {
     const transactionHash = await sendTransaction(wagmiConfig, {
       to: testTransferTarget,
       value: parseEther("0.1"),
-      // gasPrice: await getGasPrice(wagmiConfig),
-      gas: 100_000_000n, // wagmi doesn't pass this field to the connector, why???
     });
 
     balance.value = await getBalance(wagmiConfig, {

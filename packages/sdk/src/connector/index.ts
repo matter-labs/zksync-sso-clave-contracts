@@ -117,6 +117,10 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
       if (!chainId) return config.chains[0].id;
       return Number(chainId);
     },
+    async getClient(parameters) {
+      if (!walletProvider) throw new Error("Wallet provider not initialized");
+      return walletProvider.getClient(parameters);
+    },
     async getProvider() {
       if (!walletProvider) {
         walletProvider = new WalletProvider({

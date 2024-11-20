@@ -14,7 +14,6 @@ export function publicActionsRewrite<
 ): Pick<PublicActions<transport, chain, account>, "estimateContractGas" | "estimateGas" | "prepareTransactionRequest"> {
   return {
     prepareTransactionRequest: async (args) => {
-      console.log("prepareTransactionRequest", args);
       if (!("customSignature" in args)) {
         (args as any).customSignature = signSessionTransaction({
           sessionKeySignedHash: emptySignature,
@@ -22,19 +21,13 @@ export function publicActionsRewrite<
           sessionConfig: client.sessionConfig,
         });
       }
-      console.log("Initial args", args);
-      const request = await prepareTransactionRequest(client, args as any) as any;
-      /* const request = await prepareTransactionRequest(client, {
-        chainId: client.chain.id,
-        parameters: ["gas", "nonce", "fees"],
+      const request = await prepareTransactionRequest(client, {
         ...args,
         type: "eip712",
-      } as any) as any; */
-      console.log("After prepare", request);
+      } as any) as any;
       return request;
     },
     estimateContractGas: (args) => {
-      console.log("estimateContractGas", args);
       if (!("customSignature" in args)) {
         (args as any).customSignature = signSessionTransaction({
           sessionKeySignedHash: emptySignature,
@@ -45,7 +38,6 @@ export function publicActionsRewrite<
       return estimateContractGas(client, args as any);
     },
     estimateGas: async (args) => {
-      console.log("estimateGas", args);
       if (!("customSignature" in args)) {
         (args as any).customSignature = signSessionTransaction({
           sessionKeySignedHash: emptySignature,
@@ -54,7 +46,6 @@ export function publicActionsRewrite<
         });
       }
       const estimated = await estimateGas(client, args);
-      console.log("Estimated", estimated);
       return estimated;
     },
   };
