@@ -41,7 +41,7 @@
             ZKsync makes any crypto transaction simple using familiar sign-on methods like passkeys and lets you set custom parameters like time and spending limits. No more mnemonic phrases or annoying signature requests. Give it a try.
           </p>
 
-          <div class="sticky bottom-[-8px] pb-4 bg-gradient-to-t from-neutral-975 to-transparent w-full flex justify-center sm:justify-start">
+          <div class="sticky bottom-[-8px] pb-4 bg-gradient-to-t from-black to-transparent w-full flex justify-center sm:justify-start">
             <ZkButton
               type="primary"
               class="uppercase mt-8 min-w-[240px]"

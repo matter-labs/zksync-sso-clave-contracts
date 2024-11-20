@@ -6,7 +6,7 @@
       </div>
     </div>
     <div class="basis-6/12 flex items-center justify-center">
-      <div class="nft-image aspect-square w-full sm:max-w-[680px] max-w-[75%]" />
+      <div class="nft-image-gif aspect-square w-full sm:max-w-[680px] max-w-[75%]" />
     </div>
   </div>
 </template>
@@ -17,3 +17,10 @@ useSeoMeta({
   ogTitle: "Mint - NFT Quest",
 });
 </script>
+
+<style lang="css">
+.nft-image-gif {
+  background-image: url("/nft-slow-loop.gif");
+  background-size: contain;
+}
+</style>
