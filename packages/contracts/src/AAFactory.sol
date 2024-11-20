@@ -19,16 +19,6 @@ contract AAFactory is UpgradeableBeacon {
     beaconProxyBytecodeHash = _beaconProxyBytecodeHash;
   }
 
-  function deployProxy7579Account(
-    bytes32 salt,
-    string calldata uniqueAccountId,
-    bytes[] calldata initialValidators,
-    bytes[] calldata initialModules,
-    address[] calldata initialK1Owners
-  ) external returns (address) {
-    return this.deployProxySsoAccount(salt, uniqueAccountId, initialValidators, initialModules, initialK1Owners);
-  }
-
   function deployProxySsoAccount(
     bytes32 salt,
     string calldata uniqueAccountId,
