@@ -1,12 +1,15 @@
 <template>
-  <div>
-    <div class="flex justify-center items-center isolate mt-6 mb-8">
+  <div
+    class="session-metadata"
+    :class="`size-${size}`"
+  >
+    <div class="flex justify-center items-center isolate my-4">
       <Web3Avatar
         v-if="address"
         :address="address!"
-        class="w-20 h-20 rounded-full -z-[1] -mr-4"
+        class="avatar-img rounded-full -z-[1] -mr-4"
       />
-      <div class="w-20 h-20 rounded-md bg-neutral-800">
+      <div class="app-icon-container rounded-md bg-neutral-800">
         <img
           v-if="appMeta.icon"
           :src="appMeta.icon"
@@ -20,7 +23,7 @@
     </h1>
     <p
       v-if="domain"
-      class="text-center border border-neutral-800 bg-neutral-800/50 mt-2 mx-auto w-max px-4 py-1 rounded-3xl"
+      class="text-center border border-neutral-800 bg-neutral-800/50 mt-3 mx-auto w-max px-4 py-1 rounded-3xl"
     >
       {{ domain }}
     </p>
@@ -31,12 +34,15 @@
 import Web3Avatar from "web3-avatar-vue";
 import type { AppMetadata } from "zksync-sso";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   appMeta: AppMetadata;
   address?: string | null;
   domain?: string;
   connect?: boolean;
-}>();
+  size?: "sm" | "md";
+}>(), {
+  size: "md",
+});
 
 const message = computed(() => {
   if (props.address || props.connect) {
@@ -46,3 +52,18 @@ const message = computed(() => {
   }
 });
 </script>
+
+<style lang="scss" scoped>
+.session-metadata {
+  &.size-sm {
+    .avatar-img, .app-icon-container {
+      @apply w-16 h-16;
+    }
+  }
+  &.size-md {
+    .avatar-img, .app-icon-container {
+      @apply w-20 h-20;
+    }
+  }
+}
+</style>
