@@ -4,7 +4,8 @@ A demo of using the ZKsync SDK for smart accounts.
 
 ## Getting Started
 
-Run the following (be sure a local node is running, e.g. `era_test_node`):
+Run the following (be sure a local node is running, e.g.
+`era_test_node`[https://docs.zksync.io/build/zksync-cli/running-a-node]):
 
 ```sh
 # Deploy the ZKsync SSO contracts
