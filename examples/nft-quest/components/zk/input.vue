@@ -9,6 +9,7 @@
           :class="twMerge(inputUI, ui.input, stateUI, loadingInputUI)"
           :disabled
           :required
+          data-1p-ignore
         >
         <transition
           v-bind="TransitionOpacity"

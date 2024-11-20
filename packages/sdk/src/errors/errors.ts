@@ -149,7 +149,7 @@ class EthereumRpcError<T> extends Error {
   }
 }
 
-class EthereumProviderError<T> extends EthereumRpcError<T> {
+export class EthereumProviderError<T> extends EthereumRpcError<T> {
   /**
    * Create an Ethereum Provider JSON-RPC error.
    * `code` must be an integer in the 1000 <= 4999 range.

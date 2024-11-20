@@ -102,4 +102,14 @@ export default defineNuxtConfig({
       },
     },
   },
+
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: "modern", // Fix warning: "The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0"
+        },
+      },
+    },
+  },
 });

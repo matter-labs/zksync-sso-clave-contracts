@@ -1,12 +1,12 @@
-import { /* decodeFunctionData, erc20Abi, getAddress, */ type Account, type Chain, type Transport, type WalletActions } from "viem";
-import { deployContract, getAddresses, getChainId, prepareTransactionRequest, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
-import { getGeneralPaymasterInput, sendEip712Transaction, sendTransaction, signTransaction } from "viem/zksync";
+import { type Account, bytesToHex, type Chain, formatTransaction, type Transport, type WalletActions } from "viem";
+import { deployContract, getAddresses, getChainId, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
+import { signTransaction, type ZksyncEip712Meta } from "viem/zksync";
 
+import { sendEip712Transaction } from "../actions/sendEip712Transaction.js";
 import type { ClientWithZksyncSsoSessionData } from "../clients/session.js";
-/* import { getTokenSpendLimit } from '../actions/session.js'; */
 
 export type ZksyncSsoWalletActions<chain extends Chain, account extends Account> = Omit<
-  WalletActions<chain, account>, "addChain" | "getPermissions" | "requestAddresses" | "requestPermissions" | "switchChain" | "watchAsset"
+  WalletActions<chain, account>, "addChain" | "getPermissions" | "requestAddresses" | "requestPermissions" | "switchChain" | "watchAsset" | "prepareTransactionRequest"
 >;
 
 export function zksyncSsoWalletActions<
@@ -18,32 +18,30 @@ export function zksyncSsoWalletActions<
     deployContract: (args) => deployContract(client, args),
     getAddresses: () => getAddresses(client),
     getChainId: () => getChainId(client),
-    prepareTransactionRequest: (args) =>
-      prepareTransactionRequest(client, args),
     sendRawTransaction: (args) => sendRawTransaction(client, args),
     sendTransaction: async (args) => {
-      const tx = client.chain.formatters?.transaction?.format(args) || args;
-      /* await verifyTransactionData({
-        value: tx.value,
-        chain: tx.chain || undefined,
-        to: tx.to || undefined,
-        data: tx.data,
-        gas: tx.gas,
-        gasPrice: tx.gasPrice,
-        maxFeePerGas: tx.maxFeePerGas,
-        maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
-      }, client); */
-      if (tx.eip712Meta) {
-        const transaction = {
-          ...tx,
-          account: client.account,
-          paymaster: tx.eip712Meta.paymasterParams.paymaster,
-          // TODO: Find permanent fix as this only works for general paymasters with no input
-          paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
-        };
-        return await sendEip712Transaction(client, transaction);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const unformattedTx: any = Object.assign({}, args);
+
+      if ("eip712Meta" in unformattedTx) {
+        const eip712Meta = unformattedTx.eip712Meta as ZksyncEip712Meta;
+        unformattedTx.gasPerPubdata = eip712Meta.gasPerPubdata ? BigInt(eip712Meta.gasPerPubdata) : undefined;
+        unformattedTx.factoryDeps = eip712Meta.factoryDeps;
+        unformattedTx.customSignature = eip712Meta.customSignature;
+        unformattedTx.paymaster = eip712Meta.paymasterParams?.paymaster;
+        unformattedTx.paymasterInput = eip712Meta.paymasterParams?.paymasterInput ? bytesToHex(new Uint8Array(eip712Meta.paymasterParams?.paymasterInput)) : undefined;
+        delete unformattedTx.eip712Meta;
       }
-      return await sendTransaction(client, tx);
+
+      const formatters = client.chain?.formatters;
+      const format = formatters?.transaction?.format || formatTransaction;
+
+      const tx = {
+        ...format(unformattedTx),
+        type: "eip712",
+      };
+
+      return await sendEip712Transaction(client, tx);
     },
     signMessage: (args) => signMessage(client, args),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

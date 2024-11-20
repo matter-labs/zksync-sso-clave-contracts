@@ -220,9 +220,6 @@ async function rawVerify(
   const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
   const rs = unwrapEC2Signature(toBuffer(b64SignedChallange));
   const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-  /* console.log("externalSignature", ethers.hexlify(hashedData));
-  console.log("rs", ethers.hexlify(rs[0]), ethers.hexlify(rs[1]));
-  console.log("pubkey xy", publicKeys); */
   return await passkeyValidator.rawVerify(hashedData, rs, publicKeys);
 }
 

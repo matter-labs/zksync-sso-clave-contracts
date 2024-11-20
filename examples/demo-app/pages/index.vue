@@ -40,7 +40,7 @@
 </template>
 
 <script lang="ts" setup>
-import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, type GetBalanceReturnType } from "@wagmi/core";
+import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType } from "@wagmi/core";
 import { zksyncSsoConnector } from "zksync-sso/connector";
 import { zksyncInMemoryNode } from "@wagmi/core/chains";
 import { createWalletClient, http, parseEther, type Address } from "viem";
@@ -142,15 +142,17 @@ const sendTokens = async () => {
   errorMessage.value = "";
   isSendingEth.value = true;
   try {
-    await sendTransaction(wagmiConfig, {
+    const transactionHash = await sendTransaction(wagmiConfig, {
       to: testTransferTarget,
       value: parseEther("0.1"),
-      gas: 100_000_000n,
     });
 
     balance.value = await getBalance(wagmiConfig, {
       address: address.value,
     });
+
+    const receipt = await waitForTransactionReceipt(wagmiConfig, { hash: transactionHash });
+    if (receipt.status === "reverted") throw new Error("Transaction reverted");
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Transaction failed:", error);
