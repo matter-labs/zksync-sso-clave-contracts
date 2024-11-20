@@ -120,7 +120,7 @@ export const FactoryAbi = [
         type: "address[]",
       },
     ],
-    name: "deployProxySsoAccount",
+    name: "deployProxy7579Account",
     outputs: [
       {
         internalType: "address",

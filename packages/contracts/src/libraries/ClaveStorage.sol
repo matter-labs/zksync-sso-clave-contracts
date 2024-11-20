@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-library SsoStorage {
+library ClaveStorage {
   //keccak256('clave.contracts.ClaveStorage') - 1
-  bytes32 private constant SSO_STORAGE_SLOT = 0x3248da1aeae8bd923cbf26901dc4bfc6bb48bb0fbc5b6102f1151fe7012884f4;
+  bytes32 private constant CLAVE_STORAGE_SLOT = 0x3248da1aeae8bd923cbf26901dc4bfc6bb48bb0fbc5b6102f1151fe7012884f4;
 
   struct Layout {
     // ┌───────────────────┐
@@ -24,6 +24,7 @@ library SsoStorage {
     // │     Validation    │
     mapping(address => address) r1Validators;
     mapping(address => address) k1Validators;
+    mapping(address => address) userOpValidators;
     mapping(address => address) moduleValidators;
     uint256[50] __gap_2;
     // └───────────────────┘
@@ -45,7 +46,7 @@ library SsoStorage {
   }
 
   function layout() internal pure returns (Layout storage l) {
-    bytes32 slot = SSO_STORAGE_SLOT;
+    bytes32 slot = CLAVE_STORAGE_SLOT;
     assembly {
       l.slot := slot
     }
