@@ -42,11 +42,11 @@
 <script lang="ts" setup>
 import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, type GetBalanceReturnType } from "@wagmi/core";
 import { zksyncSsoConnector } from "zksync-sso/connector";
-import { zksyncSepoliaTestnet } from "@wagmi/core/chains";
+import { zksyncInMemoryNode } from "@wagmi/core/chains";
 import { createWalletClient, http, parseEther, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
-const chain = zksyncSepoliaTestnet;
+const chain = zksyncInMemoryNode;
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 const zksyncConnector = zksyncSsoConnector({
