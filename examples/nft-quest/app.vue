@@ -13,25 +13,7 @@
       </div>
       <WalletButton />
     </div>
-    <div class="grow flex flex-col sm:flex-row">
-      <div class="order-last sm:order-first border-b border-b-neutral-900 sm:border-b-0 sm:border-r sm:border-r-neutral-900 basis-6/12 h-full">
-        <NuxtPage />
-      </div>
-      <div class="basis-6/12 flex items-center justify-center">
-        <div class="nft-image max-w-[680px]">
-          <video
-            autoplay
-            loop
-            muted
-          >
-            <source
-              src="/nft/zeek-nft.mp4"
-              type="video/mp4"
-            >
-          </video>
-        </div>
-      </div>
-    </div>
+    <NuxtPage />
   </div>
 </template>
 
@@ -46,8 +28,13 @@ defineOgImageComponent("ZeekNFT");
   height: 66px;
 }
 
-.nft-image {
-  background-image: url('/nft-animation.png');
-
+.page-enter-active,
+.page-leave-active {
+  transition: all 0.18s;
+}
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+  filter: blur(1rem);
 }
 </style>
