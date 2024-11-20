@@ -15,7 +15,7 @@
         <template #secondary>
           <div
             class="token-balance-amount"
-            :title="formattedAmount"
+            :title="unformattedAmount"
           >
             {{ formattedAmount }}
           </div>
@@ -33,6 +33,8 @@
 </template>
 
 <script lang="ts" setup>
+import { formatUnits } from "viem";
+
 const props = defineProps({
   as: {
     type: [String, Object] as PropType<string | Component>,
@@ -56,7 +58,7 @@ const props = defineProps({
     type: String,
   },
   amount: {
-    type: String,
+    type: String as PropType<string | "unlimited">,
     required: true,
   },
   price: {
@@ -68,9 +70,17 @@ const props = defineProps({
 });
 
 const isZeroAmount = computed(() => !props.amount);
-const formattedAmount = computed(() => formatAmount(BigInt(props.amount), props.decimals));
+const isUnlimitedAmount = computed(() => props.amount === "unlimited");
+const unformattedAmount = computed(() => {
+  if (isUnlimitedAmount.value) return undefined;
+  return formatUnits(BigInt(props.amount), props.decimals);
+});
+const formattedAmount = computed(() => {
+  if (isUnlimitedAmount.value) return "Unlimited";
+  return formatAmount(BigInt(props.amount), props.decimals);
+});
 const tokenPrice = computed(() => {
-  if (!props.price) return;
+  if (!props.price || isUnlimitedAmount.value) return;
   return formatTokenPrice(BigInt(props.amount), props.decimals, props.price);
 });
 </script>

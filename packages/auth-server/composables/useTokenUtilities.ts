@@ -1,3 +1,4 @@
+import { FetchError } from "ofetch";
 import { type Address, erc20Abi } from "viem";
 
 export const useTokenUtilities = (_chainId: MaybeRef<SupportedChainId>) => {
@@ -15,6 +16,11 @@ export const useTokenUtilities = (_chainId: MaybeRef<SupportedChainId>) => {
       }[];
     }>(`${blockExplorerApiByChain[chainId.value]}?module=token&action=tokeninfo&contractaddress=${tokenAddress}`);
     const tokenInfo = result[0];
+    if (!tokenInfo) {
+      const error = new FetchError("Token not found");
+      error.statusCode = 404;
+      throw error;
+    }
     return {
       address: tokenAddress,
       name: tokenInfo.tokenName,

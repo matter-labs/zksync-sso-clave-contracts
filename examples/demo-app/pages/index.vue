@@ -16,14 +16,14 @@
       <p>Connected Address: {{ address }}</p>
     </div>
     <div
-      v-if="address && balance"
+      v-if="address"
       class="mt-4"
     >
-      <p>Balance: {{ balance.formatted }} {{ balance.symbol }}</p>
+      <p>Balance: {{ balance ? `${balance.formatted} ${balance.symbol}` : '...' }}</p>
     </div>
     <button
       v-if="address"
-      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-3"
       :disabled="isSendingEth"
       @click="sendTokens()"
     >
@@ -46,6 +46,8 @@ import { zksyncInMemoryNode } from "@wagmi/core/chains";
 import { createWalletClient, http, parseEther, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
+const chain = zksyncInMemoryNode;
+
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 const zksyncConnector = zksyncSsoConnector({
   authServerUrl: "http://localhost:3002/confirm",
@@ -60,10 +62,10 @@ const zksyncConnector = zksyncSsoConnector({
   },
 });
 const wagmiConfig = createConfig({
-  chains: [zksyncInMemoryNode],
+  chains: [chain],
   connectors: [zksyncConnector],
   transports: {
-    [zksyncInMemoryNode.id]: http(),
+    [chain.id]: http(),
   },
 });
 reconnect(wagmiConfig);
@@ -78,7 +80,7 @@ const fundAccount = async () => {
 
   const richClient = createWalletClient({
     account: privateKeyToAccount("0x3eb15da85647edd9a1159a4a13b9e7c56877c4eb33f614546d4db06a51868b1c"),
-    chain: zksyncInMemoryNode,
+    chain: chain,
     transport: http(),
   });
 
@@ -104,7 +106,10 @@ watch(address, async () => {
     address: address.value,
   });
   if (currentBalance && currentBalance.value < parseEther("0.2")) {
-    await fundAccount();
+    await fundAccount().catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error("Funding failed:", error);
+    });
     currentBalance = await getBalance(wagmiConfig, {
       address: address.value,
     });
@@ -118,7 +123,7 @@ const connectWallet = async () => {
     errorMessage.value = "";
     connect(wagmiConfig, {
       connector: zksyncConnector,
-      chainId: zksyncInMemoryNode.id,
+      chainId: chain.id,
     });
   } catch (error) {
     errorMessage.value = "Connect failed, see console for more info.";
