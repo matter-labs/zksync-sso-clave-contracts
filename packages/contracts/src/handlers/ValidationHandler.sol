@@ -9,8 +9,6 @@ import { ValidatorManager } from "../managers/ValidatorManager.sol";
 import { IK1Validator, IR1Validator } from "../interfaces/IValidator.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
-import "../helpers/Logger.sol";
-
 /**
  * @title ValidationHandler
  * @notice Contract which calls validators for signature validation
@@ -47,7 +45,6 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
         return true;
       }
     } else if (_isModuleValidator(validator)) {
-      Logger.logString("_isModuleValidator");
       return IModuleValidator(validator).handleValidation(signedHash, signature);
     }
 

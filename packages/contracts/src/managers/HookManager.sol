@@ -131,14 +131,15 @@ abstract contract HookManager is IHookManager, Auth {
     mapping(address => address) storage validationHooks = _validationHooksLinkedList();
 
     address cursor = validationHooks[AddressLinkedList.SENTINEL_ADDRESS];
-    uint256 idx = 0;
+    uint256 idx;
     // Iterate through hooks
     while (cursor > AddressLinkedList.SENTINEL_ADDRESS) {
       // Call it with corresponding hookData
       bool success = _call(
         cursor,
-        abi.encodeWithSelector(IValidationHook.validationHook.selector, signedHash, transaction, hookData[idx++])
+        abi.encodeCall(IValidationHook.validationHook, (signedHash, transaction, hookData[idx]))
       );
+      ++idx;
 
       if (!success) {
         return false;

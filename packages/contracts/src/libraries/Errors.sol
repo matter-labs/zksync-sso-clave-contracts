@@ -10,6 +10,7 @@ library Errors {
   error FEE_PAYMENT_FAILED();
   error UNAUTHORIZED_OUTSIDE_TRANSACTION();
   error VALIDATION_HOOK_FAILED();
+  error METHOD_NOT_IMPLEMENTED();
 
   /*//////////////////////////////////////////////////////////////
                                LINKED LIST
@@ -129,8 +130,8 @@ library Errors {
                             BatchCaller
     //////////////////////////////////////////////////////////////*/
 
-  error ONLY_DELEGATECALL();
   error CALL_FAILED();
+  error MsgValueMismatch(uint256 actualValue, uint256 expectedValue);
 
   /*//////////////////////////////////////////////////////////////
                             INITABLE

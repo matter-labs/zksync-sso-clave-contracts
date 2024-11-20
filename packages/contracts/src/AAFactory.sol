@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
-import "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
+import { DEPLOYER_SYSTEM_CONTRACT, IContractDeployer } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
+import { SystemContractsCaller } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 import { UpgradeableBeacon } from "./UpgradeableBeacon.sol";
-
-import "./helpers/Logger.sol";
 
 contract AAFactory is UpgradeableBeacon {
   event AccountCreated(address indexed accountAddress, string uniqueAccountId);
@@ -42,9 +40,6 @@ contract AAFactory is UpgradeableBeacon {
     require(success, "Deployment failed");
 
     (accountAddress) = abi.decode(returnData, (address));
-
-    Logger.logString("accountAddress");
-    Logger.logAddress(accountAddress);
 
     // add session-key/spend-limit module (similar code)
     ISsoAccount(accountAddress).initialize(initialValidators, initialModules, initialK1Owners);
