@@ -12,7 +12,6 @@ import { IModule } from "../interfaces/IModule.sol";
 import { IInitable } from "../interfaces/IInitable.sol";
 import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 import { IModuleManager } from "../interfaces/IModuleManager.sol";
-import { IERC7579Module, IExecutor } from "../interfaces/IERC7579Module.sol";
 
 /**
  * @title Manager contract for modules
@@ -95,23 +94,17 @@ abstract contract ModuleManager is IModuleManager, Auth {
   function _addExternalExecutorPermission(address module, bytes calldata data) internal virtual {
     _externalExecutorModule().add(module);
 
-    IERC7579Module(module).onInstall(data);
-
     emit AddModule(module);
   }
 
   function _addFallbackModule(address module, bytes calldata data) internal virtual {
     SsoStorage.layout().fallbackContractBySelector[bytes4(data[0:4])] = module;
 
-    IERC7579Module(module).onInstall(data);
-
     emit AddModule(module);
   }
 
   function _removeFallbackModule(address module, bytes calldata data) internal virtual {
     SsoStorage.layout().fallbackContractBySelector[bytes4(data[0:4])] = address(0);
-
-    IERC7579Module(module).onUninstall(data);
 
     emit RemoveModule(module);
   }
@@ -139,8 +132,6 @@ abstract contract ModuleManager is IModuleManager, Auth {
 
   function _removeExternalExecutorModule(address module, bytes calldata data) internal {
     _externalExecutorModule().remove(module);
-
-    IExecutor(module).onUninstall(data);
 
     emit RemoveModule(module);
   }

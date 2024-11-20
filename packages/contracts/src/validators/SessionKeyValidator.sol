@@ -9,7 +9,6 @@ import { IValidationHook } from "../interfaces/IHook.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
-import { IHook } from "../interfaces/IERC7579Module.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import { IHookManager } from "../interfaces/IHookManager.sol";
