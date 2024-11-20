@@ -71,7 +71,7 @@ const ssoConnector = zksyncSsoConnector({
 
             // Optional call constraints (unconstrained otherwise):
             constraints: [
-               
+
                // Only allow transfers to this address
                {
                   index: 0,
