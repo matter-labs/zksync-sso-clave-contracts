@@ -8,6 +8,7 @@ if (!version) {
 }
 
 const packageJsonPath = path.resolve("./package.json");
+const readmePath = path.resolve("../../README.md"); // copy readme into current path
 
 async function preparePackageJson() {
   try {
@@ -32,4 +33,14 @@ async function preparePackageJson() {
   }
 }
 
+async function copyReadme() {
+  try {
+    await fs.copyFile(readmePath, path.resolve("./README.md"));
+  } catch (error) {
+    console.error("Error copying README.md:", error);
+    process.exit(1);
+  }
+}
+
 preparePackageJson();
+copyReadme();
