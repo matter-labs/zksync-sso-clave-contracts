@@ -7,7 +7,7 @@ export default defineNuxtConfig({
   modules: ["@nuxt/eslint", "@pinia/nuxt", "@nuxtjs/tailwindcss", "@nuxtjs/google-fonts"],
   app: {
     head: {
-      title: "ZKsync SSO Demo App",
+      title: "ZKsync SSO Demo",
       link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }],
     },
   },

@@ -4,18 +4,16 @@
       v-if="isLoggedIn"
       #header
     >
-      <SessionAccountHeader
-
-        message="Connecting with"
-      />
+      <SessionAccountHeader message="Connecting with" />
     </template>
 
     <SessionMetadata
       :app-meta="appMeta"
       :domain="domain"
+      size="sm"
     />
 
-    <div class="space-y-2 mt-4">
+    <div class="space-y-2 mt-2">
       <div class="bg-neutral-975 rounded-[28px]">
         <div class="px-5 py-2 text-neutral-400">
           Permissions
@@ -28,7 +26,7 @@
             </div>
             <div class="flex items-center gap-2 py-3 px-3">
               <IconsClock class="w-7 h-7" />
-              <div>Expires {{ sessionExpiresIn }}</div>
+              <div>{{ sessionExpiry }}</div>
             </div>
           </div>
         </CommonLine>
@@ -73,7 +71,7 @@
 </template>
 
 <script lang="ts" setup>
-import { useTimeAgo } from "@vueuse/core";
+import { useNow } from "@vueuse/core";
 import { parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import type { SessionPreferences } from "zksync-sso";
@@ -102,10 +100,34 @@ const defaults = {
     period: 0n,
   },
 };
+
 const sessionConfig = computed(() => formatSessionPreferences(props.sessionPreferences, defaults));
 
 const domain = computed(() => new URL(appOrigin.value).host);
-const sessionExpiresIn = useTimeAgo(Number(sessionConfig.value.expiresAt) * 1000);
+const now = useNow({ interval: 5000 });
+const sessionExpiry = computed(() => {
+  const expiresAt = Number(sessionConfig.value.expiresAt) * 1000; // Convert to milliseconds
+  const expiresDate = new Date(expiresAt);
+  const nowDate = new Date(now.value);
+
+  const isToday = expiresDate.toDateString() === nowDate.toDateString();
+
+  const tomorrowDate = new Date(
+    nowDate.getFullYear(),
+    nowDate.getMonth(),
+    nowDate.getDate() + 1,
+  );
+  const isTomorrow = expiresDate.toDateString() === tomorrowDate.toDateString();
+
+  const formatTime = (date: Date) => date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const formatDate = (date: Date) => date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  const formatDateTime = (date: Date) => `${formatDate(date)} at ${formatTime(date)}`;
+
+  if (isToday) return `Expires today at ${formatTime(expiresDate)}`;
+  if (isTomorrow) return `Expires tomorrow at ${formatTime(expiresDate)}`;
+
+  return `Expires on ${formatDateTime(expiresDate)}`;
+});
 
 const sessionError = ref("");
 

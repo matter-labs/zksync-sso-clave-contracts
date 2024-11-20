@@ -50,7 +50,7 @@ export const formatAmount = (
 
 export const formatPricePretty = (price: number): string => {
   if (!price) {
-    return "$0.00";
+    return "$0";
   } else if (price < 0.01) {
     return "<$0.01";
   }
