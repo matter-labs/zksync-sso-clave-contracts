@@ -50,7 +50,11 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     return initialLowerHalf == 0 && initialUpperHalf == 0;
   }
 
-  function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+  function handleValidation(
+    bytes32 signedHash,
+    bytes memory signature,
+    Transaction calldata transaction
+  ) external view returns (bool) {
     return webAuthVerify(signedHash, signature);
   }
 

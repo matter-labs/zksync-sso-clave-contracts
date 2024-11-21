@@ -17,10 +17,11 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
   function _handleValidation(
     address validator,
     bytes32 signedHash,
-    bytes memory signature
+    bytes memory signature,
+    Transaction calldata transaction
   ) internal view returns (bool) {
     if (_isModuleValidator(validator)) {
-      return IModuleValidator(validator).handleValidation(signedHash, signature);
+      return IModuleValidator(validator).handleValidation(signedHash, signature, transaction);
     }
 
     return false;
