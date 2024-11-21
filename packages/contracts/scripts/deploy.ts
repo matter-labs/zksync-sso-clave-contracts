@@ -65,7 +65,8 @@ task("deploy", "Deploys ZKsync SSO contracts")
       await deploy("WebAuthValidator", deployer, !cmd.noProxy);
       const sessions = await deploy("SessionKeyValidator", deployer, !cmd.noProxy);
       const implementation = await deploy("SsoAccount", deployer, false);
-      const factory = await deploy("AAFactory", deployer, !cmd.noProxy, [implementation]);
+      // TODO: enable proxy for factory -- currently it's not working
+      const factory = await deploy("AAFactory", deployer, false, [implementation]);
       const paymaster = await deploy("ExampleAuthServerPaymaster", deployer, false, [factory, sessions]);
 
       if (cmd.fund != 0) {
