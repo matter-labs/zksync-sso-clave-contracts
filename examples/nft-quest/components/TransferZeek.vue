@@ -24,23 +24,23 @@
       placeholder="Wallet address"
       required
     />
-    <div class="flex flex-col lg:flex-row items-center gap-4">
+    <div class="flex flex-col lg:flex-row items-center gap-4 pt-3">
       <ZkLink
         v-if="successMint"
         :to="transactionURL"
         target="_blank"
         type="secondary"
-        class="w-full mt-4 lg:mt-0"
+        class="w-full lg:mt-0"
       >
         Transaction details
         <ZkIcon
           icon="open_in_new"
-          class="ml-2"
+          class="text-base leading-tight align-text-bottom ml-2 -my-0.5"
         />
       </ZkLink>
       <ZkButton
         type="primary"
-        class="uppercase mt-2 w-full"
+        class="uppercase w-full"
         :loading="status === 'pending'"
         @click="mintForFriend"
       >

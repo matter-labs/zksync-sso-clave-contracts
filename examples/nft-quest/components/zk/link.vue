@@ -20,7 +20,7 @@ const { ui, type = "inline" } = defineProps<
 
 const linkUI = computed(() => {
   let base
-    = "inline-block inline-flex items-center justify-center border border-transparent px-4 py-2 align-middle leading-3 focus:outline-none focus:ring-4 focus:ring-primary-400 focus:ring-opacity-50 dark:focus:ring-blue-800 dark:focus:ring-opacity-80";
+    = "inline-block inline-flex items-center justify-center border border-transparent px-8 py-4 align-middle leading-3 focus:outline-none focus:ring-4 focus:ring-primary-400 focus:ring-opacity-50 dark:focus:ring-blue-800 dark:focus:ring-opacity-80";
 
   if (type) {
     base = twMerge(base, types[type]);
