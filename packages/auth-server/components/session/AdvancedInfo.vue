@@ -1,7 +1,7 @@
 <template>
   <div>
     <button
-      class="mx-auto text-center w-max px-4 py-2 flex items-center gap-1 text-sm text-neutral-700 hover:text-neutral-300 transition-colors"
+      class="mx-auto text-center w-max px-4 py-2 flex items-center gap-1 text-sm text-neutral-800 hover:text-neutral-400 transition-colors"
       @click="advancedInfoOpened = !advancedInfoOpened"
     >
       <span>{{ advancedInfoOpened ? 'Hide' : 'Show' }} advanced session info</span>

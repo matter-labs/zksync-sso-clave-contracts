@@ -49,5 +49,15 @@ export default defineNuxtConfig({
         explorerUrl: "http://34.121.229.57:3010/",
       }
     }
-  }
+  },
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          // Fix deprecation warnings with modern API
+          api: "modern",
+        },
+      },
+    },
+  },
 });

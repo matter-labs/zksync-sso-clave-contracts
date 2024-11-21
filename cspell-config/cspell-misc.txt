@@ -10,6 +10,7 @@ nuxtjs
 testid
 vueuse
 dockerized
+ethereum
 
 // examples/bank-demo
 ctap
@@ -26,4 +27,3 @@ usdc
 // examples/nft-quest
 Fren
 fren
-trxn

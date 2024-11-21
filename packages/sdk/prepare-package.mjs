@@ -1,20 +1,16 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-// Define the path to the package.json
-const packageJsonPath = path.resolve("./package.json");
-console.log(packageJsonPath);
-
-// Get the version from environment variables
 const version = process.env.INPUT_VERSION;
 if (!version) {
   console.error("Error: INPUT_VERSION is required.");
   process.exit(1);
 }
 
+const packageJsonPath = path.resolve("./package.json");
+
 async function preparePackageJson() {
   try {
-    // Read the existing package.json
     const packageJsonData = await fs.readFile(packageJsonPath, "utf8");
     const packageJson = JSON.parse(packageJsonData);
 

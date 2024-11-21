@@ -6,6 +6,17 @@
       />
     </template>
 
+    <CommonAlert>
+      <template #icon>
+        <InformationCircleIcon aria-hidden="true" />
+      </template>
+      <template #default>
+        <p class="text-sm">
+          UI for non-session transactions is currently in an early development stage and remains a work-in-progress.
+        </p>
+      </template>
+    </CommonAlert>
+
     <h2 class="flex items-center justify-center text-white text-center text-3xl mt-6 font-semibold">
       <span v-if="preparingTransaction">
         <CommonContentLoader :length="15" />
@@ -144,6 +155,7 @@
 </template>
 
 <script lang="ts" setup>
+import { InformationCircleIcon } from "@heroicons/vue/20/solid";
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { useIntervalFn } from "@vueuse/core";
 import { type Address, formatUnits, type SendTransactionRequest } from "viem";

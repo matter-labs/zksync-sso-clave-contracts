@@ -45,11 +45,21 @@ const ssoConnector = zksyncSsoConnector({
       // Allow up to 0.1 ETH to be spend in gas fees
       feeLimit: parseEther("0.1"),
 
-      // Allow ETH transfers to a specific address:
       transfers: [
+         // Allow ETH transfers of up to 0.1 ETH to specific address
          {
             to: "0x188bd99cd7D4d78d4E605Aeea12C17B32CC3135A",
             valueLimit: parseEther("0.1"),
+         },
+
+         // Allow ETH transfers to specific address with a limit of 0.1 ETH per hour
+         // until the session expires
+         {
+            to: "0x188bd99cd7D4d78d4E605Aeea12C17B32CC3135A",
+            valueLimit: {
+               limit: parseEther("0.1"),
+               period: BigInt(60 * 60), // 1 hour in seconds
+            },
          },
       ],
 
@@ -61,21 +71,21 @@ const ssoConnector = zksyncSsoConnector({
 
             // Optional call constraints (unconstrained otherwise):
             constraints: [
+
                // Only allow transfers to this address
                {
                   index: 0,
                   condition: "Equal",
-                  refValue: "0x6cC8cf7f6b488C58AA909B77E6e65c631c204784",
+                  refValue: pad("0x6cC8cf7f6b488C58AA909B77E6e65c631c204784", { size: 32 }),
                },
 
-               // Limit the transfer amount to 0.1 tokens
+               // Transfer up to 0.2 tokens
                {
                   index: 1,
-                  condition: "LessEqual",
-                  refValue: toHex(parseUnits("0.1", TOKEN.decimals), { size: 32 }),
+                  limit: parseUnits("0.2", TOKEN.decimals), // Unlimited if omitted
                },
             ],
-         }
+         },
       ],
    },
 });

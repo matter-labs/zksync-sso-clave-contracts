@@ -41,7 +41,6 @@ export function toSmartAccount(
         ...transaction,
         from: this.address!,
         type: "eip712",
-        gas: 100_000_000n, // TODO remove when gas estimation is fixed
       } as ZksyncTransactionSerializableEIP712;
 
       const eip712DomainAndMessage = getEip712Domain(signableTransaction);

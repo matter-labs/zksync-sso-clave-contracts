@@ -4,3 +4,4 @@ viem
 wagmi
 cbor
 levischuck
+ofetch
