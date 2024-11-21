@@ -32,14 +32,17 @@
       <p class="mt-8 text-neutral-400 max-w-prose">
         Also, it's free. ZKsync can leverage paymasters to enable app developers to choose a custom gas token or even entirely sponsor gas fees for their users.
       </p>
-      <ZkButton
-        type="primary"
-        class="uppercase mt-8"
-        :loading="status === 'pending'"
-        @click="mintNFT"
-      >
-        Mint 100% free NFT
-      </ZkButton>
+      <div class="sticky bottom-[-8px] pb-4 bg-gradient-to-t from-black to-transparent w-full flex justify-center sm:justify-start">
+        <ZkButton
+          type="primary"
+          class="uppercase mt-8"
+          :loading="status === 'pending'"
+          @click="mintNFT"
+        >
+          Mint 100% free NFT
+        </ZkButton>
+      </div>
+
       <p
         v-if="status === 'error'"
         class="text-error-400 mt-4 text-sm"
