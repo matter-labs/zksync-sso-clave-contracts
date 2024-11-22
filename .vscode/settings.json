@@ -9,7 +9,6 @@
   "files.associations": {
     "*.css": "tailwindcss"
   },
-  "tailwindCSS.emmetCompletions": true,
   "[markdown]": {
     "rewrap.autoWrap.enabled": true,
     "editor.wordWrap": "on",
@@ -35,6 +34,5 @@
   "prettier.documentSelectors": ["**/*.sol"],
   "[solidity]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "css.customData": [".vscode/tailwind.json"]
+  }
 }
