@@ -7,17 +7,16 @@ import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 import { ValidationHandler } from "./ValidationHandler.sol";
 import { EIP712 } from "../helpers/EIP712.sol";
 
-/**
- * @title ERC1271Handler
- * @notice Contract which provides ERC1271 signature validation
- * @author https://getclave.io
- */
-abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Clave1271", "1.0.0"), ValidationHandler {
-  struct ClaveMessage {
+/// @title ERC1271Handler
+/// @author Matter Labs
+/// @notice Contract which provides ERC1271 signature validation
+/// @notice The implementation is inspired by Clave wallet.
+abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.0"), ValidationHandler {
+  struct SsoMessage {
     bytes32 signedHash;
   }
 
-  bytes32 constant _CLAVE_MESSAGE_TYPEHASH = keccak256("ClaveMessage(bytes32 signedHash)");
+  bytes32 constant _SSO_MESSAGE_TYPEHASH = keccak256("SsoMessage(bytes32 signedHash)");
 
   bytes4 private constant _ERC1271_MAGIC = 0x1626ba7e;
 
@@ -33,7 +32,7 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Clave1271", "1.
   ) public view override returns (bytes4 magicValue) {
     (bytes memory signature, address validator) = SignatureDecoder.decodeSignatureNoHookData(signatureAndValidator);
 
-    bytes32 eip712Hash = _hashTypedDataV4(_claveMessageHash(ClaveMessage(signedHash)));
+    bytes32 eip712Hash = _hashTypedDataV4(_ssoMessageHash(SsoMessage(signedHash)));
 
     bool valid = _handleValidation(validator, eip712Hash, signature);
 
@@ -41,23 +40,23 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Clave1271", "1.
   }
 
   /**
-   * @notice Returns the EIP-712 hash of the Clave message
-   * @param claveMessage ClaveMessage calldata - The message containing signedHash
+   * @notice Returns the EIP-712 hash of the Sso message
+   * @param ssoMessage SsoMessage calldata - The message containing signedHash
    * @return bytes32 - EIP712 hash of the message
    */
-  function getEip712Hash(ClaveMessage calldata claveMessage) external view returns (bytes32) {
-    return _hashTypedDataV4(_claveMessageHash(claveMessage));
+  function getEip712Hash(SsoMessage calldata ssoMessage) external view returns (bytes32) {
+    return _hashTypedDataV4(_ssoMessageHash(ssoMessage));
   }
 
   /**
-   * @notice Returns the typehash for the clave message struct
-   * @return bytes32 - Clave message typehash
+   * @notice Returns the typehash for the sso message struct
+   * @return bytes32 - Sso message typehash
    */
-  function claveMessageTypeHash() external pure returns (bytes32) {
-    return _CLAVE_MESSAGE_TYPEHASH;
+  function ssoMessageTypeHash() external pure returns (bytes32) {
+    return _SSO_MESSAGE_TYPEHASH;
   }
 
-  function _claveMessageHash(ClaveMessage memory claveMessage) internal pure returns (bytes32) {
-    return keccak256(abi.encode(_CLAVE_MESSAGE_TYPEHASH, claveMessage.signedHash));
+  function _ssoMessageHash(SsoMessage memory ssoMessage) internal pure returns (bytes32) {
+    return keccak256(abi.encode(_SSO_MESSAGE_TYPEHASH, ssoMessage.signedHash));
   }
 }

@@ -141,7 +141,7 @@ export const getProviderL1 = () => {
   return provider;
 };
 
-export async function deployFactory(wallet: Wallet, implAddress: string, expectedAddress?: string): Promise<AAFactory> {
+export async function deployFactory(wallet: Wallet, implAddress: string): Promise<AAFactory> {
   const factoryArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AAFactory.sol/AAFactory.json", "utf8"));
   const proxyAaArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"));
 
@@ -153,12 +153,6 @@ export async function deployFactory(wallet: Wallet, implAddress: string, expecte
     { customData: { factoryDeps: [proxyAaArtifact.bytecode] } },
   );
   const factoryAddress = await factory.getAddress();
-
-  if (expectedAddress && factoryAddress != expectedAddress) {
-    console.warn(`AAFactory.sol address is not the expected default address (${expectedAddress}).`);
-    console.warn(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
-    return AAFactory__factory.connect(expectedAddress, wallet);
-  }
 
   if (hre.network.config.verifyURL) {
     logInfo(`Requesting contract verification...`);
@@ -220,8 +214,7 @@ export const create2 = async (contractName: string, wallet: Wallet, salt: ethers
   const standardCreate2Address = utils.create2Address(wallet.address, bytecodeHash, salt, args ? constructorArgs : "0x");
   const accountCode = await wallet.provider.getCode(standardCreate2Address);
   if (accountCode != "0x") {
-    logInfo(`${contractArtifact.sourceName}:${contractName}`);
-    logInfo("Contract already exists!");
+    logInfo(`Contract ${contractName} already exists!`);
     // if (hre.network.config.verifyURL) {
     //   logInfo(`Requesting contract verification...`);
     //   await verifyContract({

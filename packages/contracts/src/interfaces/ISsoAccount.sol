@@ -11,7 +11,6 @@ import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155
 import { IHookManager } from "./IHookManager.sol";
 import { IModuleManager } from "./IModuleManager.sol";
 import { IOwnerManager } from "./IOwnerManager.sol";
-import { IUpgradeManager } from "./IUpgradeManager.sol";
 import { IValidatorManager } from "./IValidatorManager.sol";
 
 /**
@@ -27,7 +26,6 @@ interface ISsoAccount is
   IModuleManager,
   IOwnerManager,
   IValidatorManager,
-  IUpgradeManager,
   IAccount
 {
   event FeePaid();

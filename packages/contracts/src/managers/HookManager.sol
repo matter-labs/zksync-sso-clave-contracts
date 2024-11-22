@@ -12,7 +12,6 @@ import { Errors } from "../libraries/Errors.sol";
 import { IExecutionHook, IValidationHook } from "../interfaces/IHook.sol";
 import { IInitable } from "../interfaces/IInitable.sol";
 import { IHookManager } from "../interfaces/IHookManager.sol";
-import { IHook } from "../interfaces/IERC7579Module.sol";
 
 /**
  * @title Manager contract for hooks
@@ -33,17 +32,6 @@ abstract contract HookManager is IHookManager, Auth {
   error HookPostCheckFailed();
   error HookAlreadyInstalled(address currentHook);
 
-  modifier withHook() {
-    address hook = _getHook();
-    if (hook == address(0)) {
-      _;
-    } else {
-      bytes memory hookData = IHook(hook).preCheck(msg.sender, msg.value, msg.data);
-      _;
-      IHook(hook).postCheck(hookData);
-    }
-  }
-
   function _setHook(address hook) internal virtual {
     bytes32 slot = CONTEXT_KEY;
     assembly {
@@ -61,12 +49,10 @@ abstract contract HookManager is IHookManager, Auth {
 
     // add to ZKsync flow
     _executionHooksLinkedList().add(hook);
-    IHook(hook).onInstall(data);
   }
 
   function _uninstallHook(address hook, bytes calldata data) internal virtual {
     _setHook(address(0));
-    IHook(hook).onUninstall(data);
   }
 
   function _getHook() internal view returns (address _hook) {
@@ -131,14 +117,15 @@ abstract contract HookManager is IHookManager, Auth {
     mapping(address => address) storage validationHooks = _validationHooksLinkedList();
 
     address cursor = validationHooks[AddressLinkedList.SENTINEL_ADDRESS];
-    uint256 idx = 0;
+    uint256 idx;
     // Iterate through hooks
     while (cursor > AddressLinkedList.SENTINEL_ADDRESS) {
       // Call it with corresponding hookData
       bool success = _call(
         cursor,
-        abi.encodeWithSelector(IValidationHook.validationHook.selector, signedHash, transaction, hookData[idx++])
+        abi.encodeCall(IValidationHook.validationHook, (signedHash, transaction, hookData[idx]))
       );
+      ++idx;
 
       if (!success) {
         return false;

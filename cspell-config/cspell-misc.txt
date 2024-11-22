@@ -9,6 +9,7 @@ Nuxt
 nuxtjs
 testid
 vueuse
+dockerized
 ethereum
 
 // examples/bank-demo
