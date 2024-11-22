@@ -35,9 +35,9 @@ jobs:
 
     # Build contracts and generate types
     - name: Build contracts
-      run: pnpm nx build contracts
+      run: pnpm build
 
     # Run contract tests
     - name: Run contract test
-      run: pnpm nx test contracts
+      run: pnpm test
 
