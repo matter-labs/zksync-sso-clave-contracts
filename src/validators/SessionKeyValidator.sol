@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.24;
 
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -29,6 +29,15 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
   mapping(address => uint256) private sessionCounter;
   // session hash => session state
   mapping(bytes32 => SessionLib.SessionStorage) private sessions;
+
+  modifier onlyWithValidationHook(uint256 slot) {
+    uint256 hookResult;
+    assembly {
+      hookResult := tload(slot)
+    }
+    require(hookResult == 1, "Can't call this function without calling validationHook");
+    _;
+  }
 
   function sessionState(
     address account,
@@ -114,9 +123,9 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
   }
 
   /*
-   * If there are any spend limits configured
+   * Check if the validator is registered for the smart account
    * @param smartAccount The smart account to check
-   * @return true if spend limits are configured initialized, false otherwise
+   * @return true if validator is registered for the account, false otherwise
    */
   function isInitialized(address smartAccount) external view returns (bool) {
     return _isInitialized(smartAccount);
@@ -127,12 +136,12 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
     // && IValidatorManager(smartAccount).isModuleValidator(address(this));
   }
 
-  /*
-   * Currently doing 1271 validation, but might update the interface to match the zksync account validation
-   */
-  function isValidSignature(bytes32 hash, bytes memory signature) public view returns (bytes4 magic) {
+  function isValidSignature(
+    bytes32 hash,
+    bytes memory signature
+  ) public view onlyWithValidationHook(uint256(hash)) returns (bytes4 magic) {
+    // Only succeeds if validationHook has previously succeeded.
     magic = EIP1271_SUCCESS_RETURN_VALUE;
-    // TODO: Does this method have to work standalone? If not, validationHook is sufficient for validation.
   }
 
   function validationHook(bytes32 signedHash, Transaction calldata transaction, bytes calldata hookData) external {
@@ -146,6 +155,12 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
     require(recoveredAddress == spec.signer, "Invalid signer");
     bytes32 sessionHash = keccak256(abi.encode(spec));
     sessions[sessionHash].validate(transaction, spec);
+
+    // Set the validation result to 1 for this hash, so that isValidSignature succeeds
+    uint256 slot = uint256(signedHash);
+    assembly {
+      tstore(slot, 1)
+    }
   }
 
   /**
