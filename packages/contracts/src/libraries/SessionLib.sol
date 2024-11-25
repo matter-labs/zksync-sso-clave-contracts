@@ -206,7 +206,7 @@ library SessionLib {
         }
       }
 
-      require(found, "Call not allowed");
+      require(found, "Call to this contract is not allowed");
       require(transaction.value <= callPolicy.maxValuePerUse, "Value exceeds limit");
       callPolicy.valueLimit.checkAndUpdate(state.callValue[target][selector], transaction.value, periodIds[1]);
 
@@ -225,7 +225,7 @@ library SessionLib {
         }
       }
 
-      require(found, "Transfer not allowed");
+      require(found, "Transfer to this address is not allowed");
       require(transaction.value <= transferPolicy.maxValuePerUse, "Value exceeds limit");
       transferPolicy.valueLimit.checkAndUpdate(state.transferValue[target], transaction.value, periodIds[1]);
     }
