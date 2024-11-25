@@ -30,15 +30,6 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
   // session hash => session state
   mapping(bytes32 => SessionLib.SessionStorage) private sessions;
 
-  modifier onlyWithValidationHook(uint256 slot) {
-    uint256 hookResult;
-    assembly {
-      hookResult := tload(slot)
-    }
-    require(hookResult == 1, "Can't call this function without calling validationHook");
-    _;
-  }
-
   function sessionState(
     address account,
     SessionLib.SessionSpec calldata spec
@@ -51,8 +42,14 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
   }
 
   function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
-    // this only validates that the session key is linked to the account, not the transaction against the session spec
-    return isValidSignature(signedHash, signature) == EIP1271_SUCCESS_RETURN_VALUE;
+    // This only succeeds if the validationHook has previously succeeded for this hash.
+    uint256 slot = uint256(signedHash);
+    uint256 hookResult;
+    assembly {
+      hookResult := tload(slot)
+    }
+    require(hookResult == 1, "Can't call this function without calling validationHook");
+    return true;
   }
 
   function addValidationKey(bytes memory sessionData) external returns (bool) {
@@ -134,14 +131,6 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
   function _isInitialized(address smartAccount) internal view returns (bool) {
     return IHookManager(smartAccount).isHook(address(this));
     // && IValidatorManager(smartAccount).isModuleValidator(address(this));
-  }
-
-  function isValidSignature(
-    bytes32 hash,
-    bytes memory signature
-  ) public view onlyWithValidationHook(uint256(hash)) returns (bytes4 magic) {
-    // Only succeeds if validationHook has previously succeeded.
-    magic = EIP1271_SUCCESS_RETURN_VALUE;
   }
 
   function validationHook(bytes32 signedHash, Transaction calldata transaction, bytes calldata hookData) external {
