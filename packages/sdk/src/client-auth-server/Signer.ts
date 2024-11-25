@@ -1,6 +1,6 @@
 import { type Address, type Chain, type Hash, hexToNumber, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, type Transport } from "viem";
 
-import { createZksyncSessionClient, type ZksyncAccountSessionClient } from "../client/index.js";
+import { createZksyncSessionClient, type ZksyncSsoSessionClient } from "../client/index.js";
 import type { Communicator } from "../communicator/index.js";
 import { type SessionConfig } from "../utils/session.js";
 import { StorageItem } from "../utils/storage.js";
@@ -20,6 +20,7 @@ type Account = {
 interface SignerInterface {
   accounts: Address[];
   chain: Chain;
+  getClient(parameters?: { chainId?: number }): ZksyncSsoSessionClient;
   handshake(): Promise<Address[]>;
   request<TMethod extends Method>(request: RequestArguments<TMethod>): Promise<ExtractReturnType<TMethod>>;
   disconnect: () => Promise<void>;
@@ -51,7 +52,7 @@ export class Signer implements SignerInterface {
 
   private _account: StorageItem<Account | null>;
   private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey("chainsInfo"), []);
-  private walletClient: ZksyncAccountSessionClient | undefined;
+  private walletClient: ZksyncSsoSessionClient | undefined;
 
   constructor({ metadata, communicator, updateListener, session, chains, transports }: SignerConstructorParams) {
     if (!chains.length) throw new Error("At least one chain must be included in the config");
@@ -81,6 +82,15 @@ export class Signer implements SignerInterface {
       console.error("Logging out to prevent crash loop");
       this.clearState();
     }
+  }
+
+  getClient(parameters?: { chainId?: number }) {
+    const chainId = parameters?.chainId || this.chain.id;
+    const chain = this.chains.find((e) => e.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+
+    if (!this.walletClient) throw new Error("Wallet client is not created");
+    return this.walletClient;
   }
 
   private get account(): Account | null {

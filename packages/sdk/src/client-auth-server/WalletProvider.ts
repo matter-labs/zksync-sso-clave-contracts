@@ -25,7 +25,7 @@ export type WalletProviderConstructorOptions = {
 };
 
 export class WalletProvider extends EventEmitter implements ProviderInterface {
-  readonly isZksyncAccount = true;
+  readonly isZksyncSso = true;
   private signer: Signer;
 
   constructor({ metadata, chains, transports, session, authServerUrl }: WalletProviderConstructorOptions) {
@@ -50,6 +50,10 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
 
   public get connected() {
     return this.signer.accounts.length > 0;
+  }
+
+  public getClient(parameters?: { chainId?: number }) {
+    return this.signer.getClient(parameters);
   }
 
   public async request<M extends Method>(request: RequestArguments<M>): Promise<ExtractReturnType<M>> {

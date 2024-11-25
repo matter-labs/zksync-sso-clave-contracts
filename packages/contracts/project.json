@@ -44,7 +44,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/contracts",
-        "command": "pnpm hardhat test --grep 'should deploy all contracts'"
+        "command": "pnpm hardhat deploy"
       },
       "inputs": ["production", "outputs", "^production"],
       "dependsOn": ["build"]

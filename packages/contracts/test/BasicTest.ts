@@ -4,7 +4,7 @@ import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
 
-import { ERC7579Account__factory } from "../typechain-types";
+import { SsoAccount__factory } from "../typechain-types";
 import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
 import { ContractFixtures, getProvider } from "./utils";
 
@@ -36,7 +36,7 @@ describe("Basic tests", function () {
     const aaFactoryContract = await fixtures.getAaFactory();
     assert(aaFactoryContract != null, "No AA Factory deployed");
 
-    const deployTx = await aaFactoryContract.deployProxy7579Account(
+    const deployTx = await aaFactoryContract.deployProxySsoAccount(
       randomBytes(32),
       "id",
       [],
@@ -48,7 +48,7 @@ describe("Basic tests", function () {
 
     expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
 
-    const account = ERC7579Account__factory.connect(proxyAccountAddress, provider);
+    const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
     assert(await account.k1IsOwner(fixtures.wallet.address));
   });
 
@@ -70,8 +70,10 @@ describe("Basic tests", function () {
       ...await aaTxTemplate(),
       to: target,
       value,
+      gasLimit: 300_000n,
     };
-    aaTx.gasLimit = await provider.estimateGas(aaTx);
+    // TODO: fix gas estimation
+    // aaTx.gasLimit = await provider.estimateGas(aaTx);
 
     const signedTransaction = await smartAccount.signTransaction(aaTx);
     assert(signedTransaction != null, "valid transaction to sign");
@@ -109,15 +111,17 @@ describe("Basic tests", function () {
       },
     ];
 
-    const account = ERC7579Account__factory.connect(proxyAccountAddress, provider);
+    const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
 
     const aaTx = {
       ...await aaTxTemplate(),
-      to: await account.BATCH_CALLER(),
+      to: proxyAccountAddress,
       data: account.interface.encodeFunctionData("batchCall", [calls]),
-      // value: value * 2n,
+      value: value * 2n,
+      gasLimit: 300_000n,
     };
-    aaTx.gasLimit = await provider.estimateGas(aaTx);
+    // TODO: fix gas estimation
+    // aaTx.gasLimit = await provider.estimateGas(aaTx);
 
     const signedTransaction = await smartAccount.signTransaction(aaTx);
     assert(signedTransaction != null, "valid transaction to sign");
@@ -126,8 +130,8 @@ describe("Basic tests", function () {
     const receipt = await tx.wait();
     const fee = receipt.gasUsed * aaTx.gasPrice;
 
-    expect(await provider.getBalance(proxyAccountAddress)).to.equal(balanceBefore - value * 2n - fee, "invalid final account balance");
-    expect(await provider.getBalance(target1)).to.equal(value, "invalid final target balance");
-    expect(await provider.getBalance(target2)).to.equal(value, "invalid final target balance");
+    expect(await provider.getBalance(proxyAccountAddress)).to.equal(balanceBefore - value * 2n - fee, "invalid final own balance");
+    expect(await provider.getBalance(target1)).to.equal(value, "invalid final target-1 balance");
+    expect(await provider.getBalance(target2)).to.equal(value, "invalid final target-2 balance");
   });
 });

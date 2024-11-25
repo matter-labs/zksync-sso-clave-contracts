@@ -3,15 +3,35 @@ import { privateKeyToAccount } from "viem/accounts";
 
 import { encodeSession } from "../../utils/encoding.js";
 import type { SessionConfig } from "../../utils/session.js";
-import { type ZksyncAccountSessionActions, zksyncAccountSessionActions } from "../decorators/session.js";
-import { type ZksyncAccountWalletActions, zksyncAccountWalletActions } from "../decorators/session_wallet.js";
+import { publicActionsRewrite } from "../decorators/publicActionsRewrite.js";
+import { type ZksyncSsoSessionActions, zksyncSsoSessionActions } from "../decorators/session.js";
+import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "../decorators/session_wallet.js";
 import { toSmartAccount } from "../smart-account.js";
+
+export const signSessionTransaction = (args: {
+  sessionKeySignedHash: Hash;
+  sessionContract: Address;
+  sessionConfig: SessionConfig;
+}) => {
+  return encodeAbiParameters(
+    [
+      { type: "bytes" },
+      { type: "address" },
+      { type: "bytes[]" },
+    ],
+    [
+      args.sessionKeySignedHash,
+      args.sessionContract,
+      [encodeSession(args.sessionConfig)], // FIXME: this is assuming there are no other hooks
+    ],
+  );
+};
 
 export function createZksyncSessionClient<
   transport extends Transport,
   chain extends Chain,
   rpcSchema extends RpcSchema | undefined = undefined,
->(_parameters: ZksyncAccountSessionClientConfig<transport, chain, rpcSchema>): ZksyncAccountSessionClient<transport, chain, rpcSchema> {
+>(_parameters: ZksyncSsoSessionClientConfig<transport, chain, rpcSchema>): ZksyncSsoSessionClient<transport, chain, rpcSchema> {
   type WalletClientParameters = typeof _parameters;
   const parameters: WalletClientParameters & {
     key: NonNullable<WalletClientParameters["key"]>;
@@ -20,7 +40,7 @@ export function createZksyncSessionClient<
     ..._parameters,
     address: getAddress(_parameters.address),
     key: _parameters.key || "wallet",
-    name: _parameters.name || "ZKsync Account Session Client",
+    name: _parameters.name || "ZKsync SSO Session Client",
   };
 
   const account = toSmartAccount({
@@ -28,18 +48,11 @@ export function createZksyncSessionClient<
     sign: async ({ hash }) => {
       const sessionKeySigner = privateKeyToAccount(parameters.sessionKey);
       const hashSignature = await sessionKeySigner.sign({ hash });
-      return encodeAbiParameters(
-        [
-          { type: "bytes" },
-          { type: "address" },
-          { type: "bytes[]" },
-        ],
-        [
-          hashSignature,
-          parameters.contracts.session,
-          [encodeSession(parameters.sessionConfig)], // FIXME: this is assuming there are no other hooks
-        ],
-      );
+      return signSessionTransaction({
+        sessionKeySignedHash: hashSignature,
+        sessionContract: parameters.contracts.session,
+        sessionConfig: parameters.sessionConfig,
+      });
     },
   });
   const client = createClient<transport, chain, Account, rpcSchema>({
@@ -53,27 +66,28 @@ export function createZksyncSessionClient<
       contracts: parameters.contracts,
     }))
     .extend(publicActions)
-    .extend(zksyncAccountWalletActions)
-    .extend(zksyncAccountSessionActions);
+    .extend(publicActionsRewrite)
+    .extend(zksyncSsoWalletActions)
+    .extend(zksyncSsoSessionActions);
   return client;
 }
 
 export type SessionRequiredContracts = {
   session: Address; // Session, spend limit, etc.
 };
-type ZksyncAccountSessionData = {
+type ZksyncSsoSessionData = {
   sessionKey: Hash;
   sessionConfig: SessionConfig;
   contracts: SessionRequiredContracts;
 };
 
-export type ClientWithZksyncAccountSessionData<
+export type ClientWithZksyncSsoSessionData<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
   account extends Account = Account,
-> = Client<transport, chain, account> & ZksyncAccountSessionData;
+> = Client<transport, chain, account> & ZksyncSsoSessionData;
 
-export type ZksyncAccountSessionClient<
+export type ZksyncSsoSessionClient<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
   rpcSchema extends RpcSchema | undefined = undefined,
@@ -86,11 +100,11 @@ export type ZksyncAccountSessionClient<
     rpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema],
-    ZksyncAccountWalletActions<chain, account> & ZksyncAccountSessionActions
-  > & ZksyncAccountSessionData
+    ZksyncSsoWalletActions<chain, account> & ZksyncSsoSessionActions
+  > & ZksyncSsoSessionData
 >;
 
-export interface ZksyncAccountSessionClientConfig<
+export interface ZksyncSsoSessionClientConfig<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
   rpcSchema extends RpcSchema | undefined = undefined,

@@ -16,7 +16,7 @@ import { SessionKeyValidator } from "../validators/SessionKeyValidator.sol";
 contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
   address public immutable AA_FACTORY_CONTRACT_ADDRESS;
   address public immutable SESSION_KEY_VALIDATOR_CONTRACT_ADDRESS;
-  bytes4 constant DEPLOY_ACCOUNT_SELECTOR = AAFactory.deployProxy7579Account.selector;
+  bytes4 constant DEPLOY_ACCOUNT_SELECTOR = AAFactory.deployProxySsoAccount.selector;
   bytes4 constant CREATE_SESSION_SELECTOR = SessionKeyValidator.createSession.selector;
 
   modifier onlyBootloader() {
@@ -46,7 +46,7 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
       "Unsupported contract address"
     );
 
-    // Ensure the transaction is calling either the deployProxy7579Account or createSession functions
+    // Ensure the transaction is calling either the deployProxySsoAccount or createSession functions
     require(_transaction.data.length >= 4, "Transaction data is too short");
     bytes4 methodSelector = bytes4(_transaction.data[0:4]);
     if (to == AA_FACTORY_CONTRACT_ADDRESS) {

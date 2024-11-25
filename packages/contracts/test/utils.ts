@@ -9,8 +9,8 @@ import * as hre from "hardhat";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
 
-import { AAFactory, ERC20, ERC7579Account, ExampleAuthServerPaymaster, SessionKeyValidator, WebAuthValidator } from "../typechain-types";
-import { AAFactory__factory, ERC20__factory, ERC7579Account__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, WebAuthValidator__factory } from "../typechain-types";
+import { AAFactory, ERC20, ExampleAuthServerPaymaster, SessionKeyValidator, SsoAccount, WebAuthValidator } from "../typechain-types";
+import { AAFactory__factory, ERC20__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, SsoAccount__factory, WebAuthValidator__factory } from "../typechain-types";
 
 export class ContractFixtures {
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
@@ -67,12 +67,11 @@ export class ContractFixtures {
     return this._passkeyModuleAddress;
   }
 
-  private _accountImplContract: ERC7579Account;
-  // wraps the clave account
+  private _accountImplContract: SsoAccount;
   async getAccountImplContract() {
     if (!this._accountImplContract) {
-      const contract = await create2("ERC7579Account", this.wallet, this.ethersStaticSalt);
-      this._accountImplContract = ERC7579Account__factory.connect(await contract.getAddress(), this.wallet);
+      const contract = await create2("SsoAccount", this.wallet, this.ethersStaticSalt);
+      this._accountImplContract = SsoAccount__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._accountImplContract;
   }
@@ -122,24 +121,12 @@ export class ContractFixtures {
 // Load env file
 dotenv.config();
 
-// TODO: remove once SDK fix is released
-class FixedProvider extends Provider {
-  getRpcTransaction(tx: ethers.TransactionRequest) {
-    const result = <any> super.getRpcTransaction(tx);
-    if (tx.customData?.customSignature) {
-      result.eip712Meta ??= {};
-      result.eip712Meta.customSignature = Array.from(ethers.getBytes(tx.customData.customSignature));
-    }
-    return result;
-  }
-}
-
 export const getProvider = () => {
   const rpcUrl = hre.network.config["url"];
   if (!rpcUrl) throw `⛔️ RPC URL wasn't found in "${hre.network.name}"! Please add a "url" field to the network config in hardhat.config.ts`;
 
   // Initialize ZKsync Provider
-  const provider = new FixedProvider(rpcUrl);
+  const provider = new Provider(rpcUrl);
 
   return provider;
 };
@@ -154,7 +141,7 @@ export const getProviderL1 = () => {
   return provider;
 };
 
-export async function deployFactory(wallet: Wallet, implAddress: string, expectedAddress?: string): Promise<AAFactory> {
+export async function deployFactory(wallet: Wallet, implAddress: string): Promise<AAFactory> {
   const factoryArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AAFactory.sol/AAFactory.json", "utf8"));
   const proxyAaArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"));
 
@@ -166,12 +153,6 @@ export async function deployFactory(wallet: Wallet, implAddress: string, expecte
     { customData: { factoryDeps: [proxyAaArtifact.bytecode] } },
   );
   const factoryAddress = await factory.getAddress();
-
-  if (expectedAddress && factoryAddress != expectedAddress) {
-    console.warn(`AAFactory.sol address is not the expected default address (${expectedAddress}).`);
-    console.warn(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
-    return AAFactory__factory.connect(expectedAddress, wallet);
-  }
 
   if (hre.network.config.verifyURL) {
     logInfo(`Requesting contract verification...`);
@@ -233,8 +214,7 @@ export const create2 = async (contractName: string, wallet: Wallet, salt: ethers
   const standardCreate2Address = utils.create2Address(wallet.address, bytecodeHash, salt, args ? constructorArgs : "0x");
   const accountCode = await wallet.provider.getCode(standardCreate2Address);
   if (accountCode != "0x") {
-    logInfo(`${contractArtifact.sourceName}:${contractName}`);
-    logInfo("Contract already exists!");
+    logInfo(`Contract ${contractName} already exists!`);
     // if (hre.network.config.verifyURL) {
     //   logInfo(`Requesting contract verification...`);
     //   await verifyContract({

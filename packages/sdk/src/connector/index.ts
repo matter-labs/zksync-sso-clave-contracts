@@ -10,15 +10,16 @@ import {
   UserRejectedRequestError,
 } from "viem";
 
+import { EthereumProviderError } from "../errors/errors.js";
 import { type AppMetadata, type ProviderInterface, type SessionPreferences, WalletProvider } from "../index.js";
 
-export type ZksyncAccountConnectorOptions = {
+export type ZksyncSsoConnectorOptions = {
   metadata?: Partial<AppMetadata>;
   session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
   authServerUrl?: string;
 };
 
-export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions) => {
+export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
   type Provider = ProviderInterface;
 
   let walletProvider: WalletProvider | undefined;
@@ -116,6 +117,10 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
       if (!chainId) return config.chains[0].id;
       return Number(chainId);
     },
+    async getClient(parameters) {
+      if (!walletProvider) throw new Error("Wallet provider not initialized");
+      return walletProvider.getClient(parameters);
+    },
     async getProvider() {
       if (!walletProvider) {
         walletProvider = new WalletProvider({
@@ -155,17 +160,18 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
       }
     },
     onAccountsChanged(accounts) {
-      if (accounts.length === 0) this.onDisconnect();
-      else config.emitter.emit("change", {
+      if (!accounts.length) return;
+      config.emitter.emit("change", {
         accounts: accounts.map((x) => getAddress(x)),
       });
     },
     onChainChanged(chain) {
       config.emitter.emit("change", { chainId: Number(chain) });
     },
-    async onDisconnect(_error) {
-      console.error("onDisconnect", _error);
+    async onDisconnect(error) {
       config.emitter.emit("disconnect");
+      if (error instanceof EthereumProviderError && error.code === 4900) return; // User initiated
+      console.error("Account disconnected", error);
     },
   }));
 };

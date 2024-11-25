@@ -10,9 +10,10 @@ export default defineNuxtConfig({
     head: {
       title: "ZKsync SSO",
       link: [
-        { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
-        { rel: "icon", type: "image/png", href: "/favicon-96x96.png", sizes: "96x96" },
+        { rel: "icon", type: "image/x-icon", href: "/favicon.ico", sizes: "32x32" },
+        { rel: "icon", type: "image/png", href: "/icon-96x96.png", sizes: "96x96" },
         { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+        { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       ],
     },
   },
@@ -54,6 +55,16 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncInMemoryNode.id,
+    },
+  },
+
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: "modern", // Fix warning: "The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0"
+        },
+      },
     },
   },
 });

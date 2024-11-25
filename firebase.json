@@ -9,13 +9,13 @@
     {
       "target": "stake-demo-app",
       "trailingSlash": false,
-      "public": "packages/bank-demo/.output/public",
+      "public": "examples/bank-demo/.output/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     },
     {
       "target": "nft-quest-testnet",
       "trailingSlash": false,
-      "public": "packages/nft-quest/.output/public",
+      "public": "examples/nft-quest/.output/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     }
   ]

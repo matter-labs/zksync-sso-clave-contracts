@@ -120,7 +120,46 @@ export const FactoryAbi = [
         type: "address[]",
       },
     ],
-    name: "deployProxy7579Account",
+    name: "deployProxySsoAccount",
+    outputs: [
+      {
+        internalType: "address",
+        name: "accountAddress",
+        type: "address",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "salt",
+        type: "bytes32",
+      },
+      {
+        internalType: "string",
+        name: "uniqueAccountId",
+        type: "string",
+      },
+      {
+        internalType: "bytes[]",
+        name: "initialValidators",
+        type: "bytes[]",
+      },
+      {
+        internalType: "bytes[]",
+        name: "initialModules",
+        type: "bytes[]",
+      },
+      {
+        internalType: "address[]",
+        name: "initialK1Owners",
+        type: "address[]",
+      },
+    ],
+    name: "deployProxySsoAccount",
     outputs: [
       {
         internalType: "address",

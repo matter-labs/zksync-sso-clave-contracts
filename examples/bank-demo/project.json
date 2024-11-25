@@ -1,0 +1,47 @@
+{
+  "name": "bank-demo",
+  "implicitDependencies": ["sdk"],
+  "tags": ["type:app"],
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/bank-demo",
+        "command": "PORT=3005 nuxt dev"
+      },
+      "dependsOn": ["^build"]
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/bank-demo",
+        "command": "nuxt generate"
+      },
+      "dependsOn": ["^build"]
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/bank-demo",
+        "command": "firebase deploy --only hosting:stake-demo-app --project stake-demo-app"
+      },
+      "dependsOn": ["build"]
+    },
+    "deploy:preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/nft-quest",
+        "command": "firebase hosting:channel:deploy --only stake-demo-app --project stake-demo-app"
+      },
+      "dependsOn": ["build"]
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/bank-demo",
+        "command": "nuxt preview"
+      },
+      "dependsOn": ["^build", "build"]
+    }
+  }
+}

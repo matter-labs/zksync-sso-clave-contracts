@@ -1,0 +1,8 @@
+body {
+  @apply min-h-[100dvh] bg-white dark:bg-black dark:text-white;
+}
+
+.nft-image {
+  background-image: url("/nft-animation.png");
+  background-size: contain;
+}
