@@ -129,13 +129,20 @@ type PartialSession = {
   }[];
 };
 
+async function getTimestamp() {
+  if (hre.network.name == "inMemoryNode") {
+    return Math.floor(await provider.send("config_getCurrentTimestamp", []));
+  } else {
+    return Math.floor(Date.now() / 1000);
+  }
+}
+
 class SessionTester {
   public sessionOwner: Wallet;
   public session: SessionLib.SessionSpecStruct;
   public sessionAccount: SmartAccount;
   // having this is a bit hacky, but it's so we can provide correct period ids in the signature
   aaTransaction: ethers.TransactionLike;
-  totalTimeIncreased = 0;
 
   constructor(public proxyAccountAddress: string, sessionKeyModuleAddress: string) {
     this.sessionOwner = new Wallet(Wallet.createRandom().privateKey, provider);
@@ -147,18 +154,13 @@ class SessionTester {
           sessionKeyModuleAddress,
           [abiCoder.encode(
             [sessionSpecAbi, "uint64[]"],
-            [this.session, this.periodIds(this.aaTransaction.to!, this.aaTransaction.data?.slice(0, 10))],
+            [this.session, await this.periodIds(this.aaTransaction.to!, this.aaTransaction.data?.slice(0, 10))],
           )], // this array supplies data for hooks
         ],
       ),
       address: this.proxyAccountAddress,
       secret: this.sessionOwner.privateKey,
     }, provider);
-  }
-
-  async sleep(seconds: number) {
-    await provider.send("evm_increaseTime", [seconds]);
-    this.totalTimeIncreased += seconds;
   }
 
   async createSession(newSession: PartialSession) {
@@ -193,9 +195,10 @@ class SessionTester {
     return abiCoder.encode([sessionSpecAbi], [this.session]);
   }
 
-  periodIds(target: string, selector?: string) {
+  async periodIds(target: string, selector?: string) {
+    const timestamp = await getTimestamp();
+
     const getId = (limit: SessionLib.UsageLimitStruct) => {
-      const timestamp = Math.floor(Date.now() / 1000) + this.totalTimeIncreased;
       if (limit.limitType == LimitType.Allowance) {
         return Math.floor(timestamp / Number(limit.period));
       }
@@ -211,11 +214,12 @@ class SessionTester {
       throw new Error("Transaction does not fit any policy");
     }
 
-    return [
+    const periodIds = [
       getId(this.session.feeLimit),
       getId(policy.valueLimit),
       ...(isTransfer ? [] : (<SessionLib.CallSpecStruct>policy).constraints.map((constraint) => getId(constraint.limit))),
     ];
+    return periodIds;
   }
 
   async revokeKey() {
@@ -524,7 +528,7 @@ describe("SessionKeyModule tests", function () {
     it("should create a session", async () => {
       tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
       await tester.createSession({
-        expiresAt: Math.floor(Date.now() / 1000) + period * 3,
+        expiresAt: await getTimestamp() + period * 3,
         transferPolicies: [{
           target: sessionTarget,
           maxValuePerUse: parseEther("0.01"),
@@ -538,8 +542,8 @@ describe("SessionKeyModule tests", function () {
 
     it("should use a session key to send a transaction", async () => {
       // We have to wait until the next period starts
-      const timestamp = Math.floor(Date.now() / 1000);
-      await tester.sleep(period - (timestamp % period));
+      const timestamp = Math.floor(await provider.send("config_getCurrentTimestamp", []));
+      await provider.send("evm_increaseTime", [period - (timestamp % period)]);
       // NOTE: this only works because `period` is > 60 seconds, since the default is
       // `timestamp_asserter.min_time_till_end_sec = 60`
       // We can sidestep the waiting by calling `evm_increaseTime` directly during the test,
@@ -559,7 +563,7 @@ describe("SessionKeyModule tests", function () {
     });
 
     it("should wait until allowance renews and send a transaction", async () => {
-      await tester.sleep(period);
+      await provider.send("evm_increaseTime", [period]);
       await tester.sendTxSuccess({
         to: sessionTarget,
         value: parseEther("0.01"),
@@ -568,7 +572,7 @@ describe("SessionKeyModule tests", function () {
 
     // TODO: check error messages as well
     it("should reject a transaction with an expired session", async () => {
-      await tester.sleep(period * 2);
+      await provider.send("evm_increaseTime", [period * 2]);
       await tester.sendTxFail({
         to: sessionTarget,
         value: parseEther("0.01"),
