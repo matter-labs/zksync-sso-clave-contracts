@@ -5,110 +5,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  e2e-demo-app:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./
-    steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-    # Start node
-    - name: Era Test Node Action
-      uses: dutterbutter/era-test-node-action@36ffd2eefd46dc16e7e2a8e1715124400ec0a3ba # v1
-
-    # Setup pnpm
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 9.11.0
-
-    - name: Use Node.js
-      uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
-      with:
-        node-version: lts/Iron
-        cache: 'pnpm'
-
-    # Install dependencies for repo
-    - name: Install dependencies
-      run: pnpm install -r --frozen-lockfile
-
-    # Build SDK
-    - name: Build SDK
-      run: pnpm nx build sdk
-
-    # Deploy contracts
-    - name: Deploy contracts
-      run: pnpm nx deploy contracts
-
-    # Run E2E tests
-    - name: Install Playwright Chromium Browser
-      run: pnpm exec playwright install chromium
-      working-directory: examples/demo-app
-    - name: Run e2e tests
-      run: pnpm nx e2e demo-app
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: demo-app-playwright-report
-        path: examples/demo-app/playwright-report/
-        retention-days: 3
-
-  
-  e2e-nft-quest:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./
-    steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-    # Start node
-    - name: Era Test Node Action
-      uses: dutterbutter/era-test-node-action@36ffd2eefd46dc16e7e2a8e1715124400ec0a3ba # v1
-
-    # Setup pnpm
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 9.11.0
-
-    - name: Use Node.js
-      uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
-      with:
-        node-version: lts/Iron
-        cache: 'pnpm'
-
-    # Install dependencies for repo
-    - name: Install dependencies
-      run: pnpm install -r --frozen-lockfile
-
-    # Build SDK
-    - name: Build SDK
-      run: pnpm nx build sdk
-
-    # Deploy contracts
-    - name: Deploy contracts
-      run: pnpm nx deploy contracts
-
-    # Deploy nft-quest-contracts
-    - name: Deploy NFT contracts
-      run: pnpm nx deploy:local nft-quest-contracts
-
-    # Run E2E tests
-    - name: Install Playwright Chromium Browser
-      run: pnpm exec playwright install chromium
-      working-directory: examples/nft-quest
-    - name: Run e2e tests
-      run: pnpm nx e2e nft-quest
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: nft-quest-playwright-report
-        path: examples/nft-quest/playwright-report/
-        retention-days: 3
-
-
   contracts:
     runs-on: ubuntu-latest
     defaults:
@@ -139,9 +35,9 @@ jobs:
 
     # Build contracts and generate types
     - name: Build contracts
-      run: pnpm nx build contracts
+      run: pnpm build
 
     # Run contract tests
     - name: Run contract test
-      run: pnpm nx test contracts
+      run: pnpm test
 
