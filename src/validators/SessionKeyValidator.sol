@@ -134,11 +134,14 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
       // This transaction is not meant to be validated by this module
       return;
     }
-    SessionLib.SessionSpec memory spec = abi.decode(hookData, (SessionLib.SessionSpec));
+    (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
+      hookData,
+      (SessionLib.SessionSpec, uint64[])
+    );
     (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, signature);
     require(recoveredAddress == spec.signer, "Invalid signer");
     bytes32 sessionHash = keccak256(abi.encode(spec));
-    sessions[sessionHash].validate(transaction, spec);
+    sessions[sessionHash].validate(transaction, spec, periodIds);
 
     // Set the validation result to 1 for this hash, so that isValidSignature succeeds
     uint256 slot = uint256(signedHash);

@@ -15,6 +15,77 @@ const fixtures = new ContractFixtures();
 const abiCoder = new ethers.AbiCoder();
 const provider = getProvider();
 
+const sessionSpecAbi = ethers.ParamType.from({
+  components: [
+    { name: "signer", type: "address" },
+    { name: "expiresAt", type: "uint256" },
+    {
+      components: [
+        { name: "limitType", type: "uint8" },
+        { name: "limit", type: "uint256" },
+        { name: "period", type: "uint256" },
+      ],
+      name: "feeLimit",
+      type: "tuple",
+    },
+    {
+      components: [
+        { name: "target", type: "address" },
+        { name: "selector", type: "bytes4" },
+        { name: "maxValuePerUse", type: "uint256" },
+        {
+          components: [
+            { name: "limitType", type: "uint8" },
+            { name: "limit", type: "uint256" },
+            { name: "period", type: "uint256" },
+          ],
+          name: "valueLimit",
+          type: "tuple",
+        },
+        {
+          components: [
+            { name: "condition", type: "uint8" },
+            { name: "index", type: "uint64" },
+            { name: "refValue", type: "bytes32" },
+            {
+              components: [
+                { name: "limitType", type: "uint8" },
+                { name: "limit", type: "uint256" },
+                { name: "period", type: "uint256" },
+              ],
+              name: "limit",
+              type: "tuple",
+            },
+          ],
+          name: "constraints",
+          type: "tuple[]",
+        },
+      ],
+      name: "callPolicies",
+      type: "tuple[]",
+    },
+    {
+      components: [
+        { name: "target", type: "address" },
+        { name: "maxValuePerUse", type: "uint256" },
+        {
+          components: [
+            { name: "limitType", type: "uint8" },
+            { name: "limit", type: "uint256" },
+            { name: "period", type: "uint256" },
+          ],
+          name: "valueLimit",
+          type: "tuple",
+        },
+      ],
+      name: "transferPolicies",
+      type: "tuple[]",
+    },
+  ],
+  name: "sessionSpec",
+  type: "tuple",
+});
+
 enum Condition {
   Unconstrained = 0,
   Equal = 1,
@@ -58,10 +129,20 @@ type PartialSession = {
   }[];
 };
 
+async function getTimestamp() {
+  if (hre.network.name == "inMemoryNode") {
+    return Math.floor(await provider.send("config_getCurrentTimestamp", []));
+  } else {
+    return Math.floor(Date.now() / 1000);
+  }
+}
+
 class SessionTester {
   public sessionOwner: Wallet;
   public session: SessionLib.SessionSpecStruct;
   public sessionAccount: SmartAccount;
+  // having this is a bit hacky, but it's so we can provide correct period ids in the signature
+  aaTransaction: ethers.TransactionLike;
 
   constructor(public proxyAccountAddress: string, sessionKeyModuleAddress: string) {
     this.sessionOwner = new Wallet(Wallet.createRandom().privateKey, provider);
@@ -71,7 +152,10 @@ class SessionTester {
         [
           this.sessionOwner.signingKey.sign(hash).serialized,
           sessionKeyModuleAddress,
-          [await this.encodeSession()], // this array supplies data for hooks
+          [abiCoder.encode(
+            [sessionSpecAbi, "uint64[]"],
+            [this.session, await this.periodIds(this.aaTransaction.to!, this.aaTransaction.data?.slice(0, 10))],
+          )], // this array supplies data for hooks
         ],
       ),
       address: this.proxyAccountAddress,
@@ -107,9 +191,35 @@ class SessionTester {
     expect(newState.status).to.equal(1, "session should be active");
   }
 
-  async encodeSession() {
-    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
-    return "0x" + sessionKeyModuleContract.interface.encodeFunctionData("createSession", [this.session]).slice(10);
+  encodeSession() {
+    return abiCoder.encode([sessionSpecAbi], [this.session]);
+  }
+
+  async periodIds(target: string, selector?: string) {
+    const timestamp = await getTimestamp();
+
+    const getId = (limit: SessionLib.UsageLimitStruct) => {
+      if (limit.limitType == LimitType.Allowance) {
+        return Math.floor(timestamp / Number(limit.period));
+      }
+      return 0;
+    };
+
+    const isTransfer = selector == null || ethers.getBytes(selector).length < 4;
+    const policy: SessionLib.CallSpecStruct | SessionLib.TransferSpecStruct | undefined = isTransfer
+      ? this.session.transferPolicies.find((policy) => policy.target == target)
+      : this.session.callPolicies.find((policy) => policy.target == target && ethers.hexlify(policy.selector) == selector);
+
+    if (policy == null) {
+      throw new Error("Transaction does not fit any policy");
+    }
+
+    const periodIds = [
+      getId(this.session.feeLimit),
+      getId(policy.valueLimit),
+      ...(isTransfer ? [] : (<SessionLib.CallSpecStruct>policy).constraints.map((constraint) => getId(constraint.limit))),
+    ];
+    return periodIds;
   }
 
   async revokeKey() {
@@ -122,7 +232,7 @@ class SessionTester {
       secret: fixtures.wallet.privateKey,
     }, provider);
 
-    const sessionHash = ethers.keccak256(await this.encodeSession());
+    const sessionHash = ethers.keccak256(this.encodeSession());
 
     const aaTx = {
       ...await this.aaTxTemplate(),
@@ -138,28 +248,29 @@ class SessionTester {
     expect(newState.status).to.equal(2, "session should be revoked");
   }
 
-  async sendTxSuccess(txRequest: ethers.TransactionRequest = {}) {
-    const aaTx = {
+  async sendTxSuccess(txRequest: ethers.TransactionLike = {}) {
+    this.aaTransaction = {
       ...await this.aaTxTemplate(),
       ...txRequest,
     };
-    aaTx.gasLimit = await provider.estimateGas(aaTx);
-    logInfo(`\`sessionTx\` gas estimated: ${await provider.estimateGas(aaTx)}`);
+    const estimatedGas = await provider.estimateGas(this.aaTransaction);
+    this.aaTransaction.gasLimit = BigInt(Math.ceil(Number(estimatedGas) * 1.1));
+    logInfo(`\`sessionTx\` gas estimated: ${await provider.estimateGas(this.aaTransaction)}`);
 
-    const signedTransaction = await this.sessionAccount.signTransaction(aaTx);
+    const signedTransaction = await this.sessionAccount.signTransaction(this.aaTransaction);
     const tx = await provider.broadcastTransaction(signedTransaction);
     const receipt = await tx.wait();
     logInfo(`\`sessionTx\` gas used: ${receipt.gasUsed}`);
   }
 
-  async sendTxFail(tx: ethers.TransactionRequest = {}) {
-    const aaTx = {
+  async sendTxFail(tx: ethers.TransactionLike = {}) {
+    this.aaTransaction = {
       ...await this.aaTxTemplate(),
       gasLimit: 100_000_000n,
       ...tx,
     };
 
-    const signedTransaction = await this.sessionAccount.signTransaction(aaTx);
+    const signedTransaction = await this.sessionAccount.signTransaction(this.aaTransaction);
     await expect(provider.broadcastTransaction(signedTransaction)).to.be.reverted;
   };
 
@@ -210,6 +321,7 @@ class SessionTester {
   }
 
   async aaTxTemplate() {
+    const numberOfConstraints = this.session.callPolicies.map((policy) => policy.constraints.length);
     return {
       type: 113,
       from: this.proxyAccountAddress,
@@ -225,7 +337,10 @@ class SessionTester {
           [
             ethers.zeroPadValue("0x1b", 65),
             await fixtures.getSessionKeyModuleAddress(),
-            [await this.encodeSession()],
+            [abiCoder.encode(
+              [sessionSpecAbi, "uint64[]"],
+              [this.session, new Array(2 + Math.max(0, ...numberOfConstraints)).fill(0)],
+            )],
           ],
         ),
       },
@@ -263,7 +378,6 @@ describe("SessionKeyModule tests", function () {
     logInfo(`Session Address                : ${await sessionModuleContract.getAddress()}`);
     logInfo(`Passkey Address                : ${await verifierContract.getAddress()}`);
     logInfo(`Account Factory Address        : ${await factoryContract.getAddress()}`);
-    // logInfo(`Account Implementation Address : ${await ssoContract.getAddress()}`);
     logInfo(`Auth Server Paymaster Address  : ${await authServerPaymaster.getAddress()}`);
   });
 
@@ -293,7 +407,7 @@ describe("SessionKeyModule tests", function () {
     assert(await account.isModuleValidator(sessionKeyModuleAddress), "session key module should be a validator");
   });
 
-  describe("Value transfer limit test", function () {
+  describe("Value transfer limit tests", function () {
     let tester: SessionTester;
     const sessionTarget = Wallet.createRandom().address;
 
@@ -324,7 +438,7 @@ describe("SessionKeyModule tests", function () {
     });
   });
 
-  describe("ERC20 transfer limit", function () {
+  describe("ERC20 transfer limit tests", function () {
     let tester: SessionTester;
     let erc20: ERC20;
     const sessionTarget = Wallet.createRandom().address;
@@ -402,6 +516,66 @@ describe("SessionKeyModule tests", function () {
       await tester.sendTxFail({
         to: await erc20.getAddress(),
         data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1n]),
+      });
+    });
+  });
+
+  (hre.network.name == "inMemoryNode" ? describe : describe.skip)("Timestamp-based tests", function () {
+    let tester: SessionTester;
+    const sessionTarget = Wallet.createRandom().address;
+    const period = 120;
+
+    it("should create a session", async () => {
+      tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
+      await tester.createSession({
+        expiresAt: await getTimestamp() + period * 3,
+        transferPolicies: [{
+          target: sessionTarget,
+          maxValuePerUse: parseEther("0.01"),
+          valueLimit: {
+            limit: parseEther("0.015"),
+            period,
+          },
+        }],
+      });
+    });
+
+    it("should use a session key to send a transaction", async () => {
+      // We have to wait until the next period starts
+      const timestamp = Math.floor(await provider.send("config_getCurrentTimestamp", []));
+      await provider.send("evm_increaseTime", [period - (timestamp % period)]);
+      // NOTE: this only works because `period` is > 60 seconds, since the default is
+      // `timestamp_asserter.min_time_till_end_sec = 60`
+      // We can sidestep the waiting by calling `evm_increaseTime` directly during the test,
+      // but also meaans that in production, creating sessions that expire in < 60 seconds is useless.
+      // Same goes for allowance time periods with duration < 60 seconds.
+      await tester.sendTxSuccess({
+        to: sessionTarget,
+        value: parseEther("0.01"),
+      });
+    });
+
+    it("should reject a transaction that goes over allowance limit", async () => {
+      await tester.sendTxFail({
+        to: sessionTarget,
+        value: parseEther("0.01"),
+      });
+    });
+
+    it("should wait until allowance renews and send a transaction", async () => {
+      await provider.send("evm_increaseTime", [period]);
+      await tester.sendTxSuccess({
+        to: sessionTarget,
+        value: parseEther("0.01"),
+      });
+    });
+
+    // TODO: check error messages as well
+    it("should reject a transaction with an expired session", async () => {
+      await provider.send("evm_increaseTime", [period * 2]);
+      await tester.sendTxFail({
+        to: sessionTarget,
+        value: parseEther("0.01"),
       });
     });
   });

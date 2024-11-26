@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
+import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 
 library SessionLib {
   using SessionLib for SessionLib.Constraint;
@@ -47,7 +48,7 @@ library SessionLib {
     mapping(address => uint256) lifetimeUsage;
     // Used for LimitType.Allowance
     // period => used that period
-    mapping(uint256 => mapping(address => uint256)) allowanceUsage;
+    mapping(uint64 => mapping(address => uint256)) allowanceUsage;
   }
 
   struct UsageLimit {
@@ -116,20 +117,29 @@ library SessionLib {
     LimitState[] callParams;
   }
 
-  function checkAndUpdate(UsageLimit memory limit, UsageTracker storage tracker, uint256 value) internal {
+  function checkAndUpdate(
+    UsageLimit memory limit,
+    UsageTracker storage tracker,
+    uint256 value,
+    uint64 period
+  ) internal {
     if (limit.limitType == LimitType.Lifetime) {
       require(tracker.lifetimeUsage[msg.sender] + value <= limit.limit, "Lifetime limit exceeded");
       tracker.lifetimeUsage[msg.sender] += value;
     }
-    // TODO: uncomment when it's possible to check timestamps during validation
-    // if (limit.limitType == LimitType.Allowance) {
-    //   uint256 period = block.timestamp / limit.period;
-    //   require(tracker.allowanceUsage[period] + value <= limit.limit);
-    //   tracker.allowanceUsage[period] += value;
-    // }
+    if (limit.limitType == LimitType.Allowance) {
+      TimestampAsserterLocator.locate().assertTimestampInRange(period * limit.period, (period + 1) * limit.period);
+      require(tracker.allowanceUsage[period][msg.sender] + value <= limit.limit, "Allowance limit exceeded");
+      tracker.allowanceUsage[period][msg.sender] += value;
+    }
   }
 
-  function checkAndUpdate(Constraint memory constraint, UsageTracker storage tracker, bytes calldata data) internal {
+  function checkAndUpdate(
+    Constraint memory constraint,
+    UsageTracker storage tracker,
+    bytes calldata data,
+    uint64 period
+  ) internal {
     uint256 index = 4 + constraint.index * 32;
     bytes32 param = bytes32(data[index:index + 32]);
     Condition condition = constraint.condition;
@@ -149,18 +159,29 @@ library SessionLib {
       require(param != refValue, "NOT_EQUAL constraint not met");
     }
 
-    constraint.limit.checkAndUpdate(tracker, uint256(param));
+    constraint.limit.checkAndUpdate(tracker, uint256(param), period);
   }
 
-  function validate(SessionStorage storage state, Transaction calldata transaction, SessionSpec memory spec) internal {
-    require(state.status[msg.sender] == Status.Active, "Session is not active");
+  function validate(
+    SessionStorage storage state,
+    Transaction calldata transaction,
+    SessionSpec memory spec,
+    uint64[] memory periodIds
+  ) internal {
+    // Here we additionally pass uint64[] periodId to check allowance limits
+    // periodId is defined as block.timestamp / limit.period if limitType == Allowance, and 0 otherwise (which will be ignored).
+    // periodIds[0] is for fee limit,
+    // periodIds[1] is for value limit,
+    // periodIds[2:] are for call constraints, if there are any.
+    // It is required to pass them in (instead of computing via block.timestamp) since during validation
+    // we can only assert the range of the timestamp, but not access its value.
 
-    // TODO uncomment when it's possible to check timestamps during validation
-    // require(block.timestamp <= session.expiresAt);
+    require(state.status[msg.sender] == Status.Active, "Session is not active");
+    TimestampAsserterLocator.locate().assertTimestampInRange(0, spec.expiresAt);
 
     // TODO: update fee allowance with the gasleft/refund at the end of execution
     uint256 fee = transaction.maxFeePerGas * transaction.gasLimit;
-    spec.feeLimit.checkAndUpdate(state.fee, fee);
+    spec.feeLimit.checkAndUpdate(state.fee, fee, periodIds[0]);
 
     address target = address(uint160(transaction.to));
 
@@ -185,12 +206,12 @@ library SessionLib {
         }
       }
 
-      require(found, "Call not allowed");
+      require(found, "Call to this contract is not allowed");
       require(transaction.value <= callPolicy.maxValuePerUse, "Value exceeds limit");
-      callPolicy.valueLimit.checkAndUpdate(state.callValue[target][selector], transaction.value);
+      callPolicy.valueLimit.checkAndUpdate(state.callValue[target][selector], transaction.value, periodIds[1]);
 
       for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
-        callPolicy.constraints[i].checkAndUpdate(state.params[target][selector][i], transaction.data);
+        callPolicy.constraints[i].checkAndUpdate(state.params[target][selector][i], transaction.data, periodIds[i + 2]);
       }
     } else {
       TransferSpec memory transferPolicy;
@@ -204,9 +225,9 @@ library SessionLib {
         }
       }
 
-      require(found, "Transfer not allowed");
+      require(found, "Transfer to this address is not allowed");
       require(transaction.value <= transferPolicy.maxValuePerUse, "Value exceeds limit");
-      transferPolicy.valueLimit.checkAndUpdate(state.transferValue[target], transaction.value);
+      transferPolicy.valueLimit.checkAndUpdate(state.transferValue[target], transaction.value, periodIds[1]);
     }
   }
 
@@ -224,7 +245,7 @@ library SessionLib {
     }
     if (limit.limitType == LimitType.Allowance) {
       // this is not used during validation, so it's fine to use block.timestamp
-      uint256 period = block.timestamp / limit.period;
+      uint64 period = uint64(block.timestamp / limit.period);
       return limit.limit - tracker.allowanceUsage[period][account];
     }
   }
