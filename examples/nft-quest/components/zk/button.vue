@@ -9,7 +9,7 @@
     >
       <slot name="prefix" />
     </div>
-    <span :class="twMerge('inline-block py-3', ui?.base)"><slot /></span>
+    <span :class="twMerge('inline-block py-2 w-max', ui?.base)"><slot /></span>
     <div
       v-if="$slots.postfix"
       :class="twMerge('button-fix ml-1 -mr-2', ui?.postfix)"

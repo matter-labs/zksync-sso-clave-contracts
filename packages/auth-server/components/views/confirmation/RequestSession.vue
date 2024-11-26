@@ -32,7 +32,11 @@
         </CommonLine>
       </div>
     </div>
-    <SessionTokens :session="sessionConfig" />
+
+    <SessionTokens
+      class="mt-2"
+      :session="sessionConfig"
+    />
 
     <SessionAdvancedInfo :session-config="sessionConfig" />
 

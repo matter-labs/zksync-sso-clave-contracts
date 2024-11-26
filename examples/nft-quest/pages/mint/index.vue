@@ -6,24 +6,24 @@
         :delay="0"
         class="block"
       >
-        <span class="text-[45px] font-bold tracking-tighter dark:text-white leading-1">
+        <span class="text-[40px] font-bold tracking-tighter dark:text-white leading-1">
           Mint your NFT.&nbsp;
         </span>
       </BlurFade>
 
       <BlurFade
         in-view
-        :delay="650"
+        :delay="350"
         class="inline"
       >
-        <span class="text-[45px] font-bold tracking-tighter leading-1 text-blue-600">
+        <span class="text-[40px] font-bold tracking-tighter leading-1 text-blue-600">
           For free.
         </span>
       </BlurFade>
     </div>
     <BlurFade
       in-view
-      :delay="650"
+      :delay="50"
       class="inline"
     >
       <p class="mt-8 text-neutral-400 max-w-prose">

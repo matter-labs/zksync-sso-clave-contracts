@@ -29,7 +29,7 @@
       </p>
     </CommonHeightTransition>
 
-    <div class="flex flex-col gap-5 mt-8 py-8">
+    <div class="flex flex-col gap-5 mt-8 py-8 w-[300px] m-auto">
       <ZkHighlightWrapper>
         <ZkButton
           class="w-full"

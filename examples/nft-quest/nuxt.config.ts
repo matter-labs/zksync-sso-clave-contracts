@@ -18,7 +18,7 @@ export default defineNuxtConfig({
   colorMode: {
     preference: "dark",
   },
-  devtools: { enabled: false },
+  devtools: { enabled: true },
   // required for dealing with bigInt
   nitro: {
     esbuild: {

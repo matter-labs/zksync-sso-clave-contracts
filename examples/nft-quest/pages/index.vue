@@ -6,35 +6,37 @@
           <BlurFade
             in-view
             :delay="0"
-            class="inline"
+            class="block sm:inline text-center sm:text-pretty"
           >
-            <span class="text-[45px] font-bold tracking-tighter dark:text-white leading-1">
+            <span class="text-[40px] font-bold tracking-tighter dark:text-white leading-1 text-center">
               Smart wallets on the Elastic Chain.
             </span>
           </BlurFade>
 
-          <BlurFade
-            in-view
-            :delay="550"
-            class="inline"
-          >
-            <span class="text-[45px] font-bold tracking-tighter leading-1 text-blue-400">
-              Click.
-            </span>
-          </BlurFade>
-          <BlurFade
-            in-view
-            :delay="950"
-            class="inline"
-          >
-            <span class="text-[45px] font-bold tracking-tighter leading-1 text-blue-700">
-              Connect.
-            </span>
-          </BlurFade>
+          <div class="sm:inline text-center sm:text-pretty">
+            <BlurFade
+              in-view
+              :delay="550"
+              class="inline text-center sm:text-pretty"
+            >
+              <span class="text-[40px] font-bold tracking-tighter leading-1 text-blue-400">
+                Click.
+              </span>
+            </BlurFade>
+            <BlurFade
+              in-view
+              :delay="1050"
+              class="inline text-center sm:text-pretty"
+            >
+              <span class="text-[40px] font-bold tracking-tighter leading-1 text-blue-700">
+                Connect.
+              </span>
+            </BlurFade>
+          </div>
         </div>
         <BlurFade
           in-view
-          :delay="1450"
+          :delay="50"
           class="flex flex-col sm:inline items-center"
         >
           <p class=" mt-8 text-neutral-400 max-w-prose">

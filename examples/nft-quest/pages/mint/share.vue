@@ -16,26 +16,26 @@
         :delay="0"
         class="inline"
       >
-        <span class="text-[45px] font-bold tracking-tighter dark:text-white leading-1">
+        <span class="text-[40px] font-bold tracking-tighter dark:text-white leading-1">
           You've got Zeek.
         </span>
       </BlurFade>
       <GradualSpacing
         v-if="showBanner"
-        class="text-[45px] font-bold tracking-tighter leading-1 text-blue-600"
+        class="text-[40px] font-bold tracking-tighter leading-1 text-blue-600"
         text="SSO Simple."
         :delay-multiple="25"
       />
       <div
         v-else
-        class="text-[45px] font-bold tracking-tighter leading-1 text-neutral-950"
+        class="text-[40px] font-bold tracking-tighter leading-1 text-neutral-950"
       >
         <!-- To prevent the weird bump in spacing when the gradualSpacing runs. -->
         &nbsp;
       </div>
       <BlurFade
         in-view
-        :delay="650"
+        :delay="50"
         class="inline"
       >
         <div class="h-full">
