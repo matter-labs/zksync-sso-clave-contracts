@@ -54,7 +54,7 @@ export default defineNuxtConfig({
   css: ["@/assets/style.scss"],
   site: {
     url: "https://nft-quest.zksync.io",
-    name: "NFT Quest",
+    name: "ZK NFT Quest",
     description: "Mint your own ZKsync NFT gas-free",
     defaultLocale: "en",
   },
