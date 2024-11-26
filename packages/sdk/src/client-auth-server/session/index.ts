@@ -2,11 +2,11 @@ import { type Abi, type AbiFunction, type AbiStateMutability, type Address, type
 
 import { ConstraintCondition, type Limit, LimitType, LimitUnlimited, LimitZero, type SessionConfig } from "../../utils/session.js";
 import type { ContractWriteMutability, IndexedValues } from "./type-utils.js";
-import { encodedInputToAbiChunks, getParameterChunkIndex, isDynamicInputType, isFollowedByDynamicInputType } from "./utils.js";
+import { encodedInputToAbiChunks, getParameterChunkIndex, isDynamicInputType, isFollowedByDynamicInputType, msStringToSeconds } from "./utils.js";
 
 export type PartialLimit = bigint | {
   limit: bigint;
-  period?: bigint;
+  period?: string | bigint;
 } | {
   limitType: "lifetime" | LimitType.Lifetime;
   limit: bigint;
@@ -15,7 +15,7 @@ export type PartialLimit = bigint | {
 } | {
   limitType: "allowance" | LimitType.Allowance;
   limit: bigint;
-  period: bigint;
+  period: string | bigint;
 };
 
 export type PartialCallPolicy = {
@@ -61,7 +61,7 @@ export type PartialTransferPolicy = {
 };
 
 export interface SessionPreferences {
-  expiresAt?: bigint | Date;
+  expiry?: string | bigint | Date;
   feeLimit?: PartialLimit;
   contractCalls?: PartialCallPolicy[];
   transfers?: PartialTransferPolicy[];
@@ -95,7 +95,7 @@ export const formatLimitPreferences = (limit: PartialLimit): Limit => {
       return {
         limitType: LimitType.Allowance,
         limit: limit.limit,
-        period: limit.period,
+        period: typeof limit.period === "string" ? msStringToSeconds(limit.period) : limit.period,
       };
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,23 +103,29 @@ export const formatLimitPreferences = (limit: PartialLimit): Limit => {
   }
 
   /* LimitType not selected */
-  if (!limit.period) {
+  if (limit.period) {
     return {
-      limitType: LimitType.Lifetime,
+      limitType: LimitType.Allowance,
       limit: limit.limit,
-      period: 0n,
+      period: typeof limit.period === "string" ? msStringToSeconds(limit.period) : limit.period,
     };
   }
   return {
-    limitType: LimitType.Allowance,
+    limitType: LimitType.Lifetime,
     limit: limit.limit,
-    period: limit.period,
+    period: 0n,
   };
 };
 
-export const formatDatePreferences = (date: bigint | Date): bigint => {
+export const formatDatePreferences = (date: string | bigint | Date): bigint => {
+  if (typeof date === "string") {
+    const now = new Date().getTime();
+    const seconds = msStringToSeconds(date);
+    return BigInt(now) + seconds;
+  }
   if (date instanceof Date) {
-    return BigInt(Math.floor(date.getTime() / 1000));
+    const seconds = Math.floor(date.getTime() / 1000);
+    return BigInt(seconds);
   }
   return date;
 };
@@ -132,7 +138,7 @@ export function formatSessionPreferences(
   },
 ): Omit<SessionConfig, "signer"> {
   return {
-    expiresAt: preferences.expiresAt ? formatDatePreferences(preferences.expiresAt) : defaults.expiresAt,
+    expiresAt: preferences.expiry ? formatDatePreferences(preferences.expiry) : defaults.expiresAt,
     feeLimit: preferences.feeLimit ? formatLimitPreferences(preferences.feeLimit) : defaults.feeLimit,
     callPolicies: preferences.contractCalls?.map((policy) => {
       const allowedStateMutability: ContractWriteMutability[] = ["nonpayable", "payable"];
@@ -150,10 +156,6 @@ export function formatSessionPreferences(
         constraints: policy.constraints?.map((constraint) => {
           const limit = constraint.limit ? formatLimitPreferences(constraint.limit) : LimitUnlimited;
           const condition = constraint.condition ? ConstraintCondition[constraint.condition] : ConstraintCondition.Unconstrained;
-          /* index: BigInt(constraint.index),
-          condition,
-          refValue: encodedInput ?? toHex("", { size: 32 }),
-          limit: constraint.limit ? formatLimitPreferences(constraint.limit) : LimitUnlimited, */
 
           const input = abiFunction.inputs[constraint.index];
           if (!input) {
@@ -171,7 +173,6 @@ export function formatSessionPreferences(
           }
 
           const startingAbiChunkIndex = getParameterChunkIndex(abiFunction, constraint.index);
-          console.log("startingAbiChunkIndex", startingAbiChunkIndex);
           if (constraint.value === undefined || constraint.value === null) {
             return {
               index: BigInt(startingAbiChunkIndex),

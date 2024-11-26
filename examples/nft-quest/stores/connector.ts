@@ -3,7 +3,7 @@ import { zksyncInMemoryNode, zksyncLocalNode, zksyncSepoliaTestnet } from "@wagm
 import { type Address, type Hash, parseEther } from "viem";
 import { callPolicy, zksyncSsoConnector } from "zksync-sso/connector";
 
-import { ZeekNftQuestAbi } from "@/abi/ZeekNftQuest";
+import { ZeekNftQuestAbi } from "@/abi/ZeekNFTQuest";
 
 export const useConnectorStore = defineStore("connector", () => {
   const runtimeConfig = useRuntimeConfig();

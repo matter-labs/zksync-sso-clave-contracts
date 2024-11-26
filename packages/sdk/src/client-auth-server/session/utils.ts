@@ -1,3 +1,4 @@
+import ms from "ms";
 import { type AbiFunction, type AbiParameter, type Address, encodeAbiParameters, type Hash, toHex } from "viem";
 
 const DYNAMIC_ABI_INPUT_TYPES = ["bytes", "string"];
@@ -102,14 +103,15 @@ export const getParameterChunkIndex = (
   return chunkIndex;
 };
 
-/* SessionKeyModuleAbi.forEach((abi) => {
-  if (abi.type !== "function") return;
-  const dummyValues = getDummyValues(abi.inputs);
-
-  console.log(abi.name, abi.inputs, dummyValues);
+export const msStringToSeconds = (value: string): bigint => {
+  let millis: number;
   try {
-    console.log("Encoded", encodeAbiParameters(abi.inputs, dummyValues as any));
+    millis = ms(value);
   } catch (error) {
-    console.error("Error", error);
+    throw new Error(`Invalid date format: ${value}: ${error}`);
   }
-}); */
+  if (millis < 0) throw new Error(`Date can't be in the past: ${value}`);
+  if (millis === 0) throw new Error(`Date can't be zero: ${value}`);
+  const seconds = Math.floor(millis / 1000);
+  return BigInt(seconds);
+};

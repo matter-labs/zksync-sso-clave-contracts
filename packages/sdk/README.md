@@ -39,9 +39,10 @@ import { createConfig, connect } from "@wagmi/core";
 import { erc20Abi } from "viem";
 
 const ssoConnector = zksyncSsoConnector({
-  // Optional session configuration,
-  // if omitted user will have to sign every transaction via Auth Server
+  // Optional session configuration, if omitted user will have to sign every transaction via Auth Server
   session: {
+    expiry: "1 day",
+
     // Allow up to 0.1 ETH to be spend in gas fees
     feeLimit: parseEther("0.1"),
 
@@ -60,7 +61,7 @@ const ssoConnector = zksyncSsoConnector({
         abi: erc20Abi,
         functionName: "transfer",
         constraints: [
-          // Only allow transfers to this address, any address if omitted
+          // Only allow transfers to this address. Or any address if omitted
           {
             index: 0, // First argument of erc20 transfer function, recipient address
             value: "0x6cC8cf7f6b488C58AA909B77E6e65c631c204784",
@@ -71,26 +72,26 @@ const ssoConnector = zksyncSsoConnector({
           {
             index: 1,
             limit: {
-              limit: parseUnits("0.2", TOKEN.decimals),
-              period: BigInt(60 * 60), // 1 hour in seconds
+                limit: parseUnits("0.2", TOKEN.decimals),
+                period: "1 hour",
             },
           },
         ],
       }),
     ],
-  },
+   },
 });
 
 const wagmiConfig = createConfig({
-   connectors: [ssoConnector],
-   ..., // your wagmi config https://wagmi.sh/core/api/createConfig
+  connectors: [ssoConnector],
+  ..., // your wagmi config https://wagmi.sh/core/api/createConfig
 });
 
 const connectWithSSO = () => {
-   connect(wagmiConfig, {
-      connector: ssoConnector,
-      chainId: zksyncSepoliaTestnet.id, // or another chain id that has SSO support
-   });
+  connect(wagmiConfig, {
+    connector: ssoConnector,
+    chainId: zksyncSepoliaTestnet.id, // or another chain id that has SSO support
+  });
 };
 ```
 

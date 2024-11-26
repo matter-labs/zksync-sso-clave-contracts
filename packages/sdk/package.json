@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@simplewebauthn/types": "^10.0.0",
+    "@types/ms": "^0.7.34",
     "@types/node": "^22.1.0",
     "eventemitter3": "^5.0.1",
     "viem": "2.21.14"
@@ -144,6 +145,7 @@
     "@peculiar/asn1-schema": "^2.3.13",
     "abitype": "^1.0.6",
     "bigint-conversion": "^2.4.3",
-    "buffer": "^6.0.3"
+    "buffer": "^6.0.3",
+    "ms": "^2.1.3"
   }
 }
