@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.24;
 
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -42,8 +42,14 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
   }
 
   function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
-    // this only validates that the session key is linked to the account, not the transaction against the session spec
-    return isValidSignature(signedHash, signature) == EIP1271_SUCCESS_RETURN_VALUE;
+    // This only succeeds if the validationHook has previously succeeded for this hash.
+    uint256 slot = uint256(signedHash);
+    uint256 hookResult;
+    assembly {
+      hookResult := tload(slot)
+    }
+    require(hookResult == 1, "Can't call this function without calling validationHook");
+    return true;
   }
 
   function addValidationKey(bytes memory sessionData) external returns (bool) {
@@ -114,9 +120,9 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
   }
 
   /*
-   * If there are any spend limits configured
+   * Check if the validator is registered for the smart account
    * @param smartAccount The smart account to check
-   * @return true if spend limits are configured initialized, false otherwise
+   * @return true if validator is registered for the account, false otherwise
    */
   function isInitialized(address smartAccount) external view returns (bool) {
     return _isInitialized(smartAccount);
@@ -125,14 +131,6 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
   function _isInitialized(address smartAccount) internal view returns (bool) {
     return IHookManager(smartAccount).isHook(address(this));
     // && IValidatorManager(smartAccount).isModuleValidator(address(this));
-  }
-
-  /*
-   * Currently doing 1271 validation, but might update the interface to match the zksync account validation
-   */
-  function isValidSignature(bytes32 hash, bytes memory signature) public view returns (bytes4 magic) {
-    magic = EIP1271_SUCCESS_RETURN_VALUE;
-    // TODO: Does this method have to work standalone? If not, validationHook is sufficient for validation.
   }
 
   function validationHook(bytes32 signedHash, Transaction calldata transaction, bytes calldata hookData) external {
@@ -146,6 +144,12 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
     require(recoveredAddress == spec.signer, "Invalid signer");
     bytes32 sessionHash = keccak256(abi.encode(spec));
     sessions[sessionHash].validate(transaction, spec);
+
+    // Set the validation result to 1 for this hash, so that isValidSignature succeeds
+    uint256 slot = uint256(signedHash);
+    assembly {
+      tstore(slot, 1)
+    }
   }
 
   /**

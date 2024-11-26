@@ -32,3 +32,5 @@ RPID
 Raphson
 solady
 xbatch
+tload
+tstore
