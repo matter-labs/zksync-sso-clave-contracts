@@ -14,9 +14,7 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 /// @dev This contract allows secure user authentication using WebAuthn public keys.
 contract WebAuthValidator is VerifierCaller, IModuleValidator {
   address constant P256_VERIFIER = address(0x100);
-
   bytes1 constant AUTH_DATA_MASK = 0x05;
-
   bytes32 constant lowSmax = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
 
   // The layout is weird due to EIP-7562 storage read restrictions for validation phase.
@@ -67,7 +65,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     bool validChallenge = false;
     bool validType = false;
     bool validOrigin = false;
-    bool validCrossOrigin = false;
+    bool validCrossOrigin = true;
     for (uint256 index = 1; index < actualNum; index++) {
       JsmnSolLib.Token memory t = tokens[index];
       if (t.jsmnType == JsmnSolLib.JsmnType.STRING) {
@@ -112,10 +110,10 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory crossOriginValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
           // this should only be set once, otherwise this is an error
-          if (validCrossOrigin) {
+          if (!validCrossOrigin) {
             return false;
           }
-          validCrossOrigin = Strings.equal("true", crossOriginValue);
+          validCrossOrigin = Strings.equal("false", crossOriginValue);
         }
       }
     }
@@ -144,5 +142,13 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     bytes memory fatSignature
   ) internal pure returns (bytes memory authenticatorData, string memory clientDataSuffix, bytes32[2] memory rs) {
     (authenticatorData, clientDataSuffix, rs) = abi.decode(fatSignature, (bytes, string, bytes32[2]));
+  }
+
+  function rawVerify(
+    bytes32 message,
+    bytes32[2] calldata rs,
+    bytes32[2] calldata pubKey
+  ) external view returns (bool valid) {
+    valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
   }
 }

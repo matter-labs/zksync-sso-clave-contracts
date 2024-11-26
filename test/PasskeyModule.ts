@@ -32,7 +32,7 @@ async function deployValidator(
 ): Promise<PasskeyValidator> {
   const deployer: Deployer = new Deployer(hre, wallet);
   const passkeyValidatorArtifact = await deployer.loadArtifact(
-    "PasskeyValidator",
+    "WebAuthValidator",
   );
 
   const validator = await deployer.deploy(passkeyValidatorArtifact, []);
