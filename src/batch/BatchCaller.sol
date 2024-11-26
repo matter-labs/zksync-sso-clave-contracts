@@ -5,6 +5,7 @@ import { SystemContractsCaller } from "@matterlabs/zksync-contracts/l2/system-co
 import { EfficientCall } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/EfficientCall.sol";
 import { DEPLOYER_SYSTEM_CONTRACT } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 import { Errors } from "../libraries/Errors.sol";
+import { SelfAuth } from "../auth/SelfAuth.sol";
 
 /// @dev Represents an external call data.
 /// @param target The address to which the call will be made.
@@ -23,16 +24,12 @@ struct Call {
 /// @custom:security-contact security@matterlabs.dev
 /// @notice Make multiple calls from Account in a single transaction.
 /// @notice The implementation is inspired by Clave wallet.
-abstract contract BatchCaller {
+abstract contract BatchCaller is SelfAuth {
   /// @notice Make multiple calls, ensure success if required.
   /// @dev The total Ether sent across all calls must be equal to `msg.value` to maintain the invariant
   /// that `msg.value` + `tx.fee` is the maximum amount of Ether that can be spent on the transaction.
   /// @param _calls Array of Call structs, each representing an individual external call to be made.
-  function batchCall(Call[] calldata _calls) external payable {
-    if (msg.sender != address(this)) {
-      revert Errors.NOT_FROM_SELF();
-    }
-
+  function batchCall(Call[] calldata _calls) external payable onlySelf {
     uint256 totalValue;
     uint256 len = _calls.length;
     for (uint256 i = 0; i < len; ++i) {

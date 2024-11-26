@@ -130,7 +130,6 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
 
   function _isInitialized(address smartAccount) internal view returns (bool) {
     return IHookManager(smartAccount).isHook(address(this));
-    // && IValidatorManager(smartAccount).isModuleValidator(address(this));
   }
 
   function validationHook(bytes32 signedHash, Transaction calldata transaction, bytes calldata hookData) external {
