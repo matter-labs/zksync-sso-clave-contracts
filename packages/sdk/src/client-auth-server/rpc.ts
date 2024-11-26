@@ -5,7 +5,7 @@ import type { Message } from "../communicator/index.js";
 import type { SerializedEthereumRpcError } from "../errors/index.js";
 import type { SessionConfig } from "../utils/session.js";
 import type { AppMetadata, RequestArguments } from "./interface.js";
-import type { SessionPreferences } from "./session.js";
+import type { SessionPreferences } from "./session/index.js";
 
 export type AuthServerRpcSchema = [
   {

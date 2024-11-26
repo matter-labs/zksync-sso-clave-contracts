@@ -35,9 +35,10 @@ npm i zksync-sso
 Add ZKsync SSO connector to your app (using `wagmi`):
 
 ```ts
+import { zksyncSsoConnector, callPolicy } from "zksync-sso/connector";
 import { zksyncSepoliaTestnet } from "viem/chains";
 import { createConfig, connect } from "@wagmi/core";
-import { zksyncSsoConnector } from "zksync-sso/connector";
+import { erc20Abi } from "viem";
 
 const ssoConnector = zksyncSsoConnector({
    // Optional session configuration, if omitted user will have to sign every transaction via Auth Server
@@ -51,41 +52,32 @@ const ssoConnector = zksyncSsoConnector({
             to: "0x188bd99cd7D4d78d4E605Aeea12C17B32CC3135A",
             valueLimit: parseEther("0.1"),
          },
-
-         // Allow ETH transfers to specific address with a limit of 0.1 ETH per hour
-         // until the session expires
-         {
-            to: "0x188bd99cd7D4d78d4E605Aeea12C17B32CC3135A",
-            valueLimit: {
-               limit: parseEther("0.1"),
-               period: BigInt(60 * 60), // 1 hour in seconds
-            },
-         },
       ],
 
       // Allow calling specific smart contracts (e.g. ERC20 transfer):
       contractCalls: [
-         {
+         callPolicy({
             address: "0xa1cf087DB965Ab02Fb3CFaCe1f5c63935815f044",
-            function: "transfer(address,uint256)",
-
-            // Optional call constraints (unconstrained otherwise):
+            abi: erc20Abi,
+            functionName: "transfer",
             constraints: [
-
-               // Only allow transfers to this address
+               // Only allow transfers to this address, any address if omitted
                {
-                  index: 0,
-                  condition: "Equal",
-                  refValue: pad("0x6cC8cf7f6b488C58AA909B77E6e65c631c204784", { size: 32 }),
+                  index: 0, // First argument of erc20 transfer function, recipient address
+                  value: "0x6cC8cf7f6b488C58AA909B77E6e65c631c204784",
                },
 
-               // Transfer up to 0.2 tokens
+               // Allow transfering up to 0.2 tokens per hour
+               // until the session expires
                {
                   index: 1,
-                  limit: parseUnits("0.2", TOKEN.decimals), // Unlimited if omitted
+                  limit: {
+                     limit: parseUnits("0.2", TOKEN.decimals),
+                     period: BigInt(60 * 60), // 1 hour in seconds
+                  },
                },
             ],
-         },
+         }),
       ],
    },
 });

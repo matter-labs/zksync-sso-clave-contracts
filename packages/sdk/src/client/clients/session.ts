@@ -39,7 +39,7 @@ export function createZksyncSessionClient<
   } = {
     ..._parameters,
     address: getAddress(_parameters.address),
-    key: _parameters.key || "wallet",
+    key: _parameters.key || "zksync-sso-session-wallet",
     name: _parameters.name || "ZKsync SSO Session Client",
   };
 

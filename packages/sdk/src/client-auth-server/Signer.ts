@@ -6,7 +6,7 @@ import { type SessionConfig } from "../utils/session.js";
 import { StorageItem } from "../utils/storage.js";
 import type { AppMetadata, RequestArguments } from "./interface.js";
 import type { AuthServerRpcSchema, ExtractParams, ExtractReturnType, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
-import type { SessionPreferences } from "./session.js";
+import type { SessionPreferences } from "./session/index.js";
 
 type Account = {
   address: Address;

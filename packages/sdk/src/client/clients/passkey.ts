@@ -18,7 +18,7 @@ export function createZksyncPasskeyClient<
   } = {
     ..._parameters,
     address: getAddress(_parameters.address),
-    key: _parameters.key || "wallet",
+    key: _parameters.key || "zksync-sso-passkey-wallet",
     name: _parameters.name || "ZKsync SSO Passkey Client",
   };
 

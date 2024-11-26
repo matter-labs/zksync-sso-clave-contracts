@@ -11,7 +11,7 @@ import type {
   RequestArguments,
 } from "./interface.js";
 import { type ExtractReturnType, type Method } from "./rpc.js";
-import type { SessionPreferences } from "./session.js";
+import type { SessionPreferences } from "./session/index.js";
 import { Signer } from "./Signer.js";
 
 const DEFAULT_AUTH_SERVER_URL = "https://auth-test.zksync.dev/confirm";

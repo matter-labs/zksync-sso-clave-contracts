@@ -1,7 +1,9 @@
 import { connect, createConfig, type CreateConnectorFn, disconnect, getAccount, http, reconnect, watchAccount } from "@wagmi/core";
 import { zksyncInMemoryNode, zksyncLocalNode, zksyncSepoliaTestnet } from "@wagmi/core/chains";
 import { type Address, type Hash, parseEther } from "viem";
-import { zksyncSsoConnector } from "zksync-sso/connector";
+import { callPolicy, zksyncSsoConnector } from "zksync-sso/connector";
+
+import { ZeekNftQuestAbi } from "@/abi/ZeekNftQuest";
 
 export const useConnectorStore = defineStore("connector", () => {
   const runtimeConfig = useRuntimeConfig();
@@ -15,17 +17,16 @@ export const useConnectorStore = defineStore("connector", () => {
   if (!chain) throw new Error(`Chain with id ${runtimeConfig.public.chain.id} was not found in supported chains list`);
 
   const connector = zksyncSsoConnector({
-    metadata: {
-      name: "ZK NFT Quest",
-      icon: `${runtimeConfig.public.baseUrl}/favicon.svg`,
-    },
     authServerUrl: runtimeConfig.public.authServerUrl,
     session: {
       feeLimit: parseEther("0.001"),
-      contractCalls: [{
-        address: runtimeConfig.public.contracts.nft as Hash,
-        function: "mint(address)",
-      }],
+      contractCalls: [
+        callPolicy({
+          address: runtimeConfig.public.contracts.nft as Hash,
+          abi: ZeekNftQuestAbi,
+          functionName: "mint",
+        }),
+      ],
     },
   });
   const wagmiConfig = createConfig({

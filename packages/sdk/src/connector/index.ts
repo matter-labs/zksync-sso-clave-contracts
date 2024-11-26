@@ -1,17 +1,25 @@
 import {
   ChainNotConfiguredError,
+  type Config,
   type Connector,
   createConnector,
+  getConnectorClient as wagmiGetConnectorClient,
+  type GetConnectorClientParameters,
 } from "@wagmi/core";
+import type { Compute } from "@wagmi/core/internal";
 import {
+  type Account,
+  type Client,
   getAddress,
   SwitchChainError,
   toHex,
   UserRejectedRequestError,
 } from "viem";
 
+import type { ZksyncSsoSessionClient } from "../client/index.js";
 import { EthereumProviderError } from "../errors/errors.js";
 import { type AppMetadata, type ProviderInterface, type SessionPreferences, WalletProvider } from "../index.js";
+export { callPolicy } from "../client-auth-server/index.js";
 
 export type ZksyncSsoConnectorOptions = {
   metadata?: Partial<AppMetadata>;
@@ -174,4 +182,46 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
       console.error("Account disconnected", error);
     },
   }));
+};
+
+export type GetConnectedSsoClientReturnType<
+  config extends Config = Config,
+  chainId extends config["chains"][number]["id"] = config["chains"][number]["id"],
+> = Compute<
+  ZksyncSsoSessionClient<
+    config["_internal"]["transports"][chainId],
+    Extract<config["chains"][number], { id: chainId }>,
+    undefined,
+    Account
+  >
+>;
+
+export const isSsoSessionClient = (client: Client): boolean => {
+  return client.key === "zksync-sso-session-wallet";
+};
+
+export const isSsoSessionClientConnected = async<
+  config extends Config,
+  chainId extends config["chains"][number]["id"],
+>(
+  config: config,
+  parameters: GetConnectorClientParameters<config, chainId> = {},
+): Promise<boolean> => {
+  const connectorClient = await wagmiGetConnectorClient(config, parameters);
+  return isSsoSessionClient(connectorClient);
+};
+
+export const getConnectedSsoClient = async<
+  config extends Config,
+  chainId extends config["chains"][number]["id"],
+>(
+  config: config,
+  parameters: GetConnectorClientParameters<config, chainId> = {},
+): Promise<GetConnectedSsoClientReturnType<config, chainId>> => {
+  const connectorClient = await wagmiGetConnectorClient(config, parameters);
+  if (!isSsoSessionClient(connectorClient)) {
+    throw new Error("ZKsync SSO Session Client not connected");
+  }
+  const sessionClient = connectorClient as unknown as GetConnectedSsoClientReturnType<config, chainId>;
+  return sessionClient;
 };
