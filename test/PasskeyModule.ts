@@ -8,7 +8,7 @@ import { assert } from "chai";
 import * as hre from "hardhat";
 import { Wallet } from "zksync-ethers";
 
-import { PasskeyValidator, PasskeyValidator__factory } from "../typechain-types";
+import { WebAuthValidator, WebAuthValidator__factory } from "../typechain-types";
 import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
 
 /**
@@ -29,14 +29,14 @@ export function toBuffer(
 
 async function deployValidator(
   wallet: Wallet,
-): Promise<PasskeyValidator> {
+): Promise<WebAuthValidator> {
   const deployer: Deployer = new Deployer(hre, wallet);
   const passkeyValidatorArtifact = await deployer.loadArtifact(
-    "PasskeyValidator",
+    "WebAuthValidator",
   );
 
   const validator = await deployer.deploy(passkeyValidatorArtifact, []);
-  return PasskeyValidator__factory.connect(await validator.getAddress(), wallet);
+  return WebAuthValidator__factory.connect(await validator.getAddress(), wallet);
 }
 
 /**
