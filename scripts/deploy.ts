@@ -34,7 +34,7 @@ async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any
 }
 
 task("deploy", "Deploys ZKsync SSO contracts")
-  .addOptionalParam("privateKey", "private key to the account to deploy the contracts from")
+  .addOptionalParam("privatekey", "private key to the account to deploy the contracts from")
   .addOptionalParam("only", "name of a specific contract to deploy")
   .addFlag("noProxy", "do not deploy transparent proxies for factory and modules")
   .addOptionalParam("implementation", "address of the account implementation to use in the factory")
@@ -48,8 +48,8 @@ task("deploy", "Deploys ZKsync SSO contracts")
     const provider = getProvider();
 
     let privateKey: string;
-    if (cmd.privateKey) {
-      privateKey = cmd.privateKey;
+    if (cmd.privatekey) {
+      privateKey = cmd.privatekey;
     } else if (hre.network.name == "inMemoryNode" || hre.network.name == "dockerizedNode") {
       console.log("Using local rich wallet");
       privateKey = LOCAL_RICH_WALLETS[0].privateKey;
