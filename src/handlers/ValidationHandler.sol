@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
+import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
+
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 import { BytesLinkedList } from "../libraries/LinkedList.sol";
 import { OwnerManager } from "../managers/OwnerManager.sol";
@@ -18,8 +20,9 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
   function _handleValidation(
     address validator,
     bytes32 signedHash,
-    bytes memory signature
-  ) internal view returns (bool) {
+    bytes memory signature,
+    Transaction calldata transaction
+  ) internal returns (bool) {
     if (_r1IsValidator(validator)) {
       mapping(bytes => bytes) storage owners = OwnerManager._r1OwnersLinkedList();
       bytes memory cursor = owners[BytesLinkedList.SENTINEL_BYTES];
@@ -45,7 +48,7 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
         return true;
       }
     } else if (_isModuleValidator(validator)) {
-      return IModuleValidator(validator).handleValidation(signedHash, signature);
+      return IModuleValidator(validator).handleValidation(signedHash, signature, transaction);
     }
 
     return false;

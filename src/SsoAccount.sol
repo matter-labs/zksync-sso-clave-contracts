@@ -112,7 +112,7 @@ contract SsoAccount is
     bytes32,
     bytes32,
     Transaction calldata _transaction
-  ) external payable override onlyBootloader runExecutionHooks(_transaction) {
+  ) external payable override onlyBootloader {
     address to = _safeCastToAddress(_transaction.to);
     uint128 value = Utils.safeCastToU128(_transaction.value);
 
@@ -195,13 +195,7 @@ contract SsoAccount is
       _transaction.signature
     );
 
-    // Run validation hooks
-    bool hookSuccess = runValidationHooks(_signedHash, _transaction, hookData);
-    if (!hookSuccess) {
-      return bytes4(0);
-    }
-
-    bool validationSuccess = _handleValidation(validator, _signedHash, signature);
+    bool validationSuccess = _handleValidation(validator, _signedHash, signature, _transaction);
     return validationSuccess ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
   }
 

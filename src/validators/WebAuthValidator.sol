@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
+import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
 import { Strings } from "../helpers/EIP712.sol";
 import { Base64 } from "../helpers/Base64.sol";
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /// @title AAFactory
 /// @author Matter Labs
@@ -35,6 +37,14 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   }
 
   function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+    return webAuthVerify(signedHash, signature);
+  }
+
+  function handleValidation(
+    bytes32 signedHash,
+    bytes memory signature,
+    Transaction calldata _transaction
+  ) external view returns (bool) {
     return webAuthVerify(signedHash, signature);
   }
 
