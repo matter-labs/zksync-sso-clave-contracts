@@ -35,22 +35,6 @@ interface IHookManager {
   function removeHook(address hook, bool isValidation) external;
 
   /**
-   * @notice Allow a hook to store data in the contract
-   * @dev Can only be called by a hook
-   * @param key bytes32         - Slot to store data at
-   * @param data bytes calldata - Data to store
-   */
-  function setHookData(bytes32 key, bytes calldata data) external;
-
-  /**
-   * @notice Get the data stored by a hook
-   * @param hook address  - Address of the hook to retrieve data for
-   * @param key bytes32   - Slot to retrieve data from
-   * @return bytes memory - Data stored at the slot
-   */
-  function getHookData(address hook, bytes32 key) external view returns (bytes memory);
-
-  /**
    * @notice Check if an address is in the list of hooks
    * @param addr address - Address to check
    * @return bool        - True if the address is a hook, false otherwise
