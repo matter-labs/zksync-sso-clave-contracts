@@ -142,7 +142,7 @@ export function formatSessionPreferences(
     feeLimit: preferences.feeLimit ? formatLimitPreferences(preferences.feeLimit) : defaults.feeLimit,
     callPolicies: preferences.contractCalls?.map((policy) => {
       const allowedStateMutability: ContractWriteMutability[] = ["nonpayable", "payable"];
-      const abiFunction = (policy.abi as Abi).find((fn) => fn.type === "function" && (allowedStateMutability as AbiStateMutability[]).includes(fn.stateMutability)) as AbiFunction;
+      const abiFunction = (policy.abi as Abi).find((fn) => fn.type === "function" && fn.name === policy.functionName && (allowedStateMutability as AbiStateMutability[]).includes(fn.stateMutability)) as AbiFunction;
       if (!abiFunction) throw new Error(`Function not found in the provided ABI: ${policy.functionName}`);
 
       const selector = toFunctionSelector(abiFunction);

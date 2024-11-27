@@ -17,6 +17,9 @@ export const useConnectorStore = defineStore("connector", () => {
   if (!chain) throw new Error(`Chain with id ${runtimeConfig.public.chain.id} was not found in supported chains list`);
 
   const connector = zksyncSsoConnector({
+    metadata: {
+      icon: `${runtimeConfig.public.baseUrl}/icon-192.png`,
+    },
     authServerUrl: runtimeConfig.public.authServerUrl,
     session: {
       feeLimit: parseEther("0.001"),
