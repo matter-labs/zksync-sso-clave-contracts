@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-import { IValidationHook } from "../interfaces/IHook.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
@@ -14,7 +13,7 @@ import { IHookManager } from "../interfaces/IHookManager.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 
-contract SessionKeyValidator is IValidationHook, IModuleValidator {
+contract SessionKeyValidator is IModuleValidator {
   using SessionLib for SessionLib.SessionStorage;
   using EnumerableSet for EnumerableSet.Bytes32Set;
 
@@ -40,6 +39,7 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator {
     return sessions[sessionHash].status[account];
   }
 
+  // requires transaction to validate signature because it contains a timestamp
   function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
     // This only succeeds if the validationHook has previously succeeded for this hash.
     uint256 slot = uint256(signedHash);
@@ -49,6 +49,14 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator {
     }
     require(hookResult == 1, "Can't call this function without calling validationHook");
     return true;
+  }
+
+  function handleValidation(
+    bytes32 signedHash,
+    bytes memory signature,
+    Transaction calldata transaction
+  ) external returns (bool) {
+    return _isValidTransaction(signedHash, transaction);
   }
 
   function addValidationKey(bytes memory sessionData) external returns (bool) {
@@ -98,9 +106,7 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator {
   function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
     return
       interfaceId != 0xffffffff &&
-      (interfaceId == type(IERC165).interfaceId ||
-        interfaceId == type(IValidationHook).interfaceId ||
-        interfaceId == type(IModuleValidator).interfaceId);
+      (interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId);
   }
 
   // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?
@@ -138,14 +144,19 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator {
     return IValidatorManager(smartAccount).isModuleValidator(address(this));
   }
 
-  function validationHook(bytes32 signedHash, Transaction calldata transaction, bytes calldata hookData) external {
-    (bytes memory signature, address validator, ) = abi.decode(transaction.signature, (bytes, address, bytes[]));
+  // this generally throws instead of returning false
+  function _isValidTransaction(bytes32 signedHash, Transaction calldata transaction) internal returns (bool) {
+    (bytes memory signature, address validator, bytes[] memory moduleData) = abi.decode(
+      transaction.signature,
+      (bytes, address, bytes[])
+    );
     if (validator != address(this)) {
       // This transaction is not meant to be validated by this module
-      return;
+      return false;
     }
+
     (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
-      hookData,
+      moduleData[0], // this is known by the signature builder
       (SessionLib.SessionSpec, uint64[])
     );
     (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, signature);
@@ -153,11 +164,14 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator {
     bytes32 sessionHash = keccak256(abi.encode(spec));
     sessions[sessionHash].validate(transaction, spec, periodIds);
 
-    // Set the validation result to 1 for this hash, so that isValidSignature succeeds
+    // Set the validation result to 1 for this hash,
+    // so that isValidSignature succeeds if called later in the transaction
     uint256 slot = uint256(signedHash);
     assembly {
       tstore(slot, 1)
     }
+
+    return true;
   }
 
   /**
