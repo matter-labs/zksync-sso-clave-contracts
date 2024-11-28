@@ -4,8 +4,8 @@ pragma solidity ^0.8.24;
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
-import { Strings } from "../helpers/EIP712.sol";
-import { Base64 } from "../helpers/Base64.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { Base64 } from "solady/src/utils/Base64.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /// @title AAFactory

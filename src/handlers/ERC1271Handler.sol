@@ -5,7 +5,7 @@ import { IERC1271Upgradeable } from "@openzeppelin/contracts-upgradeable/interfa
 
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 import { ValidationHandler } from "./ValidationHandler.sol";
-import { EIP712 } from "../helpers/EIP712.sol";
+import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 /// @title ERC1271Handler
 /// @author Matter Labs
