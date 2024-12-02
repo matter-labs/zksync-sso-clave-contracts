@@ -40,7 +40,6 @@ describe("Basic tests", function () {
       randomBytes(32),
       "id",
       [],
-      [],
       [fixtures.wallet.address],
     );
     const deployTxReceipt = await deployTx.wait();
