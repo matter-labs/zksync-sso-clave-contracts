@@ -68,7 +68,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     }
 
     _moduleValidatorsLinkedList().add(validator);
-    IModuleValidator(validator).addValidationKey(accountValidationKey);
+    IModuleValidator(validator).init(accountValidationKey);
 
     emit AddModuleValidator(validator);
   }
