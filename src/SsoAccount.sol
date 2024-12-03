@@ -11,7 +11,6 @@ import { Utils } from "@matterlabs/zksync-contracts/l2/system-contracts/librarie
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import { HookManager } from "./managers/HookManager.sol";
-import { ModuleManager } from "./managers/ModuleManager.sol";
 
 import { TokenCallbackHandler, IERC165 } from "./helpers/TokenCallbackHandler.sol";
 
@@ -30,15 +29,7 @@ import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 /// @notice This contract is a modular and extensible account implementation with support of
 /// multi-ownership, custom modules, validation/execution hooks and different signature validation formats.
 /// @dev Contract is expected to be used as Beacon proxy implementation.
-contract SsoAccount is
-  Initializable,
-  HookManager,
-  ModuleManager,
-  ERC1271Handler,
-  TokenCallbackHandler,
-  BatchCaller,
-  ISsoAccount
-{
+contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallbackHandler, BatchCaller, ISsoAccount {
   // Helper library for the Transaction struct
   using TransactionHelper for Transaction;
 

@@ -9,7 +9,6 @@ import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Rec
 import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
 import { IHookManager } from "./IHookManager.sol";
-import { IModuleManager } from "./IModuleManager.sol";
 import { IOwnerManager } from "./IOwnerManager.sol";
 import { IValidatorManager } from "./IValidatorManager.sol";
 
@@ -23,7 +22,6 @@ interface ISsoAccount is
   IERC721Receiver,
   IERC1155Receiver,
   IHookManager,
-  IModuleManager,
   IOwnerManager,
   IValidatorManager,
   IAccount
