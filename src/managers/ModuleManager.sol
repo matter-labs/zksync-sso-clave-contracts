@@ -8,10 +8,10 @@ import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { Auth } from "../auth/Auth.sol";
 import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { IModule } from "../interfaces/IModule.sol";
 import { IInitable } from "../interfaces/IInitable.sol";
 import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 import { IModuleManager } from "../interfaces/IModuleManager.sol";
+import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
 /**
  * @title Manager contract for modules
@@ -30,6 +30,6 @@ abstract contract ModuleManager is IModuleManager, Auth {
   function _supportsModule(address module) internal view returns (bool) {
     // this is pretty dumb, since type(IModule).interfaceId is 0x00000000, but is correct as per ERC165
     // context: https://github.com/ethereum/solidity/issues/7856#issuecomment-585337461
-    return module.supportsInterface(type(IModule).interfaceId);
+    return module.supportsInterface(type(IModuleValidator).interfaceId);
   }
 }

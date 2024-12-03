@@ -191,8 +191,6 @@ abstract contract HookManager is IHookManager, Auth {
       _executionHooksLinkedList().add(hookAddress);
     }
 
-    IInitable(hookAddress).init(initData);
-
     emit AddHook(hookAddress);
   }
 
