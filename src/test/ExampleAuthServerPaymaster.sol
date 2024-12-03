@@ -17,7 +17,9 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
   address public immutable AA_FACTORY_CONTRACT_ADDRESS;
   address public immutable SESSION_KEY_VALIDATOR_CONTRACT_ADDRESS;
   bytes4 constant DEPLOY_ACCOUNT_SELECTOR = AAFactory.deployProxySsoAccount.selector;
-  bytes4 constant CREATE_SESSION_SELECTOR = SessionKeyValidator.createSession.selector;
+  bytes4 constant SESSION_CREATE_SELECTOR = SessionKeyValidator.createSession.selector;
+  bytes4 constant SESSION_REVOKE_KEY_SELECTOR = SessionKeyValidator.revokeKey.selector;
+  bytes4 constant SESSION_REVOKE_KEYS_SELECTOR = SessionKeyValidator.revokeKeys.selector;
 
   modifier onlyBootloader() {
     require(msg.sender == BOOTLOADER_FORMAL_ADDRESS, "Only bootloader can call this method");
@@ -53,7 +55,12 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
       require(methodSelector == DEPLOY_ACCOUNT_SELECTOR, "Unsupported method");
     }
     if (to == SESSION_KEY_VALIDATOR_CONTRACT_ADDRESS) {
-      require(methodSelector == CREATE_SESSION_SELECTOR, "Unsupported method");
+      require(
+        methodSelector == SESSION_CREATE_SELECTOR ||
+          methodSelector == SESSION_REVOKE_KEY_SELECTOR ||
+          methodSelector == SESSION_REVOKE_KEYS_SELECTOR,
+        "Unsupported method"
+      );
     }
 
     bytes4 paymasterInputSelector = bytes4(_transaction.paymasterInput[0:4]);

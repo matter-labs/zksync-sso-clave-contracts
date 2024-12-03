@@ -13,6 +13,7 @@
     "prepare": "husky",
     "fmt": "pnpm prettier --write .",
     "lint": "pnpm run lint:markdown && pnpm run lint:spelling && pnpm run lint:prettier",
+    "lint:fix": "pnpm run lint:prettier --write",
     "lint:markdown": "markdownlint-cli2 '**/*.md'",
     "lint:spelling": "cspell .",
     "lint:prettier": "prettier --check .",
