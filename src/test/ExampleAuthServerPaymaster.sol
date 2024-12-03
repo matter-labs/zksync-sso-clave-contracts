@@ -57,8 +57,8 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
     if (to == SESSION_KEY_VALIDATOR_CONTRACT_ADDRESS) {
       require(
         methodSelector == SESSION_CREATE_SELECTOR ||
-        methodSelector == SESSION_REVOKE_KEY_SELECTOR ||
-        methodSelector == SESSION_REVOKE_KEYS_SELECTOR,
+          methodSelector == SESSION_REVOKE_KEY_SELECTOR ||
+          methodSelector == SESSION_REVOKE_KEYS_SELECTOR,
         "Unsupported method"
       );
     }
