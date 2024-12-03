@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-import { IModule } from "../interfaces/IModule.sol";
 import { IValidationHook } from "../interfaces/IHook.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
@@ -15,7 +14,7 @@ import { IHookManager } from "../interfaces/IHookManager.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 
-contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
+contract SessionKeyValidator is IValidationHook, IModuleValidator {
   using SessionLib for SessionLib.SessionStorage;
   using EnumerableSet for EnumerableSet.Bytes32Set;
 
@@ -76,7 +75,6 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
     // to prevent recursion, since addHook also calls init
     if (!_isInitialized(msg.sender)) {
       IHookManager(msg.sender).addHook(abi.encodePacked(address(this)), true);
-      IValidatorManager(msg.sender).addModuleValidator(address(this), data);
     }
   }
 
@@ -97,8 +95,7 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
       interfaceId != 0xffffffff &&
       (interfaceId == type(IERC165).interfaceId ||
         interfaceId == type(IValidationHook).interfaceId ||
-        interfaceId == type(IModuleValidator).interfaceId ||
-        interfaceId == type(IModule).interfaceId);
+        interfaceId == type(IModuleValidator).interfaceId);
   }
 
   // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?
