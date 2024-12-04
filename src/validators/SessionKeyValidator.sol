@@ -9,7 +9,6 @@ import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import { IHookManager } from "../interfaces/IHookManager.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 
@@ -94,10 +93,6 @@ contract SessionKeyValidator is IModuleValidator {
     // Solution: before uninstalling, require that all keys are revoked manually.
     require(sessionCounter[msg.sender] == 0, "Revoke all keys first");
 
-    // Check module and hook independently so it's not stuck in a bad state
-    if (_isHookInitialized(msg.sender)) {
-      IHookManager(msg.sender).removeHook(address(this), true);
-    }
     if (_isModuleInitialized(msg.sender)) {
       IValidatorManager(msg.sender).removeModuleValidator(address(this));
     }
@@ -129,15 +124,11 @@ contract SessionKeyValidator is IModuleValidator {
    * @return true if validator is registered for the account, false otherwise
    */
   function isInitialized(address smartAccount) external view returns (bool) {
-    return _isHookAndModuleInitialized(smartAccount);
+    return _isInitialized(smartAccount);
   }
 
-  function _isHookAndModuleInitialized(address smartAccount) internal view returns (bool) {
-    return _isHookInitialized(smartAccount) && _isModuleInitialized(smartAccount);
-  }
-
-  function _isHookInitialized(address smartAccount) internal view returns (bool) {
-    return IHookManager(smartAccount).isHook(address(this));
+  function _isInitialized(address smartAccount) internal view returns (bool) {
+    return IValidatorManager(smartAccount).isModuleValidator(address(this));
   }
 
   function _isModuleInitialized(address smartAccount) internal view returns (bool) {

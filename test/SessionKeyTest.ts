@@ -402,7 +402,7 @@ describe("SessionKeyModule tests", function () {
 
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
     assert(await account.k1IsOwner(fixtures.wallet.address));
-    assert(await account.isHook(sessionKeyModuleAddress), "session key module should be a hook");
+    assert(!await account.isHook(sessionKeyModuleAddress), "session key module should not be an execution hook");
     assert(await account.isModuleValidator(sessionKeyModuleAddress), "session key module should be a validator");
   });
 

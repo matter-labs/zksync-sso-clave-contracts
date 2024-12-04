@@ -71,8 +71,8 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   /// @inheritdoc IHookManager
-  function addHook(bytes calldata hookAndData, bool isValidation) external override onlySelf {
-    _addHook(hookAndData, isValidation);
+  function addHook(bytes calldata hookAndData) external override onlySelfOrModule {
+    _addHook(hookAndData);
   }
 
   /// @inheritdoc IHookManager
@@ -92,26 +92,17 @@ abstract contract HookManager is IHookManager, Auth {
     }
   }
 
-  function _addHook(bytes calldata hookAndData, bool isValidation) internal {
+  function _addHook(bytes calldata hookAndData) internal {
     if (hookAndData.length < 20) {
       revert Errors.EMPTY_HOOK_ADDRESS();
     }
 
     address hookAddress = address(bytes20(hookAndData[0:20]));
-
-    bytes calldata initData = hookAndData[20:];
-
-    _installHook(hookAddress, initData, isValidation);
-  }
-
-  function _installHook(address hookAddress, bytes memory initData, bool isValidation) internal {
-    if (!_supportsHook(hookAddress, isValidation)) {
+    if (!_supportsHook(hookAddress)) {
       revert Errors.HOOK_ERC165_FAIL();
     }
 
-    if (!isValidation) {
-      _executionHooksLinkedList().add(hookAddress);
-    }
+    _executionHooksLinkedList().add(hookAddress);
 
     emit AddHook(hookAddress);
   }
@@ -140,10 +131,7 @@ abstract contract HookManager is IHookManager, Auth {
     executionHooks = SsoStorage.layout().executionHooks;
   }
 
-  function _supportsHook(address hook, bool isValidation) internal view returns (bool) {
-    return
-      isValidation
-        ? hook.supportsInterface(type(IValidationHook).interfaceId)
-        : hook.supportsInterface(type(IExecutionHook).interfaceId);
+  function _supportsHook(address hook) internal view returns (bool) {
+    return hook.supportsInterface(type(IExecutionHook).interfaceId);
   }
 }

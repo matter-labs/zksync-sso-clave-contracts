@@ -21,7 +21,7 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
     bytes32 signedHash,
     bytes memory signature,
     Transaction calldata transaction
-  ) internal view returns (bool) {
+  ) internal returns (bool) {
     if (_isModuleValidator(validator)) {
       return IModuleValidator(validator).handleValidation(signedHash, signature, transaction);
     }

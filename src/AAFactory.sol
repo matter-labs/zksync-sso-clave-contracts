@@ -41,7 +41,6 @@ contract AAFactory is UpgradeableBeacon {
     bytes32 _salt,
     string calldata _uniqueAccountId,
     bytes[] calldata _initialValidators,
-    bytes[] calldata _initialHooks,
     address[] calldata _initialK1Owners
   ) external returns (address accountAddress) {
     require(accountMappings[_uniqueAccountId] == address(0), "Account already exists");
@@ -64,7 +63,7 @@ contract AAFactory is UpgradeableBeacon {
     (accountAddress) = abi.decode(returnData, (address));
 
     // Initialize the newly deployed account with validators, hooks and K1 owners.
-    ISsoAccount(accountAddress).initialize(_initialValidators, _initialHooks, _initialK1Owners);
+    ISsoAccount(accountAddress).initialize(_initialValidators, _initialK1Owners);
 
     accountMappings[_uniqueAccountId] = accountAddress;
 
