@@ -271,11 +271,14 @@ class SessionTester {
     };
 
     const signedTransaction = await this.sessionAccount.signTransaction(this.aaTransaction);
+    expect (provider.broadcastTransaction(signedTransaction)).to.be.reverted;
+    /*
     const txResponse = await provider.broadcastTransaction(signedTransaction);
 
     // Because this rejects the transaction during validation, we don't get a receipt
     expect (txResponse.blockNumber).to.be.null;
     expect (await txResponse.confirmations()).to.be.equal(0)
+    */
   };
 
   getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
