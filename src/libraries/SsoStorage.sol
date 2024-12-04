@@ -13,7 +13,6 @@ library SsoStorage {
 
     // ┌───────────────────┐
     // │     Validation    │
-    mapping(address => address) k1Validators;
     mapping(address => address) moduleValidators;
     uint256[50] __gap_2;
     // └───────────────────┘

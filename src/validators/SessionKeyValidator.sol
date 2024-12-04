@@ -9,7 +9,6 @@ import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import { IHookManager } from "../interfaces/IHookManager.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 
@@ -89,7 +88,6 @@ contract SessionKeyValidator is IModuleValidator {
       // Solution: before uninstalling, require that all keys are revoked manually.
       require(sessionCounter[msg.sender] == 0, "Revoke all keys first");
       IValidatorManager(msg.sender).removeModuleValidator(address(this));
-      IHookManager(msg.sender).removeHook(address(this), true);
     }
   }
 
@@ -123,7 +121,7 @@ contract SessionKeyValidator is IModuleValidator {
   }
 
   function _isInitialized(address smartAccount) internal view returns (bool) {
-    return IHookManager(smartAccount).isHook(address(this));
+    return IValidatorManager(smartAccount).isModuleValidator(address(this));
   }
 
   // this generally throws instead of returning false
