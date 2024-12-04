@@ -11,13 +11,17 @@ const ethersStaticSalt = new Uint8Array([
   62, 140, 111, 128, 47, 32, 21,
   177, 177, 174, 166,
 ]);
+const SESSIONS_NAME = "SessionKeyValidator";
+const ACCOUNT_IMPL_NAME = "SsoAccount";
+const AA_FACTORY_NAME = "AAFactory";
+const PAYMASTER_NAME = "ExampleAuthServerPaymaster";
 
 async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any[]): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { deployFactory, create2 } = require("../test/utils");
   console.log("Deploying", name, "contract...");
   let implContract;
-  if (name == "AAFactory") {
+  if (name == AA_FACTORY_NAME) {
     implContract = await deployFactory(deployer, args![0]);
   } else {
     implContract = await create2(name, deployer, ethersStaticSalt, args);
@@ -48,14 +52,13 @@ task("deploy", "Deploys ZKsync SSO contracts")
     const provider = getProvider();
 
     let privateKey: string;
-    if (cmd.privatekey) {
-      privateKey = cmd.privatekey;
-    } else if (hre.network.name == "inMemoryNode" || hre.network.name == "dockerizedNode") {
+    if (hre.network.name == "inMemoryNode" || hre.network.name == "dockerizedNode") {
       console.log("Using local rich wallet");
       privateKey = LOCAL_RICH_WALLETS[0].privateKey;
       cmd.fund = "1";
     } else {
-      throw new Error("Private key must be provided to deploy on non-local network");
+      if (!process.env.WALLET_PRIVATE_KEY) throw "⛔️ Wallet private key wasn't found in .env file!";
+      privateKey = process.env.WALLET_PRIVATE_KEY;
     }
 
     const deployer = new Wallet(privateKey, provider);
@@ -63,11 +66,11 @@ task("deploy", "Deploys ZKsync SSO contracts")
 
     if (!cmd.only) {
       await deploy("WebAuthValidator", deployer, !cmd.noProxy);
-      const sessions = await deploy("SessionKeyValidator", deployer, !cmd.noProxy);
-      const implementation = await deploy("SsoAccount", deployer, false);
+      const sessions = await deploy(SESSIONS_NAME, deployer, !cmd.noProxy);
+      const implementation = await deploy(ACCOUNT_IMPL_NAME, deployer, false);
       // TODO: enable proxy for factory -- currently it's not working
-      const factory = await deploy("AAFactory", deployer, false, [implementation]);
-      const paymaster = await deploy("ExampleAuthServerPaymaster", deployer, false, [factory, sessions]);
+      const factory = await deploy(AA_FACTORY_NAME, deployer, false, [implementation]);
+      const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions]);
 
       if (cmd.fund != 0) {
         console.log("Funding paymaster with", cmd.fund, "ETH...");
@@ -83,18 +86,33 @@ task("deploy", "Deploys ZKsync SSO contracts")
       }
     } else {
       let args: any[] = [];
-      if (cmd.only == "AAFactory") {
+      if (cmd.only == AA_FACTORY_NAME) {
         if (!cmd.implementation) {
-          throw new Error("Implementation address must be provided to deploy factory");
+          throw "⛔️ Implementation (--implementation <value>) address must be provided to deploy factory";
         }
         args = [cmd.implementation];
       }
-      if (cmd.only == "ExampleAuthServerPaymaster") {
+      if (cmd.only == PAYMASTER_NAME) {
         if (!cmd.factory || !cmd.sessions) {
-          throw new Error("Factory and SessionModule addresses must be provided to deploy paymaster");
+          throw "⛔️ Factory (--factory <value>) and SessionModule (--sessions <value>) addresses must be provided to deploy paymaster";
         }
         args = [cmd.factory, cmd.sessions];
       }
-      await deploy(cmd.only, deployer, false, args);
+      const deployedContract = await deploy(cmd.only, deployer, false, args);
+
+      if (cmd.only == PAYMASTER_NAME) {
+        if (cmd.fund == 0) {
+          console.log("⚠️ Paymaster is unfunded ⚠️\n");
+        } else {
+          console.log("Funding paymaster with", cmd.fund, "ETH...");
+          await (
+            await deployer.sendTransaction({
+              to: deployedContract,
+              value: ethers.parseEther(cmd.fund),
+            })
+          ).wait();
+          console.log("Paymaster funded\n");
+        }
+      }
     }
   });
