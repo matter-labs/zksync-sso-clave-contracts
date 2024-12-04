@@ -271,7 +271,9 @@ class SessionTester {
     };
 
     const signedTransaction = await this.sessionAccount.signTransaction(this.aaTransaction);
-    expect (provider.broadcastTransaction(signedTransaction)).to.be.reverted;
+    // this fails with "receipt should not be null"?
+    console.log("signedTransaction", signedTransaction);
+    await expect (provider.broadcastTransaction(signedTransaction)).to.be.reverted;
   };
 
   getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
