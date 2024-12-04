@@ -353,7 +353,7 @@ class SessionTester {
   }
 }
 
-describe.only("SessionKeyModule tests", function () {
+describe("SessionKeyModule tests", function () {
   let proxyAccountAddress: string;
 
   (hre.network.name == "dockerizedNode" ? it : it.skip)("should deposit funds", async () => {
