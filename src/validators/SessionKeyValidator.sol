@@ -71,12 +71,7 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator {
     emit SessionCreated(msg.sender, sessionHash, sessionSpec);
   }
 
-  function init(bytes calldata data) external {
-    // to prevent recursion, since addHook also calls init
-    if (!_isInitialized(msg.sender)) {
-      IHookManager(msg.sender).addHook(abi.encodePacked(address(this)), true);
-    }
-  }
+  function init(bytes calldata data) external {}
 
   function disable() external {
     if (_isInitialized(msg.sender)) {

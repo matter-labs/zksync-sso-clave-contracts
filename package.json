@@ -64,7 +64,7 @@
     "eslint-plugin-simple-import-sort": "12.1.1",
     "ethers": "6.13.2",
     "globals": "15.9.0",
-    "hardhat": "^2.22.12",
+    "hardhat": "^2.22.17",
     "husky": "9.1.6",
     "ini": "5.0.0",
     "lint-staged": "15.2.10",
@@ -74,14 +74,14 @@
     "nx": "19.8.6",
     "prettier": "3.3.3",
     "prettier-plugin-solidity": "^1.4.1",
+    "solady": "^0.0.273",
     "ts-node": "10.9.2",
     "typechain": "8.3.2",
     "typescript": "5.6.2",
     "typescript-eslint": "8.7.0",
     "viem": "^2.21.14",
     "zksync-ethers": "6.15.0",
-    "zksync-sso": "0.0.0-beta.2",
-    "solady": "^0.0.273"
+    "zksync-sso": "0.0.0-beta.2"
   },
   "packageManager": "pnpm@9.11.0"
 }

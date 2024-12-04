@@ -28,5 +28,9 @@ interface ISsoAccount is
 {
   event FeePaid();
 
-  function initialize(bytes[] calldata initialValidators, address[] calldata k1Owners) external;
+  function initialize(
+    bytes[] calldata initialValidators,
+    bytes[] calldata initialHooks,
+    address[] calldata k1Owners
+  ) external;
 }

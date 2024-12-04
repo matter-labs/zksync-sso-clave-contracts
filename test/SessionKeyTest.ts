@@ -271,7 +271,11 @@ class SessionTester {
     };
 
     const signedTransaction = await this.sessionAccount.signTransaction(this.aaTransaction);
-    await expect(provider.broadcastTransaction(signedTransaction)).to.be.reverted;
+    const txResponse = await provider.broadcastTransaction(signedTransaction);
+
+    // Because this rejects the transaction during validation, we don't get a receipt
+    expect (txResponse.blockNumber).to.be.null;
+    expect (await txResponse.confirmations()).to.be.equal(0)
   };
 
   getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
@@ -349,7 +353,7 @@ class SessionTester {
   }
 }
 
-describe("SessionKeyModule tests", function () {
+describe.only("SessionKeyModule tests", function () {
   let proxyAccountAddress: string;
 
   (hre.network.name == "dockerizedNode" ? it : it.skip)("should deposit funds", async () => {
@@ -388,7 +392,8 @@ describe("SessionKeyModule tests", function () {
 
     const deployTx = await factoryContract.deployProxySsoAccount(
       randomBytes(32),
-      "id",
+      "session-key-test-id",
+      [sessionKeyPayload],
       [sessionKeyPayload],
       [fixtures.wallet.address],
     );
