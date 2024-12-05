@@ -22,9 +22,8 @@ interface IHookManager {
    * @notice Add a hook to the list of hooks and call it's init function
    * @dev Can only be called by self or a module
    * @param hookAndData bytes calldata - Address of the hook and data to initialize it with
-   * @param isValidation bool          - True if the hook is a validation hook, false otherwise
    */
-  function addHook(bytes calldata hookAndData, bool isValidation) external;
+  function addHook(bytes calldata hookAndData) external;
 
   /**
    * @notice Remove a hook from the list of hooks and call it's disable function
@@ -33,22 +32,6 @@ interface IHookManager {
    * @param isValidation bool - True if the hook is a validation hook, false otherwise
    */
   function removeHook(address hook, bool isValidation) external;
-
-  /**
-   * @notice Allow a hook to store data in the contract
-   * @dev Can only be called by a hook
-   * @param key bytes32         - Slot to store data at
-   * @param data bytes calldata - Data to store
-   */
-  function setHookData(bytes32 key, bytes calldata data) external;
-
-  /**
-   * @notice Get the data stored by a hook
-   * @param hook address  - Address of the hook to retrieve data for
-   * @param key bytes32   - Slot to retrieve data from
-   * @return bytes memory - Data stored at the slot
-   */
-  function getHookData(address hook, bytes32 key) external view returns (bytes memory);
 
   /**
    * @notice Check if an address is in the list of hooks

@@ -2,8 +2,10 @@
 pragma solidity ^0.8.24;
 
 import { IERC1271Upgradeable } from "@openzeppelin/contracts-upgradeable/interfaces/IERC1271Upgradeable.sol";
+import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
+import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { ValidationHandler } from "./ValidationHandler.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
@@ -34,9 +36,10 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.
 
     bytes32 eip712Hash = _hashTypedDataV4(_ssoMessageHash(SsoMessage(signedHash)));
 
-    bool valid = _handleValidation(validator, eip712Hash, signature);
+    bool isValid = _isModuleValidator(validator) &&
+      IModuleValidator(validator).validateSignature(eip712Hash, signature);
 
-    magicValue = valid ? _ERC1271_MAGIC : bytes4(0);
+    magicValue = isValid ? _ERC1271_MAGIC : bytes4(0);
   }
 
   /**

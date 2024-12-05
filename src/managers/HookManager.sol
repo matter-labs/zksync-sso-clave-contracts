@@ -9,7 +9,7 @@ import { Auth } from "../auth/Auth.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { IExecutionHook, IValidationHook } from "../interfaces/IHook.sol";
+import { IExecutionHook } from "../interfaces/IHook.sol";
 import { IInitable } from "../interfaces/IInitable.sol";
 import { IHookManager } from "../interfaces/IHookManager.sol";
 
@@ -71,27 +71,13 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   /// @inheritdoc IHookManager
-  function addHook(bytes calldata hookAndData, bool isValidation) external override onlySelfOrModule {
-    _addHook(hookAndData, isValidation);
+  function addHook(bytes calldata hookAndData) external override onlySelfOrModule {
+    _addHook(hookAndData);
   }
 
   /// @inheritdoc IHookManager
   function removeHook(address hook, bool isValidation) external override onlySelfOrModule {
     _removeHook(hook, isValidation);
-  }
-
-  /// @inheritdoc IHookManager
-  function setHookData(bytes32 key, bytes calldata data) external override onlyHook {
-    if (key == CONTEXT_KEY) {
-      revert Errors.INVALID_KEY();
-    }
-
-    _hookDataStore()[msg.sender][key] = data;
-  }
-
-  /// @inheritdoc IHookManager
-  function getHookData(address hook, bytes32 key) external view override returns (bytes memory) {
-    return _hookDataStore()[hook][key];
   }
 
   /// @inheritdoc IHookManager
@@ -101,43 +87,9 @@ abstract contract HookManager is IHookManager, Auth {
 
   /// @inheritdoc IHookManager
   function listHooks(bool isValidation) external view override returns (address[] memory hookList) {
-    if (isValidation) {
-      hookList = _validationHooksLinkedList().list();
-    } else {
+    if (!isValidation) {
       hookList = _executionHooksLinkedList().list();
     }
-  }
-
-  // Runs the validation hooks that are enabled by the account and returns true if none reverts
-  function runValidationHooks(
-    bytes32 signedHash,
-    Transaction calldata transaction,
-    bytes[] memory hookData
-  ) internal returns (bool) {
-    mapping(address => address) storage validationHooks = _validationHooksLinkedList();
-
-    address cursor = validationHooks[AddressLinkedList.SENTINEL_ADDRESS];
-    uint256 idx;
-    // Iterate through hooks
-    while (cursor > AddressLinkedList.SENTINEL_ADDRESS) {
-      // Call it with corresponding hookData
-      bool success = _call(
-        cursor,
-        abi.encodeCall(IValidationHook.validationHook, (signedHash, transaction, hookData[idx]))
-      );
-      ++idx;
-
-      if (!success) {
-        return false;
-      }
-
-      cursor = validationHooks[cursor];
-    }
-
-    // Ensure that hookData is not tampered with
-    if (hookData.length != idx) return false;
-
-    return true;
   }
 
   // Runs the execution hooks that are enabled by the account before and after _executeTransaction
@@ -172,47 +124,6 @@ abstract contract HookManager is IHookManager, Auth {
     }
   }
 
-  function _addHook(bytes calldata hookAndData, bool isValidation) internal {
-    if (hookAndData.length < 20) {
-      revert Errors.EMPTY_HOOK_ADDRESS();
-    }
-
-    address hookAddress = address(bytes20(hookAndData[0:20]));
-
-    bytes calldata initData = hookAndData[20:];
-    _installHook(hookAddress, initData, isValidation);
-  }
-
-  function _installHook(address hookAddress, bytes memory initData, bool isValidation) internal {
-    if (!_supportsHook(hookAddress, isValidation)) {
-      revert Errors.HOOK_ERC165_FAIL();
-    }
-    if (isValidation) {
-      _validationHooksLinkedList().add(hookAddress);
-    } else {
-      _executionHooksLinkedList().add(hookAddress);
-    }
-
-    emit AddHook(hookAddress);
-  }
-
-  function _removeHook(address hook, bool isValidation) internal {
-    if (isValidation) {
-      _validationHooksLinkedList().remove(hook);
-    } else {
-      _executionHooksLinkedList().remove(hook);
-    }
-
-    (bool success, ) = hook.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
-    (success); // silence unused local variable warning
-
-    emit RemoveHook(hook);
-  }
-
-  function _isHook(address addr) internal view override returns (bool) {
-    return _validationHooksLinkedList().exists(addr) || _executionHooksLinkedList().exists(addr);
-  }
-
   function _setContext(address hook, bytes memory context) private {
     _hookDataStore()[hook][CONTEXT_KEY] = context;
   }
@@ -225,28 +136,51 @@ abstract contract HookManager is IHookManager, Auth {
     context = _hookDataStore()[hook][CONTEXT_KEY];
   }
 
+  function _hookDataStore() private view returns (mapping(address => mapping(bytes32 => bytes)) storage hookDataStore) {
+    hookDataStore = SsoStorage.layout().hookDataStore;
+  }
+
+  function _addHook(bytes calldata hookAndData) internal {
+    if (hookAndData.length < 20) {
+      revert Errors.EMPTY_HOOK_ADDRESS();
+    }
+
+    address hookAddress = address(bytes20(hookAndData[0:20]));
+    if (!_supportsHook(hookAddress)) {
+      revert Errors.HOOK_ERC165_FAIL();
+    }
+
+    _executionHooksLinkedList().add(hookAddress);
+
+    emit AddHook(hookAddress);
+  }
+
+  function _removeHook(address hook, bool isValidation) internal {
+    if (!isValidation) {
+      _executionHooksLinkedList().remove(hook);
+    }
+
+    (bool success, ) = hook.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
+    (success); // silence unused local variable warning
+
+    emit RemoveHook(hook);
+  }
+
+  function _isHook(address addr) internal view override returns (bool) {
+    return _executionHooksLinkedList().exists(addr);
+  }
+
   function _call(address target, bytes memory data) private returns (bool success) {
     assembly ("memory-safe") {
       success := call(gas(), target, 0, add(data, 0x20), mload(data), 0, 0)
     }
   }
 
-  function _validationHooksLinkedList() private view returns (mapping(address => address) storage validationHooks) {
-    validationHooks = SsoStorage.layout().validationHooks;
-  }
-
   function _executionHooksLinkedList() private view returns (mapping(address => address) storage executionHooks) {
     executionHooks = SsoStorage.layout().executionHooks;
   }
 
-  function _hookDataStore() private view returns (mapping(address => mapping(bytes32 => bytes)) storage hookDataStore) {
-    hookDataStore = SsoStorage.layout().hookDataStore;
-  }
-
-  function _supportsHook(address hook, bool isValidation) internal view returns (bool) {
-    return
-      isValidation
-        ? hook.supportsInterface(type(IValidationHook).interfaceId)
-        : hook.supportsInterface(type(IExecutionHook).interfaceId);
+  function _supportsHook(address hook) internal view returns (bool) {
+    return hook.supportsInterface(type(IExecutionHook).interfaceId);
   }
 }
