@@ -11,11 +11,6 @@ library SignatureDecoder {
     (signature, validator, hookData) = abi.decode(txSignature, (bytes, address, bytes[]));
   }
 
-  // Decode transaction.signature into hook data
-  function decodeSignatureOnlyHookData(bytes calldata txSignature) internal pure returns (bytes[] memory hookData) {
-    (hookData) = abi.decode(txSignature, (bytes[]));
-  }
-
   // Decode signature into signature and validator
   function decodeSignatureNoHookData(
     bytes memory signatureAndValidator

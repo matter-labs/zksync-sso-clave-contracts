@@ -9,7 +9,7 @@ import { Auth } from "../auth/Auth.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { IExecutionHook, IValidationHook } from "../interfaces/IHook.sol";
+import { IExecutionHook } from "../interfaces/IHook.sol";
 import { IInitable } from "../interfaces/IInitable.sol";
 import { IHookManager } from "../interfaces/IHookManager.sol";
 
@@ -90,6 +90,54 @@ abstract contract HookManager is IHookManager, Auth {
     if (!isValidation) {
       hookList = _executionHooksLinkedList().list();
     }
+  }
+
+  // Runs the execution hooks that are enabled by the account before and after _executeTransaction
+  modifier runExecutionHooks(Transaction calldata transaction) {
+    mapping(address => address) storage executionHooks = _executionHooksLinkedList();
+
+    address cursor = executionHooks[AddressLinkedList.SENTINEL_ADDRESS];
+    // Iterate through hooks
+    while (cursor > AddressLinkedList.SENTINEL_ADDRESS) {
+      // Call the preExecutionHook function with transaction struct
+      bytes memory context = IExecutionHook(cursor).preExecutionHook(transaction);
+      // Store returned data as context
+      _setContext(cursor, context);
+
+      cursor = executionHooks[cursor];
+    }
+
+    _;
+
+    cursor = executionHooks[AddressLinkedList.SENTINEL_ADDRESS];
+    // Iterate through hooks
+    while (cursor > AddressLinkedList.SENTINEL_ADDRESS) {
+      bytes memory context = _getContext(cursor);
+      if (context.length > 0) {
+        // Call the postExecutionHook function with stored context
+        IExecutionHook(cursor).postExecutionHook(context);
+        // Delete context
+        _deleteContext(cursor);
+      }
+
+      cursor = executionHooks[cursor];
+    }
+  }
+
+  function _setContext(address hook, bytes memory context) private {
+    _hookDataStore()[hook][CONTEXT_KEY] = context;
+  }
+
+  function _deleteContext(address hook) private {
+    delete _hookDataStore()[hook][CONTEXT_KEY];
+  }
+
+  function _getContext(address hook) private view returns (bytes memory context) {
+    context = _hookDataStore()[hook][CONTEXT_KEY];
+  }
+
+  function _hookDataStore() private view returns (mapping(address => mapping(bytes32 => bytes)) storage hookDataStore) {
+    hookDataStore = SsoStorage.layout().hookDataStore;
   }
 
   function _addHook(bytes calldata hookAndData) internal {

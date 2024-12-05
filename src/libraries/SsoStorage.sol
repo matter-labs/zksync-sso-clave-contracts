@@ -20,6 +20,7 @@ library SsoStorage {
     // ┌───────────────────┐
     // │       Hooks       │
     mapping(address => address) executionHooks;
+    mapping(address => mapping(bytes32 => bytes)) hookDataStore;
     uint256[50] __gap_4;
     // └───────────────────┘
   }

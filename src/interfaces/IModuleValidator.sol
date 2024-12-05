@@ -10,13 +10,13 @@ import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/li
  * @dev Add signature to module or validate existing signatures for acccount
  */
 interface IModuleValidator is IInitable, IERC165 {
-  function handleValidation(
+  function validateTransaction(
     bytes32 signedHash,
     bytes memory signature,
     Transaction calldata transaction
   ) external returns (bool);
 
-  function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool);
+  function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool);
 
   function addValidationKey(bytes memory key) external returns (bool);
 }
