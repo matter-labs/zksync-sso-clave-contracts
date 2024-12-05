@@ -2,10 +2,12 @@
 pragma solidity ^0.8.24;
 
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/ExcessivelySafeCall.sol";
 
 import { Auth } from "../auth/Auth.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
+import { IInitable } from "../interfaces/IInitable.sol";
 import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
@@ -21,6 +23,8 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   using AddressLinkedList for mapping(address => address);
   // Interface helper library
   using ERC165Checker for address;
+  // Low level calls helper library
+  using ExcessivelySafeCall for address;
 
   function addModuleValidator(address validator, bytes memory initialAccountValidationKey) external onlySelf {
     _addModuleValidator(validator, initialAccountValidationKey);
@@ -54,6 +58,8 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
 
   function _removeModuleValidator(address validator) internal {
     _moduleValidatorsLinkedList().remove(validator);
+
+    validator.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
 
     emit RemoveModuleValidator(validator);
   }

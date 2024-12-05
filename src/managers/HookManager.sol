@@ -207,8 +207,7 @@ abstract contract HookManager is IHookManager, Auth {
       _executionHooksLinkedList().remove(hook);
     }
 
-    (bool success, ) = hook.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
-    (success); // silence unused local variable warning
+    hook.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
 
     emit RemoveHook(hook);
   }
