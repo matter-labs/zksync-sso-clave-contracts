@@ -52,12 +52,7 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator {
   }
 
   function addValidationKey(bytes memory sessionData) external returns (bool) {
-    if (sessionData.length == 0) {
-      return false;
-    }
-    SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
-    createSession(sessionSpec);
-    return true;
+    return _addValidationKey(sessionData);
   }
 
   function createSession(SessionLib.SessionSpec memory sessionSpec) public {
@@ -71,7 +66,21 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator {
     emit SessionCreated(msg.sender, sessionHash, sessionSpec);
   }
 
-  function init(bytes calldata data) external {}
+  function init(bytes calldata data) external {
+    // to prevent duplicate inits, since this can be hook plus a validator
+    if (!_isInitialized(msg.sender) && data.length != 0) {
+      require(_addValidationKey(data), "init failed");
+    }
+  }
+
+  function _addValidationKey(bytes memory sessionData) internal returns (bool) {
+    if (sessionData.length == 0) {
+      return false;
+    }
+    SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
+    createSession(sessionSpec);
+    return true;
+  }
 
   function disable() external {
     if (_isInitialized(msg.sender)) {
