@@ -22,12 +22,12 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   // Interface helper library
   using ERC165Checker for address;
 
-  function addModuleValidator(address validator, bytes memory initialAccountValidationKey) external onlySelfOrModule {
+  function addModuleValidator(address validator, bytes memory initialAccountValidationKey) external onlySelf {
     _addModuleValidator(validator, initialAccountValidationKey);
   }
 
   ///@inheritdoc IValidatorManager
-  function removeModuleValidator(address validator) external onlySelfOrModule {
+  function removeModuleValidator(address validator) external onlySelf {
     _removeModuleValidator(validator);
   }
 

@@ -11,11 +11,4 @@ import { Errors } from "../libraries/Errors.sol";
  * @notice Abstract contract that organizes authentication logic for the contract
  * @author https://getclave.io
  */
-abstract contract Auth is BootloaderAuth, SelfAuth, HookAuth {
-  modifier onlySelfOrModule() {
-    if (msg.sender != address(this)) {
-      revert Errors.NOT_FROM_SELF_OR_MODULE();
-    }
-    _;
-  }
-}
+abstract contract Auth is BootloaderAuth, SelfAuth, HookAuth {}

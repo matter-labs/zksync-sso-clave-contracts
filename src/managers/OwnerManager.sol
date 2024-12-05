@@ -22,12 +22,12 @@ abstract contract OwnerManager is IOwnerManager, Auth {
   using AddressLinkedList for mapping(address => address);
 
   /// @inheritdoc IOwnerManager
-  function k1AddOwner(address addr) external override onlySelfOrModule {
+  function k1AddOwner(address addr) external override onlySelf {
     _k1AddOwner(addr);
   }
 
   /// @inheritdoc IOwnerManager
-  function k1RemoveOwner(address addr) external override onlySelfOrModule {
+  function k1RemoveOwner(address addr) external override onlySelf {
     _k1RemoveOwner(addr);
   }
 
