@@ -155,8 +155,14 @@ contract SessionKeyValidator is IModuleValidator {
       (SessionLib.SessionSpec, uint64[])
     );
     require(spec.signer != address(0), "Invalid signer (empty)");
-    (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, transactionSignature);
-    require(recoveredAddress != address(0), "Invalid signature (empty)");
+    (address recoveredAddress, ECDSA.RecoverError recoverError) = ECDSA.tryRecover(signedHash, transactionSignature);
+
+    // gas estimation provides invalid custom signatures
+    if (recoveredAddress == address(0) && recoverError == ECDSA.RecoverError.InvalidSignature) {
+      // this should increase the gas estimation and shouldn't otherwise be possible
+      return keccak256(_signature) != keccak256(transactionSignature);
+    }
+
     require(recoveredAddress == spec.signer, "Invalid signer (mismatch)");
     bytes32 sessionHash = keccak256(abi.encode(spec));
     sessions[sessionHash].validate(transaction, spec, periodIds);
