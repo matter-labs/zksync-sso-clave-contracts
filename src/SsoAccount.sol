@@ -93,7 +93,7 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     bytes32,
     bytes32,
     Transaction calldata _transaction
-  ) external payable override onlyBootloader {
+  ) external payable override onlyBootloader runExecutionHooks(_transaction) {
     address to = _safeCastToAddress(_transaction.to);
     uint128 value = Utils.safeCastToU128(_transaction.value);
 
@@ -172,7 +172,7 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     }
 
     // Extract the signature, validator address and hook data from the _transaction.signature
-    (bytes memory signature, address validator, bytes[] memory hookData) = SignatureDecoder.decodeSignature(
+    (bytes memory signature, address validator, bytes[] memory _hookData) = SignatureDecoder.decodeSignature(
       _transaction.signature
     );
 

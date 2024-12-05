@@ -36,7 +36,8 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.
 
     bytes32 eip712Hash = _hashTypedDataV4(_ssoMessageHash(SsoMessage(signedHash)));
 
-    bool isValid = _isModuleValidator(validator) && IModuleValidator(validator).handleValidation(eip712Hash, signature);
+    bool isValid = _isModuleValidator(validator) &&
+      IModuleValidator(validator).validateSignature(eip712Hash, signature);
 
     magicValue = isValid ? _ERC1271_MAGIC : bytes4(0);
   }

@@ -39,7 +39,7 @@ contract SessionKeyValidator is IModuleValidator {
   }
 
   // requires transaction to validate signature because it contains a timestamp
-  function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+  function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
     // This only succeeds if the validationHook has previously succeeded for this hash.
     uint256 slot = uint256(signedHash);
     uint256 hookResult;
@@ -50,12 +50,12 @@ contract SessionKeyValidator is IModuleValidator {
     return true;
   }
 
-  function handleValidation(
+  function validateTransaction(
     bytes32 signedHash,
     bytes memory signature,
     Transaction calldata transaction
   ) external returns (bool) {
-    return _isValidTransaction(signedHash, transaction);
+    return _isValidTransaction(signedHash, signature, transaction);
   }
 
   function addValidationKey(bytes memory sessionData) external returns (bool) {
@@ -64,8 +64,8 @@ contract SessionKeyValidator is IModuleValidator {
 
   function createSession(SessionLib.SessionSpec memory sessionSpec) public {
     bytes32 sessionHash = keccak256(abi.encode(sessionSpec));
-    require(_isHookInitialized(msg.sender), "Account not initialized");
-    require(sessionSpec.signer != address(0), "Invalid signer");
+    require(_isInitialized(msg.sender), "Account not initialized");
+    require(sessionSpec.signer != address(0), "Invalid signer(create)");
     require(sessions[sessionHash].status[msg.sender] == SessionLib.Status.NotInitialized, "Session already exists");
     require(sessionSpec.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
     sessionCounter[msg.sender]++;
@@ -136,8 +136,12 @@ contract SessionKeyValidator is IModuleValidator {
   }
 
   // this generally throws instead of returning false
-  function _isValidTransaction(bytes32 signedHash, Transaction calldata transaction) internal returns (bool) {
-    (bytes memory signature, address validator, bytes[] memory moduleData) = abi.decode(
+  function _isValidTransaction(
+    bytes32 signedHash,
+    bytes memory _signature,
+    Transaction calldata transaction
+  ) internal returns (bool) {
+    (bytes memory transactionSignature, address validator, bytes[] memory moduleData) = abi.decode(
       transaction.signature,
       (bytes, address, bytes[])
     );
@@ -150,8 +154,10 @@ contract SessionKeyValidator is IModuleValidator {
       moduleData[0], // this is known by the signature builder
       (SessionLib.SessionSpec, uint64[])
     );
-    (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, signature);
-    require(recoveredAddress == spec.signer, "Invalid signer");
+    require(spec.signer != address(0), "Invalid signer (empty)");
+    (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, transactionSignature);
+    require(recoveredAddress != address(0), "Invalid signature (empty)");
+    require(recoveredAddress == spec.signer, "Invalid signer (mismatch)");
     bytes32 sessionHash = keccak256(abi.encode(spec));
     sessions[sessionHash].validate(transaction, spec, periodIds);
 
