@@ -1,4 +1,4 @@
-# ZKsync SSO
+# ZKsync SSO Clave Contracts
 
 [![License](https://img.shields.io/badge/license-GPL3-blue)](LICENSE)
 [![CI](https://github.com/matter-labs/zksync-account-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/matter-labs/zksync-account-sdk/actions/workflows/ci.yml)
@@ -12,19 +12,13 @@ Forked from [Clave](https://github.com/getclave/clave-contracts).
 
 <!-- prettier-ignore -->
 > [!CAUTION]
-> ZKsync SSO is under active development and is not yet feature
-> complete. Use it to improve your development applications and tooling. Please
-> do not use it in production environments.
+> The factory and module interfaces are not yet stable! Any modules created
+> against the IModuleValidator interface will likely need to be updated in the
+> final version. The code is currently under audit and the latest may contain
+> security vulnerabilities.
 
-- 🧩 Modular smart accounts based on
-  [ERC-7579](https://eips.ethereum.org/EIPS/eip-7579#modules)
-- 🔑 Passkey authentication (no seed phrases)
-- ⏰ Sessions w/ easy configuration and management
-- 💰 Integrated paymaster support
-- ❤️‍🩹 Account recovery _(Coming Soon)_
-- 💻 Simple SDKs : JavaScript, iOS/Android _(Coming Soon)_
-- 🤝 Open-source authentication server
-- 🎓 Examples to get started quickly
+See the [ZKsync SSO](https://github.com/matter-labs/zksync-sso) project for a
+complete developer solution, this project is just the smart contract components.
 
 ## Local Development
 
