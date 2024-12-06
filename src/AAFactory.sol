@@ -35,14 +35,13 @@ contract AAFactory is UpgradeableBeacon {
   /// @param _salt The salt used for the `create2` deployment to make the address deterministic.
   /// @param _uniqueAccountId A unique identifier for the new account.
   /// @param _initialValidators An array of initial validators for the new account.
-  /// @param _initialModules An array of initial modules to be added to the new account.
   /// @param _initialK1Owners An array of initial owners of the K1 key for the new account.
   /// @return accountAddress The address of the newly deployed SSO account.
   function deployProxySsoAccount(
     bytes32 _salt,
     string calldata _uniqueAccountId,
     bytes[] calldata _initialValidators,
-    bytes[] calldata _initialModules,
+    bytes[] calldata _initialHooks,
     address[] calldata _initialK1Owners
   ) external returns (address accountAddress) {
     require(accountMappings[_uniqueAccountId] == address(0), "Account already exists");
@@ -64,8 +63,8 @@ contract AAFactory is UpgradeableBeacon {
     require(success, "Deployment failed");
     (accountAddress) = abi.decode(returnData, (address));
 
-    // Initialize the newly deployed account with validators, modules, and K1 owners.
-    ISsoAccount(accountAddress).initialize(_initialValidators, _initialModules, _initialK1Owners);
+    // Initialize the newly deployed account with validators, hooks and K1 owners.
+    ISsoAccount(accountAddress).initialize(_initialValidators, _initialHooks, _initialK1Owners);
 
     accountMappings[_uniqueAccountId] = accountAddress;
 

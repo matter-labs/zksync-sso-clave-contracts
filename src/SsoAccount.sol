@@ -11,7 +11,6 @@ import { Utils } from "@matterlabs/zksync-contracts/l2/system-contracts/librarie
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import { HookManager } from "./managers/HookManager.sol";
-import { ModuleManager } from "./managers/ModuleManager.sol";
 
 import { TokenCallbackHandler, IERC165 } from "./helpers/TokenCallbackHandler.sol";
 
@@ -30,15 +29,7 @@ import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 /// @notice This contract is a modular and extensible account implementation with support of
 /// multi-ownership, custom modules, validation/execution hooks and different signature validation formats.
 /// @dev Contract is expected to be used as Beacon proxy implementation.
-contract SsoAccount is
-  Initializable,
-  HookManager,
-  ModuleManager,
-  ERC1271Handler,
-  TokenCallbackHandler,
-  BatchCaller,
-  ISsoAccount
-{
+contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallbackHandler, BatchCaller, ISsoAccount {
   // Helper library for the Transaction struct
   using TransactionHelper for Transaction;
 
@@ -50,21 +41,21 @@ contract SsoAccount is
   /// @dev Sets passkey and passkey validator within account storage
   /// @param _initialValidators An array of module validator addresses and initial validation keys
   /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey))`.
-  /// @param _initialModules An array of native module addresses and their initialize data
-  /// in an ABI encoded format of `abi.encode(moduleAddr,initData))`.
+  /// @param _initialValidationHooks An array of hook module validator addresses and initial validation keys
+  /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey))`.
   /// @param _initialK1Owners An array of addresses with full control over the account.
   function initialize(
     bytes[] calldata _initialValidators,
-    bytes[] calldata _initialModules,
+    bytes[] calldata _initialValidationHooks,
     address[] calldata _initialK1Owners
   ) external initializer {
     for (uint256 i = 0; i < _initialValidators.length; ++i) {
       (address validatorAddr, bytes memory validationKey) = abi.decode(_initialValidators[i], (address, bytes));
       _addModuleValidator(validatorAddr, validationKey);
     }
-    for (uint256 i = 0; i < _initialModules.length; ++i) {
-      (address moduleAddr, bytes memory initData) = abi.decode(_initialModules[i], (address, bytes));
-      _addNativeModule(moduleAddr, initData);
+    for (uint256 i = 0; i < _initialValidationHooks.length; ++i) {
+      (address validatorAddr, bytes memory validationKey) = abi.decode(_initialValidationHooks[i], (address, bytes));
+      _installHook(validatorAddr, validationKey, true);
     }
     for (uint256 i = 0; i < _initialK1Owners.length; ++i) {
       _k1AddOwner(_initialK1Owners[i]);

@@ -388,8 +388,8 @@ describe("SessionKeyModule tests", function () {
 
     const deployTx = await factoryContract.deployProxySsoAccount(
       randomBytes(32),
-      "id",
-      [],
+      "session-key-test-id",
+      [sessionKeyPayload],
       [sessionKeyPayload],
       [fixtures.wallet.address],
     );

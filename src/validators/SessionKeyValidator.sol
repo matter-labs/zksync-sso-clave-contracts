@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-import { IModule } from "../interfaces/IModule.sol";
 import { IValidationHook } from "../interfaces/IHook.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
@@ -15,7 +14,7 @@ import { IHookManager } from "../interfaces/IHookManager.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 
-contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
+contract SessionKeyValidator is IValidationHook, IModuleValidator {
   using SessionLib for SessionLib.SessionStorage;
   using EnumerableSet for EnumerableSet.Bytes32Set;
 
@@ -53,17 +52,12 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
   }
 
   function addValidationKey(bytes memory sessionData) external returns (bool) {
-    if (sessionData.length == 0) {
-      return false;
-    }
-    SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
-    createSession(sessionSpec);
-    return true;
+    return _addValidationKey(sessionData);
   }
 
   function createSession(SessionLib.SessionSpec memory sessionSpec) public {
     bytes32 sessionHash = keccak256(abi.encode(sessionSpec));
-    require(_isInitialized(msg.sender), "Account not initialized");
+    require(_isHookInitialized(msg.sender), "Account not initialized");
     require(sessionSpec.signer != address(0), "Invalid signer");
     require(sessions[sessionHash].status[msg.sender] == SessionLib.Status.NotInitialized, "Session already exists");
     require(sessionSpec.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
@@ -73,22 +67,31 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
   }
 
   function init(bytes calldata data) external {
-    // to prevent recursion, since addHook also calls init
-    if (!_isInitialized(msg.sender)) {
-      IHookManager(msg.sender).addHook(abi.encodePacked(address(this)), true);
-      IValidatorManager(msg.sender).addModuleValidator(address(this), data);
+    // to prevent duplicate inits, since this can be hook plus a validator
+    if (!_isHookAndModuleInitialized(msg.sender) && data.length != 0) {
+      require(_addValidationKey(data), "init failed");
     }
   }
 
+  function _addValidationKey(bytes memory sessionData) internal returns (bool) {
+    SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
+    createSession(sessionSpec);
+    return true;
+  }
+
   function disable() external {
-    if (_isInitialized(msg.sender)) {
+    if (_isHookInitialized(msg.sender)) {
       // Here we have to revoke all keys, so that if the module
       // is installed again later, there will be no active sessions from the past.
       // Problem: if there are too many keys, this will run out of gas.
       // Solution: before uninstalling, require that all keys are revoked manually.
       require(sessionCounter[msg.sender] == 0, "Revoke all keys first");
-      IValidatorManager(msg.sender).removeModuleValidator(address(this));
       IHookManager(msg.sender).removeHook(address(this), true);
+    }
+
+    // Check module and hook independently so it's not stuck in a bad state
+    if (_isModuleInitialized(msg.sender)) {
+      IValidatorManager(msg.sender).removeModuleValidator(address(this));
     }
   }
 
@@ -97,8 +100,7 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
       interfaceId != 0xffffffff &&
       (interfaceId == type(IERC165).interfaceId ||
         interfaceId == type(IValidationHook).interfaceId ||
-        interfaceId == type(IModuleValidator).interfaceId ||
-        interfaceId == type(IModule).interfaceId);
+        interfaceId == type(IModuleValidator).interfaceId);
   }
 
   // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?
@@ -121,11 +123,19 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
    * @return true if validator is registered for the account, false otherwise
    */
   function isInitialized(address smartAccount) external view returns (bool) {
-    return _isInitialized(smartAccount);
+    return _isHookAndModuleInitialized(smartAccount);
   }
 
-  function _isInitialized(address smartAccount) internal view returns (bool) {
+  function _isHookAndModuleInitialized(address smartAccount) internal view returns (bool) {
+    return _isHookInitialized(smartAccount) && _isModuleInitialized(smartAccount);
+  }
+
+  function _isHookInitialized(address smartAccount) internal view returns (bool) {
     return IHookManager(smartAccount).isHook(address(this));
+  }
+
+  function _isModuleInitialized(address smartAccount) internal view returns (bool) {
+    return IValidatorManager(smartAccount).isModuleValidator(address(this));
   }
 
   function validationHook(bytes32 signedHash, Transaction calldata transaction, bytes calldata hookData) external {

@@ -7,31 +7,14 @@ library SsoStorage {
   struct Layout {
     // ┌───────────────────┐
     // │   Ownership Data  │
-    mapping(bytes => bytes) r1Owners;
     mapping(address => address) k1Owners;
     uint256[50] __gap_0;
     // └───────────────────┘
 
     // ┌───────────────────┐
-    // │     Fallback      │
-    address defaultFallbackContract; // for next version
-    mapping(bytes4 selector => address) fallbackContractBySelector;
-    uint256[50] __gap_1;
-    // └───────────────────┘
-
-    // ┌───────────────────┐
     // │     Validation    │
-    mapping(address => address) r1Validators;
-    mapping(address => address) k1Validators;
     mapping(address => address) moduleValidators;
     uint256[50] __gap_2;
-    // └───────────────────┘
-
-    // ┌───────────────────┐
-    // │       Module      │
-    mapping(address => address) modules;
-    mapping(address => address) execModules;
-    uint256[50] __gap_3;
     // └───────────────────┘
 
     // ┌───────────────────┐

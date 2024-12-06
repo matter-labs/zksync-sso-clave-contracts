@@ -71,12 +71,12 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   /// @inheritdoc IHookManager
-  function addHook(bytes calldata hookAndData, bool isValidation) external override onlySelfOrModule {
+  function addHook(bytes calldata hookAndData, bool isValidation) external override onlySelf {
     _addHook(hookAndData, isValidation);
   }
 
   /// @inheritdoc IHookManager
-  function removeHook(address hook, bool isValidation) external override onlySelfOrModule {
+  function removeHook(address hook, bool isValidation) external override onlySelf {
     _removeHook(hook, isValidation);
   }
 
@@ -179,11 +179,15 @@ abstract contract HookManager is IHookManager, Auth {
 
     address hookAddress = address(bytes20(hookAndData[0:20]));
 
+    bytes calldata initData = hookAndData[20:];
+
+    _installHook(hookAddress, initData, isValidation);
+  }
+
+  function _installHook(address hookAddress, bytes memory initData, bool isValidation) internal {
     if (!_supportsHook(hookAddress, isValidation)) {
       revert Errors.HOOK_ERC165_FAIL();
     }
-
-    bytes calldata initData = hookAndData[20:];
 
     if (isValidation) {
       _validationHooksLinkedList().add(hookAddress);
@@ -203,8 +207,7 @@ abstract contract HookManager is IHookManager, Auth {
       _executionHooksLinkedList().remove(hook);
     }
 
-    (bool success, ) = hook.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
-    (success); // silence unused local variable warning
+    hook.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
 
     emit RemoveHook(hook);
   }
