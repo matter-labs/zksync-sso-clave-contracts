@@ -271,7 +271,7 @@ class SessionTester {
     };
 
     const signedTransaction = await this.sessionAccount.signTransaction(this.aaTransaction);
-    await expect (provider.broadcastTransaction(signedTransaction)).to.be.reverted;
+    await expect(provider.broadcastTransaction(signedTransaction)).to.be.reverted;
   };
 
   getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {

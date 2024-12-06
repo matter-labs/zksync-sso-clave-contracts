@@ -34,7 +34,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   // We can only disconnect the module from the account,
   // re-linking it will allow any previous keys
   function disable() external {
-    require(false, "Cannot disable module without removing it from account");
+    revert("Cannot disable module without removing it from account");
   }
 
   function _addValidationKey(bytes memory key) internal returns (bool) {
