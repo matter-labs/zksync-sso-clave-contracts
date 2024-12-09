@@ -5,10 +5,6 @@ import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/li
 import { IInitable } from "../interfaces/IInitable.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-interface IValidationHook is IInitable, IERC165 {
-  function validationHook(bytes32 signedHash, Transaction calldata transaction, bytes calldata hookData) external;
-}
-
 interface IExecutionHook is IInitable, IERC165 {
   function preExecutionHook(Transaction calldata transaction) external returns (bytes memory context);
 
