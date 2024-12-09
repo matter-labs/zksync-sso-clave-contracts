@@ -80,16 +80,16 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator {
   }
 
   function disable() external {
-    if (_isHookInitialized(msg.sender)) {
-      // Here we have to revoke all keys, so that if the module
-      // is installed again later, there will be no active sessions from the past.
-      // Problem: if there are too many keys, this will run out of gas.
-      // Solution: before uninstalling, require that all keys are revoked manually.
-      require(sessionCounter[msg.sender] == 0, "Revoke all keys first");
-      IHookManager(msg.sender).removeHook(address(this), true);
-    }
+    // Here we have to revoke all keys, so that if the module
+    // is installed again later, there will be no active sessions from the past.
+    // Problem: if there are too many keys, this will run out of gas.
+    // Solution: before uninstalling, require that all keys are revoked manually.
+    require(sessionCounter[msg.sender] == 0, "Revoke all keys first");
 
     // Check module and hook independently so it's not stuck in a bad state
+    if (_isHookInitialized(msg.sender)) {
+      IHookManager(msg.sender).removeHook(address(this), true);
+    }
     if (_isModuleInitialized(msg.sender)) {
       IValidatorManager(msg.sender).removeModuleValidator(address(this));
     }
