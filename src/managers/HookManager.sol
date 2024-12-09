@@ -81,6 +81,20 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   /// @inheritdoc IHookManager
+  function setHookData(bytes32 key, bytes calldata data) external override onlyHook {
+    if (key == CONTEXT_KEY) {
+      revert Errors.INVALID_KEY();
+    }
+
+    _hookDataStore()[msg.sender][key] = data;
+  }
+
+  /// @inheritdoc IHookManager
+  function getHookData(address hook, bytes32 key) external view override returns (bytes memory) {
+    return _hookDataStore()[hook][key];
+  }
+
+  /// @inheritdoc IHookManager
   function isHook(address addr) external view override returns (bool) {
     return _isHook(addr);
   }
@@ -124,22 +138,6 @@ abstract contract HookManager is IHookManager, Auth {
     }
   }
 
-  function _setContext(address hook, bytes memory context) private {
-    _hookDataStore()[hook][CONTEXT_KEY] = context;
-  }
-
-  function _deleteContext(address hook) private {
-    delete _hookDataStore()[hook][CONTEXT_KEY];
-  }
-
-  function _getContext(address hook) private view returns (bytes memory context) {
-    context = _hookDataStore()[hook][CONTEXT_KEY];
-  }
-
-  function _hookDataStore() private view returns (mapping(address => mapping(bytes32 => bytes)) storage hookDataStore) {
-    hookDataStore = SsoStorage.layout().hookDataStore;
-  }
-
   function _addHook(bytes calldata hookAndData) internal {
     if (hookAndData.length < 20) {
       revert Errors.EMPTY_HOOK_ADDRESS();
@@ -169,6 +167,18 @@ abstract contract HookManager is IHookManager, Auth {
     return _executionHooksLinkedList().exists(addr);
   }
 
+  function _setContext(address hook, bytes memory context) private {
+    _hookDataStore()[hook][CONTEXT_KEY] = context;
+  }
+
+  function _deleteContext(address hook) private {
+    delete _hookDataStore()[hook][CONTEXT_KEY];
+  }
+
+  function _getContext(address hook) private view returns (bytes memory context) {
+    context = _hookDataStore()[hook][CONTEXT_KEY];
+  }
+
   function _call(address target, bytes memory data) private returns (bool success) {
     assembly ("memory-safe") {
       success := call(gas(), target, 0, add(data, 0x20), mload(data), 0, 0)
@@ -177,6 +187,10 @@ abstract contract HookManager is IHookManager, Auth {
 
   function _executionHooksLinkedList() private view returns (mapping(address => address) storage executionHooks) {
     executionHooks = SsoStorage.layout().executionHooks;
+  }
+
+  function _hookDataStore() private view returns (mapping(address => mapping(bytes32 => bytes)) storage hookDataStore) {
+    hookDataStore = SsoStorage.layout().hookDataStore;
   }
 
   function _supportsHook(address hook) internal view returns (bool) {
