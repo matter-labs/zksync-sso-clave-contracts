@@ -71,7 +71,7 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   /// @inheritdoc IHookManager
-  function addHook(bytes calldata hookAndData) external override onlySelfOrModule {
+  function addHook(bytes calldata hookAndData) external override onlySelf {
     _addHook(hookAndData);
   }
 
