@@ -6,8 +6,8 @@ import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
 
 import type { ERC20 } from "../typechain-types";
-import { AAFactory__factory, SsoAccount__factory } from "../typechain-types";
-import type { AAFactory } from "../typechain-types/src/AAFactory";
+import { SsoBeacon__factory, SsoAccount__factory } from "../typechain-types";
+import type { SsoBeacon } from "../typechain-types/src/SsoBeacon";
 import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
 import { ContractFixtures, getProvider, logInfo } from "./utils";
 
@@ -367,6 +367,8 @@ describe("SessionKeyModule tests", function () {
     assert(sessionModuleContract != null, "No session module deployed");
     const ssoContract = await fixtures.getAccountImplContract();
     assert(ssoContract != null, "No SSO Account deployed");
+    const beaconContract = await fixtures.getBeaconContract();
+    assert(beaconContract != null, "No Beacon deployed");
     const factoryContract = await fixtures.getAaFactory();
     assert(factoryContract != null, "No AA Factory deployed");
     const authServerPaymaster = await fixtures.deployExampleAuthServerPaymaster(
@@ -375,6 +377,8 @@ describe("SessionKeyModule tests", function () {
     );
     assert(authServerPaymaster != null, "No Auth Server Paymaster deployed");
 
+    logInfo(`SSO Account Address            : ${await ssoContract.getAddress()}`);
+    logInfo(`Beacon Address                 : ${await beaconContract.getAddress()}`);
     logInfo(`Session Address                : ${await sessionModuleContract.getAddress()}`);
     logInfo(`Passkey Address                : ${await verifierContract.getAddress()}`);
     logInfo(`Account Factory Address        : ${await factoryContract.getAddress()}`);
@@ -581,10 +585,10 @@ describe("SessionKeyModule tests", function () {
   });
 
   describe("Upgrade tests", function () {
-    let beacon: AAFactory;
+    let beacon: SsoBeacon;
 
     it("should check implementation address", async () => {
-      beacon = AAFactory__factory.connect(await fixtures.getAaFactoryAddress(), fixtures.wallet);
+      beacon = SsoBeacon__factory.connect(await fixtures.getBeaconAddress(), fixtures.wallet);
       expect(await beacon.implementation()).to.equal(await fixtures.getAccountImplAddress());
     });
 

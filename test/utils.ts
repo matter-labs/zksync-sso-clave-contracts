@@ -9,8 +9,8 @@ import * as hre from "hardhat";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
 
-import { AAFactory, ERC20, ExampleAuthServerPaymaster, SessionKeyValidator, SsoAccount, WebAuthValidator } from "../typechain-types";
-import { AAFactory__factory, ERC20__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, SsoAccount__factory, WebAuthValidator__factory } from "../typechain-types";
+import { AAFactory, ERC20, ExampleAuthServerPaymaster, SessionKeyValidator, SsoAccount, WebAuthValidator, SsoBeacon } from "../typechain-types";
+import { AAFactory__factory, ERC20__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, SsoAccount__factory, WebAuthValidator__factory, SsoBeacon__factory } from "../typechain-types";
 
 export class ContractFixtures {
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
@@ -24,9 +24,9 @@ export class ContractFixtures {
 
   private _aaFactory: AAFactory;
   async getAaFactory() {
-    const implAddress = await this.getAccountImplAddress();
+    const beaconAddress = await this.getBeaconAddress();
     if (!this._aaFactory) {
-      this._aaFactory = await deployFactory(this.wallet, implAddress);
+      this._aaFactory = await deployFactory(this.wallet, beaconAddress);
     }
     return this._aaFactory;
   }
@@ -46,6 +46,20 @@ export class ContractFixtures {
 
   async getSessionKeyModuleAddress() {
     return (await this.getSessionKeyContract()).getAddress();
+  }
+
+  private _beacon: SsoBeacon;
+  async getBeaconContract() {
+    if (!this._beacon) {
+      const implAddress = await this.getAccountImplAddress();
+      const contract = await create2("SsoBeacon", this.wallet, this.ethersStaticSalt, [implAddress]);
+      this._beacon = SsoBeacon__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._beacon;
+  }
+
+  async getBeaconAddress() {
+    return (await this.getBeaconContract()).getAddress();
   }
 
   private _webauthnValidatorModule: WebAuthValidator;
