@@ -22,6 +22,7 @@ interface IHookManager {
    * @notice Add a hook to the list of hooks and call it's init function
    * @dev Can only be called by self
    * @param hookAndData bytes calldata - Address of the hook and data to initialize it with
+   * @param isValidation bool          - True if the hook is a validation hook, false otherwise
    */
   function addHook(bytes calldata hookAndData, bool isValidation) external;
 
