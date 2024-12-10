@@ -9,8 +9,8 @@ import * as hre from "hardhat";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
 
-import { AAFactory, ERC20, ExampleAuthServerPaymaster, SessionKeyValidator, SsoAccount, WebAuthValidator } from "../typechain-types";
-import { AAFactory__factory, ERC20__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, SsoAccount__factory, WebAuthValidator__factory } from "../typechain-types";
+import { AAFactory, ERC20, ExampleAuthServerPaymaster, SessionKeyValidator, SsoAccount, WebAuthValidator, SsoBeacon } from "../typechain-types";
+import { AAFactory__factory, ERC20__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, SsoAccount__factory, WebAuthValidator__factory, SsoBeacon__factory } from "../typechain-types";
 
 export class ContractFixtures {
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
@@ -24,9 +24,9 @@ export class ContractFixtures {
 
   private _aaFactory: AAFactory;
   async getAaFactory() {
-    const implAddress = await this.getAccountImplAddress();
+    const beaconAddress = await this.getBeaconAddress();
     if (!this._aaFactory) {
-      this._aaFactory = await deployFactory(this.wallet, implAddress);
+      this._aaFactory = await deployFactory(this.wallet, beaconAddress);
     }
     return this._aaFactory;
   }
@@ -48,6 +48,20 @@ export class ContractFixtures {
     return (await this.getSessionKeyContract()).getAddress();
   }
 
+  private _beacon: SsoBeacon;
+  async getBeaconContract() {
+    if (!this._beacon) {
+      const implAddress = await this.getAccountImplAddress();
+      const contract = await create2("SsoBeacon", this.wallet, this.ethersStaticSalt, [implAddress]);
+      this._beacon = SsoBeacon__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._beacon;
+  }
+
+  async getBeaconAddress() {
+    return (await this.getBeaconContract()).getAddress();
+  }
+
   private _webauthnValidatorModule: WebAuthValidator;
   // does passkey validation via modular interface
   async getWebAuthnVerifierContract() {
@@ -58,13 +72,8 @@ export class ContractFixtures {
     return this._webauthnValidatorModule;
   }
 
-  private _passkeyModuleAddress: string;
   async getPasskeyModuleAddress() {
-    if (!this._passkeyModuleAddress) {
-      const passkeyModule = await this.getWebAuthnVerifierContract();
-      this._passkeyModuleAddress = await passkeyModule.getAddress();
-    }
-    return this._passkeyModuleAddress;
+    return (await this.getWebAuthnVerifierContract()).getAddress();
   }
 
   private _accountImplContract: SsoAccount;
@@ -76,14 +85,8 @@ export class ContractFixtures {
     return this._accountImplContract;
   }
 
-  private _accountImplAddress: string;
-  // deploys the base account for future proxy use
   async getAccountImplAddress() {
-    if (!this._accountImplAddress) {
-      const accountImpl = await this.getAccountImplContract();
-      this._accountImplAddress = await accountImpl.getAddress();
-    }
-    return this._accountImplAddress;
+    return (await this.getAccountImplContract()).getAddress();
   }
 
   async deployERC20(mintTo: string): Promise<ERC20> {
@@ -141,7 +144,7 @@ export const getProviderL1 = () => {
   return provider;
 };
 
-export async function deployFactory(wallet: Wallet, implAddress: string): Promise<AAFactory> {
+export async function deployFactory(wallet: Wallet, beaconAddress: string): Promise<AAFactory> {
   const factoryArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AAFactory.sol/AAFactory.json", "utf8"));
   const proxyAaArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"));
 
@@ -149,7 +152,7 @@ export async function deployFactory(wallet: Wallet, implAddress: string): Promis
   const bytecodeHash = utils.hashBytecode(proxyAaArtifact.bytecode);
   const factory = await deployer.deploy(
     bytecodeHash,
-    implAddress,
+    beaconAddress,
     { customData: { factoryDeps: [proxyAaArtifact.bytecode] } },
   );
   const factoryAddress = await factory.getAddress();
@@ -160,7 +163,7 @@ export async function deployFactory(wallet: Wallet, implAddress: string): Promis
     await verifyContract({
       address: factoryAddress,
       contract: `src/AAFactory.sol:AAFactory`,
-      constructorArguments: deployer.interface.encodeDeploy([bytecodeHash, implAddress]),
+      constructorArguments: deployer.interface.encodeDeploy([bytecodeHash, beaconAddress]),
       bytecode: factoryArtifact.bytecode,
     });
   }
@@ -171,7 +174,7 @@ export async function deployFactory(wallet: Wallet, implAddress: string): Promis
 export const getWallet = (privateKey?: string) => {
   if (!privateKey) {
     // Get wallet private key from .env file
-    if (!process.env.WALLET_PRIVATE_KEY) throw "⛔️ Wallet private key wasn't found in .env file!";
+    if (!process.env.WALLET_PRIVATE_KEY) throw "Wallet private key wasn't found in .env file!";
   }
 
   const provider = getProvider();
@@ -186,7 +189,7 @@ export const getWallet = (privateKey?: string) => {
 export const verifyEnoughBalance = async (wallet: Wallet, amount: bigint) => {
   // Check if the wallet has enough balance
   const balance = await wallet.getBalance();
-  if (balance < amount) throw `⛔️ Wallet balance is too low! Required ${ethers.formatEther(amount)} ETH, but current ${wallet.address} balance is ${ethers.formatEther(balance)} ETH`;
+  if (balance < amount) throw `Wallet balance is too low! Required ${ethers.formatEther(amount)} ETH, but current ${wallet.address} balance is ${ethers.formatEther(balance)} ETH`;
 };
 
 /**
