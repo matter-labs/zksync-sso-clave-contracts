@@ -165,9 +165,6 @@ abstract contract HookManager is IHookManager, Auth {
     }
 
     address hookAddress = address(bytes20(hookAndData[0:20]));
-    if (!_supportsHook(hookAddress, isValidation)) {
-      revert Errors.HOOK_ERC165_FAIL();
-    }
 
     bytes calldata initData = hookAndData[20:];
 
@@ -191,7 +188,9 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   function _removeHook(address hook, bool isValidation) internal {
-    if (!isValidation) {
+   if (isValidation) {
+      _validationHooksLinkedList().remove(hook);
+    } else {
       _executionHooksLinkedList().remove(hook);
     }
 

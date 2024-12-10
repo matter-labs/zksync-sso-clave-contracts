@@ -148,14 +148,14 @@ class SessionTester {
     this.sessionOwner = new Wallet(Wallet.createRandom().privateKey, provider);
     this.sessionAccount = new SmartAccount({
       payloadSigner: async (hash) => abiCoder.encode(
-        ["bytes", "address", "bytes[]"],
+        ["bytes", "address", "bytes"],
         [
           this.sessionOwner.signingKey.sign(hash).serialized,
           sessionKeyModuleAddress,
-          [abiCoder.encode(
+          abiCoder.encode(
             [sessionSpecAbi, "uint64[]"],
             [this.session, await this.periodIds(this.aaTransaction.to!, this.aaTransaction.data?.slice(0, 10))],
-          )], // this array supplies data for hooks
+          ),
         ],
       ),
       address: this.proxyAccountAddress,
@@ -178,7 +178,7 @@ class SessionTester {
     const aaTx = {
       ...await this.aaTxTemplate(),
       to: await sessionKeyModuleContract.getAddress(),
-      data: sessionKeyModuleContract.interface.encodeFunctionData("createSession", [this.session]),
+      data: sessionKeyModuleContract.interface.encodeFunctionData("createSession", [this.session])
     };
     aaTx.gasLimit = await provider.estimateGas(aaTx);
 
@@ -333,14 +333,14 @@ class SessionTester {
       customData: {
         gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
         customSignature: abiCoder.encode(
-          ["bytes", "address", "bytes[]"],
+          ["bytes", "address", "bytes"],
           [
             ethers.zeroPadValue("0x1b", 65),
             await fixtures.getSessionKeyModuleAddress(),
-            [abiCoder.encode(
+            abiCoder.encode(
               [sessionSpecAbi, "uint64[]"],
               [this.session, new Array(2 + Math.max(0, ...numberOfConstraints)).fill(0)],
-            )],
+            ),
           ],
         ),
       },
