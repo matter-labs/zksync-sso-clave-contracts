@@ -602,10 +602,13 @@ describe("SessionKeyModule tests", function () {
       const proxy = new ethers.Contract(proxyAccountAddress, ["function dummy() pure returns (string)"], provider);
       expect(await proxy.dummy()).to.equal("dummy");
     });
+
+    it("should upgrade implementation back", async () => {
+      await beacon.upgradeTo(await fixtures.getAccountImplAddress());
+      expect(await beacon.implementation()).to.equal(await fixtures.getAccountImplAddress());
+    });
   });
 
   // TODO: module uninstall tests
-  // TODO: session expiresAt tests
   // TODO: session fee limit tests
-  // TODO: allowance tests
 });
