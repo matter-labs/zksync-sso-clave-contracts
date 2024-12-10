@@ -9,7 +9,7 @@ import { Auth } from "../auth/Auth.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { IExecutionHook } from "../interfaces/IHook.sol";
+import { IExecutionHook, IValidationHook } from "../interfaces/IHook.sol";
 import { IInitable } from "../interfaces/IInitable.sol";
 import { IHookManager } from "../interfaces/IHookManager.sol";
 
@@ -71,8 +71,8 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   /// @inheritdoc IHookManager
-  function addHook(bytes calldata hookAndData) external override onlySelf {
-    _addHook(hookAndData);
+  function addHook(bytes calldata hookAndData, bool isValidation) external override onlySelf {
+    _addHook(hookAndData, isValidation);
   }
 
   /// @inheritdoc IHookManager
@@ -101,9 +101,30 @@ abstract contract HookManager is IHookManager, Auth {
 
   /// @inheritdoc IHookManager
   function listHooks(bool isValidation) external view override returns (address[] memory hookList) {
-    if (!isValidation) {
+    if (isValidation) {
+      hookList = _validationHooksLinkedList().list();
+    } else {
       hookList = _executionHooksLinkedList().list();
     }
+  }
+
+  // Runs the validation hooks that are enabled by the account and returns true if none reverts
+  function runValidationHooks(bytes32 signedHash, Transaction calldata transaction) internal returns (bool) {
+    mapping(address => address) storage validationHooks = _validationHooksLinkedList();
+
+    address cursor = validationHooks[AddressLinkedList.SENTINEL_ADDRESS];
+    // Iterate through hooks
+    while (cursor > AddressLinkedList.SENTINEL_ADDRESS) {
+      bool success = _call(cursor, abi.encodeCall(IValidationHook.validationHook, (signedHash, transaction)));
+
+      if (!success) {
+        return false;
+      }
+
+      cursor = validationHooks[cursor];
+    }
+
+    return true;
   }
 
   // Runs the execution hooks that are enabled by the account before and after _executeTransaction
@@ -138,17 +159,33 @@ abstract contract HookManager is IHookManager, Auth {
     }
   }
 
-  function _addHook(bytes calldata hookAndData) internal {
+  function _addHook(bytes calldata hookAndData, bool isValidation) internal {
     if (hookAndData.length < 20) {
       revert Errors.EMPTY_HOOK_ADDRESS();
     }
 
     address hookAddress = address(bytes20(hookAndData[0:20]));
-    if (!_supportsHook(hookAddress)) {
+    if (!_supportsHook(hookAddress, isValidation)) {
       revert Errors.HOOK_ERC165_FAIL();
     }
 
-    _executionHooksLinkedList().add(hookAddress);
+    bytes calldata initData = hookAndData[20:];
+
+    _installHook(hookAddress, initData, isValidation);
+  }
+
+  function _installHook(address hookAddress, bytes memory initData, bool isValidation) internal {
+    if (!_supportsHook(hookAddress, isValidation)) {
+      revert Errors.HOOK_ERC165_FAIL();
+    }
+
+    if (isValidation) {
+      _validationHooksLinkedList().add(hookAddress);
+    } else {
+      _executionHooksLinkedList().add(hookAddress);
+    }
+
+    IInitable(hookAddress).init(initData);
 
     emit AddHook(hookAddress);
   }
@@ -164,7 +201,7 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   function _isHook(address addr) internal view override returns (bool) {
-    return _executionHooksLinkedList().exists(addr);
+    return _validationHooksLinkedList().exists(addr) || _executionHooksLinkedList().exists(addr);
   }
 
   function _setContext(address hook, bytes memory context) private {
@@ -185,6 +222,10 @@ abstract contract HookManager is IHookManager, Auth {
     }
   }
 
+  function _validationHooksLinkedList() private view returns (mapping(address => address) storage validationHooks) {
+    validationHooks = SsoStorage.layout().validationHooks;
+  }
+
   function _executionHooksLinkedList() private view returns (mapping(address => address) storage executionHooks) {
     executionHooks = SsoStorage.layout().executionHooks;
   }
@@ -193,7 +234,10 @@ abstract contract HookManager is IHookManager, Auth {
     hookDataStore = SsoStorage.layout().hookDataStore;
   }
 
-  function _supportsHook(address hook) internal view returns (bool) {
-    return hook.supportsInterface(type(IExecutionHook).interfaceId);
+  function _supportsHook(address hook, bool isValidation) internal view returns (bool) {
+    return
+      isValidation
+        ? hook.supportsInterface(type(IValidationHook).interfaceId)
+        : hook.supportsInterface(type(IExecutionHook).interfaceId);
   }
 }

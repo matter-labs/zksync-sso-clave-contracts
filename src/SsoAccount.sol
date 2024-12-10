@@ -172,9 +172,15 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     }
 
     // Extract the signature, validator address and hook data from the _transaction.signature
-    (bytes memory signature, address validator, bytes[] memory _hookData) = SignatureDecoder.decodeSignature(
+    (bytes memory signature, address validator, bytes[] memory _moduleData) = SignatureDecoder.decodeSignature(
       _transaction.signature
     );
+
+    // Run validation hooks
+    bool hookSuccess = runValidationHooks(_signedHash, _transaction);
+    if (!hookSuccess) {
+      return bytes4(0);
+    }
 
     bool validationSuccess = _handleValidation(validator, _signedHash, signature, _transaction);
     return validationSuccess ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
