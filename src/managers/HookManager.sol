@@ -188,7 +188,7 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   function _removeHook(address hook, bool isValidation) internal {
-   if (isValidation) {
+    if (isValidation) {
       _validationHooksLinkedList().remove(hook);
     } else {
       _executionHooksLinkedList().remove(hook);

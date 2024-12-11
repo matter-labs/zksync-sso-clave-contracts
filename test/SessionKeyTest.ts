@@ -263,6 +263,31 @@ class SessionTester {
     logInfo(`\`sessionTx\` gas used: ${receipt.gasUsed}`);
   }
 
+  async getSmartAccount(tx: ethers.TransactionLike = {}) {
+    if (tx.signature) {
+      const sessionAddress = await fixtures.getSessionKeyModuleAddress();
+      return new SmartAccount({
+        payloadSigner: async (hash) => {
+          return abiCoder.encode(
+            ["bytes", "address", "bytes[]"],
+            [
+              tx.signature,
+              sessionAddress,
+              [abiCoder.encode(
+                [sessionSpecAbi, "uint64[]"],
+                [this.session, await this.periodIds(this.aaTransaction.to!, this.aaTransaction.data?.slice(0, 10))],
+              )], // this array supplies data for hooks
+            ],
+          )
+        },
+        address: this.proxyAccountAddress,
+        secret: this.sessionOwner.privateKey,
+      }, provider);
+    } else {
+      return this.sessionAccount;
+    }
+  }
+
   async sendTxFail(tx: ethers.TransactionLike = {}) {
     this.aaTransaction = {
       ...await this.aaTxTemplate(),
@@ -270,28 +295,29 @@ class SessionTester {
       ...tx,
     };
 
-    const signedTransaction = await this.sessionAccount.signTransaction(this.aaTransaction);
+    const sessionAccount = await this.getSmartAccount(tx);
+    const signedTransaction = await sessionAccount.signTransaction(this.aaTransaction);
     await expect(provider.broadcastTransaction(signedTransaction)).to.be.reverted;
   };
 
   getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
     return limit == null
       ? {
-          limitType: LimitType.Unlimited,
-          limit: 0,
-          period: 0,
-        }
+        limitType: LimitType.Unlimited,
+        limit: 0,
+        period: 0,
+      }
       : limit.period == null
         ? {
-            limitType: LimitType.Lifetime,
-            limit: limit.limit,
-            period: 0,
-          }
+          limitType: LimitType.Lifetime,
+          limit: limit.limit,
+          period: 0,
+        }
         : {
-            limitType: LimitType.Allowance,
-            limit: limit.limit,
-            period: limit.period,
-          };
+          limitType: LimitType.Allowance,
+          limit: limit.limit,
+          period: limit.period,
+        };
   }
 
   getSession(session: PartialSession): SessionLib.SessionSpecStruct {
@@ -406,6 +432,31 @@ describe("SessionKeyModule tests", function () {
     assert(await account.isModuleValidator(sessionKeyModuleAddress), "session key module should be a validator");
   });
 
+  describe("Signature validation tests", function () {
+    let tester: SessionTester;
+    const sessionTarget = Wallet.createRandom().address;
+
+    // basically a test to init the following tests
+    it("should create an account with a session", async () => {
+      const sessionKeyModuleAddress = await fixtures.getSessionKeyModuleAddress()
+      
+
+      tester = new SessionTester(proxyAccountAddress, sessionKeyModuleAddress);
+      await tester.createSession({
+        transferPolicies: [{
+          target: sessionTarget,
+        }],
+      });
+    });
+
+    it("should reject an invalid session key signature", async () => {
+      await tester.sendTxFail({
+        to: sessionTarget,
+        value: parseEther("0.02"),
+      });
+    });
+  });
+
   describe("Value transfer limit tests", function () {
     let tester: SessionTester;
     const sessionTarget = Wallet.createRandom().address;
@@ -435,6 +486,7 @@ describe("SessionKeyModule tests", function () {
         value: parseEther("0.02"),
       });
     });
+
   });
 
   describe("ERC20 transfer limit tests", function () {
