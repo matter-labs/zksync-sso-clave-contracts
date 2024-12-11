@@ -159,8 +159,7 @@ contract SessionKeyValidator is IModuleValidator {
 
     // gas estimation provides invalid custom signatures
     if (recoveredAddress == address(0) && recoverError == ECDSA.RecoverError.InvalidSignature) {
-      // this should increase the gas estimation and shouldn't otherwise be possible
-      return keccak256(_signature) != keccak256(transactionSignature);
+      return false;
     }
 
     require(recoveredAddress == spec.signer, "Invalid signer (mismatch)");
