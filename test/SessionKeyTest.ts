@@ -250,12 +250,11 @@ class SessionTester {
 
   async sendTxSuccess(txRequest: ethers.TransactionLike = {}) {
     this.aaTransaction = {
-      ...await this.aaTxTemplate(true),
+      ...await this.aaTxTemplate(await this.periodIds(txRequest.to!, txRequest.data?.slice(0, 10))),
       ...txRequest,
     };
-    const estimatedGas = await provider.estimateGas(this.aaTransaction);
-    this.aaTransaction.gasLimit = BigInt(Math.ceil(Number(estimatedGas) * 1.1));
-    logInfo(`\`sessionTx\` gas estimated: ${await provider.estimateGas(this.aaTransaction)}`);
+    this.aaTransaction.gasLimit = await provider.estimateGas(this.aaTransaction);
+    logInfo(`\`sessionTx\` gas estimated: ${this.aaTransaction.gasLimit}`);
 
     const signedTransaction = await this.sessionAccount.signTransaction(this.aaTransaction);
     const tx = await provider.broadcastTransaction(signedTransaction);
@@ -265,7 +264,7 @@ class SessionTester {
 
   async sendTxFail(tx: ethers.TransactionLike = {}) {
     this.aaTransaction = {
-      ...await this.aaTxTemplate(true),
+      ...await this.aaTxTemplate(await this.periodIds(tx.to!, tx.data?.slice(0, 10))),
       gasLimit: 100_000_000n,
       ...tx,
     };
@@ -320,8 +319,7 @@ class SessionTester {
     };
   }
 
-  async aaTxTemplate(forSession: boolean = false) {
-    const numberOfConstraints = this.session.callPolicies.map((policy) => policy.constraints.length);
+  async aaTxTemplate(periodIds?: number[]) {
     return {
       type: 113,
       from: this.proxyAccountAddress,
@@ -332,14 +330,14 @@ class SessionTester {
       gasPrice: await provider.getGasPrice(),
       customData: {
         gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-        customSignature: forSession ? abiCoder.encode(
+        customSignature: periodIds ? abiCoder.encode(
           ["bytes", "address", "bytes"],
           [
             ethers.zeroPadValue("0x1b", 65),
             await fixtures.getSessionKeyModuleAddress(),
             abiCoder.encode(
               [sessionSpecAbi, "uint64[]"],
-              [this.session, new Array(2 + Math.max(0, ...numberOfConstraints)).fill(0)],
+              [this.session, periodIds],
             ),
           ],
         ) : undefined,

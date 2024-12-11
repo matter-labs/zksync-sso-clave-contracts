@@ -124,14 +124,14 @@ contract SessionKeyValidator is IModuleValidator {
       (SessionLib.SessionSpec, uint64[])
     );
     require(spec.signer != address(0), "Invalid signer (empty)");
+    bytes32 sessionHash = keccak256(abi.encode(spec));
+    // this generally throws instead of returning false
+    sessions[sessionHash].validate(transaction, spec, periodIds);
     (address recoveredAddress, ECDSA.RecoverError recoverError) = ECDSA.tryRecover(signedHash, transactionSignature);
     if (recoverError != ECDSA.RecoverError.NoError || recoveredAddress == address(0)) {
       return false;
     }
     require(recoveredAddress == spec.signer, "Invalid signer (mismatch)");
-    bytes32 sessionHash = keccak256(abi.encode(spec));
-    // this generally throws instead of returning false
-    sessions[sessionHash].validate(transaction, spec, periodIds);
     return true;
   }
 
