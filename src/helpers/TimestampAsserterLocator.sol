@@ -9,7 +9,7 @@ library TimestampAsserterLocator {
       return ITimestampAsserter(address(0x00000000000000000000000000000000808012));
     }
     if (block.chainid == 300) {
-      return ITimestampAsserter(address(0xa64ec71ee812ac62923c85cf0796aa58573c4cf3));
+      return ITimestampAsserter(address(0xa64EC71Ee812ac62923c85cf0796aA58573c4Cf3));
     }
     if (block.chainid == 324) {
       revert("Timestamp asserter is not deployed on ZKsync mainnet yet");
