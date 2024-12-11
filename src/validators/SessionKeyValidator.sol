@@ -60,8 +60,7 @@ contract SessionKeyValidator is IModuleValidator {
   }
 
   function init(bytes calldata data) external {
-    // to prevent duplicate inits, since this can be hook plus a validator
-    if (!isInitialized(msg.sender) && data.length != 0) {
+    if (data.length != 0) {
       require(_addValidationKey(data), "Init failed");
     }
   }
