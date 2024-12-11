@@ -109,23 +109,13 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   // Runs the validation hooks that are enabled by the account and returns true if none reverts
-  function runValidationHooks(
-    bytes32 signedHash,
-    Transaction calldata transaction,
-    bytes[] memory hookData
-  ) internal returns (bool) {
+  function runValidationHooks(bytes32 signedHash, Transaction calldata transaction) internal returns (bool) {
     mapping(address => address) storage validationHooks = _validationHooksLinkedList();
 
     address cursor = validationHooks[AddressLinkedList.SENTINEL_ADDRESS];
-    uint256 idx;
     // Iterate through hooks
     while (cursor > AddressLinkedList.SENTINEL_ADDRESS) {
-      // Call it with corresponding hookData
-      bool success = _call(
-        cursor,
-        abi.encodeCall(IValidationHook.validationHook, (signedHash, transaction, hookData[idx]))
-      );
-      ++idx;
+      bool success = _call(cursor, abi.encodeCall(IValidationHook.validationHook, (signedHash, transaction)));
 
       if (!success) {
         return false;
@@ -133,9 +123,6 @@ abstract contract HookManager is IHookManager, Auth {
 
       cursor = validationHooks[cursor];
     }
-
-    // Ensure that hookData is not tampered with
-    if (hookData.length != idx) return false;
 
     return true;
   }
