@@ -165,19 +165,22 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
   /// @param _transaction The transaction data.
   /// @return The magic value if the validation was successful and bytes4(0) otherwise.
   function _validateTransaction(bytes32 _signedHash, Transaction calldata _transaction) internal returns (bytes4) {
-    if (_transaction.signature.length == 65) {
-      (address signer, ) = ECDSA.tryRecover(_signedHash, _transaction.signature);
-      return _k1IsOwner(signer) ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
-    }
-
-    // Extract the signature, validator address and hook data from the _transaction.signature
-    (bytes memory signature, address validator, ) = SignatureDecoder.decodeSignature(_transaction.signature);
-
     // Run validation hooks
     bool hookSuccess = runValidationHooks(_signedHash, _transaction);
     if (!hookSuccess) {
       return bytes4(0);
     }
+
+    if (_transaction.signature.length == 65) {
+      (address signer, ECDSA.RecoverError error) = ECDSA.tryRecover(_signedHash, _transaction.signature);
+      return
+        signer == address(0) || error != ECDSA.RecoverError.NoError || !_k1IsOwner(signer)
+          ? bytes4(0)
+          : ACCOUNT_VALIDATION_SUCCESS_MAGIC;
+    }
+
+    // Extract the signature, validator address and hook data from the _transaction.signature
+    (bytes memory signature, address validator, ) = SignatureDecoder.decodeSignature(_transaction.signature);
 
     bool validationSuccess = _handleValidation(validator, _signedHash, signature, _transaction);
     return validationSuccess ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);

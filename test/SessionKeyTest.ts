@@ -250,7 +250,7 @@ class SessionTester {
 
   async sendTxSuccess(txRequest: ethers.TransactionLike = {}) {
     this.aaTransaction = {
-      ...await this.aaTxTemplate(),
+      ...await this.aaTxTemplate(true),
       ...txRequest,
     };
     const estimatedGas = await provider.estimateGas(this.aaTransaction);
@@ -265,7 +265,7 @@ class SessionTester {
 
   async sendTxFail(tx: ethers.TransactionLike = {}) {
     this.aaTransaction = {
-      ...await this.aaTxTemplate(),
+      ...await this.aaTxTemplate(true),
       gasLimit: 100_000_000n,
       ...tx,
     };
@@ -320,7 +320,7 @@ class SessionTester {
     };
   }
 
-  async aaTxTemplate() {
+  async aaTxTemplate(forSession: boolean = false) {
     const numberOfConstraints = this.session.callPolicies.map((policy) => policy.constraints.length);
     return {
       type: 113,
@@ -332,7 +332,7 @@ class SessionTester {
       gasPrice: await provider.getGasPrice(),
       customData: {
         gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-        customSignature: abiCoder.encode(
+        customSignature: forSession ? abiCoder.encode(
           ["bytes", "address", "bytes"],
           [
             ethers.zeroPadValue("0x1b", 65),
@@ -342,7 +342,7 @@ class SessionTester {
               [this.session, new Array(2 + Math.max(0, ...numberOfConstraints)).fill(0)],
             ),
           ],
-        ),
+        ) : undefined,
       },
       gasLimit: 0n,
     };
@@ -601,7 +601,5 @@ describe("SessionKeyModule tests", function () {
   });
 
   // TODO: module uninstall tests
-  // TODO: session expiresAt tests
   // TODO: session fee limit tests
-  // TODO: allowance tests
 });
