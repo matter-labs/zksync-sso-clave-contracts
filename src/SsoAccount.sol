@@ -143,7 +143,7 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
 
     emit FeePaid();
   }
- /// @notice This function is called by the system if the transaction has a paymaster
+  /// @notice This function is called by the system if the transaction has a paymaster
   /// and prepares the interaction with the paymaster.
   /// @param _transaction The transaction data.
   function prepareForPaymaster(
@@ -171,9 +171,7 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     }
 
     // Extract the signature, validator address and hook data from the _transaction.signature
-    (bytes memory signature, address validator, ) = SignatureDecoder.decodeSignature(
-      _transaction.signature
-    );
+    (bytes memory signature, address validator, ) = SignatureDecoder.decodeSignature(_transaction.signature);
 
     // Run validation hooks
     bool hookSuccess = runValidationHooks(_signedHash, _transaction);

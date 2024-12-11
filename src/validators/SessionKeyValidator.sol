@@ -117,9 +117,8 @@ contract SessionKeyValidator is IModuleValidator {
     bytes memory _signature,
     Transaction calldata transaction
   ) external returns (bool) {
-    (bytes memory transactionSignature, address validator, bytes memory validatorData) = SignatureDecoder.decodeSignature(
-      transaction.signature
-    );
+    (bytes memory transactionSignature, address validator, bytes memory validatorData) = SignatureDecoder
+      .decodeSignature(transaction.signature);
     (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
       validatorData, // this is passed by the signature builder
       (SessionLib.SessionSpec, uint64[])
