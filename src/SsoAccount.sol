@@ -41,21 +41,11 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
   /// @dev Sets passkey and passkey validator within account storage
   /// @param _initialValidators An array of module validator addresses and initial validation keys
   /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey))`.
-  /// @param _initialValidationHooks An array of hook module validator addresses and initial validation keys
-  /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey))`.
   /// @param _initialK1Owners An array of addresses with full control over the account.
-  function initialize(
-    bytes[] calldata _initialValidators,
-    bytes[] calldata _initialValidationHooks,
-    address[] calldata _initialK1Owners
-  ) external initializer {
+  function initialize(bytes[] calldata _initialValidators, address[] calldata _initialK1Owners) external initializer {
     for (uint256 i = 0; i < _initialValidators.length; ++i) {
       (address validatorAddr, bytes memory validationKey) = abi.decode(_initialValidators[i], (address, bytes));
       _addModuleValidator(validatorAddr, validationKey);
-    }
-    for (uint256 i = 0; i < _initialValidationHooks.length; ++i) {
-      (address validatorAddr, bytes memory validationKey) = abi.decode(_initialValidationHooks[i], (address, bytes));
-      _installHook(validatorAddr, validationKey, true);
     }
     for (uint256 i = 0; i < _initialK1Owners.length; ++i) {
       _k1AddOwner(_initialK1Owners[i]);
@@ -153,7 +143,6 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
 
     emit FeePaid();
   }
-
   /// @notice This function is called by the system if the transaction has a paymaster
   /// and prepares the interaction with the paymaster.
   /// @param _transaction The transaction data.
@@ -176,23 +165,24 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
   /// @param _transaction The transaction data.
   /// @return The magic value if the validation was successful and bytes4(0) otherwise.
   function _validateTransaction(bytes32 _signedHash, Transaction calldata _transaction) internal returns (bytes4) {
-    if (_transaction.signature.length == 65) {
-      (address signer, ) = ECDSA.tryRecover(_signedHash, _transaction.signature);
-      return _k1IsOwner(signer) ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
-    }
-
-    // Extract the signature, validator address and hook data from the _transaction.signature
-    (bytes memory signature, address validator, bytes[] memory hookData) = SignatureDecoder.decodeSignature(
-      _transaction.signature
-    );
-
     // Run validation hooks
-    bool hookSuccess = runValidationHooks(_signedHash, _transaction, hookData);
+    bool hookSuccess = runValidationHooks(_signedHash, _transaction);
     if (!hookSuccess) {
       return bytes4(0);
     }
 
-    bool validationSuccess = _handleValidation(validator, _signedHash, signature);
+    if (_transaction.signature.length == 65) {
+      (address signer, ECDSA.RecoverError error) = ECDSA.tryRecover(_signedHash, _transaction.signature);
+      return
+        signer == address(0) || error != ECDSA.RecoverError.NoError || !_k1IsOwner(signer)
+          ? bytes4(0)
+          : ACCOUNT_VALIDATION_SUCCESS_MAGIC;
+    }
+
+    // Extract the signature, validator address and hook data from the _transaction.signature
+    (bytes memory signature, address validator, ) = SignatureDecoder.decodeSignature(_transaction.signature);
+
+    bool validationSuccess = _handleValidation(validator, _signedHash, signature, _transaction);
     return validationSuccess ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
   }
 

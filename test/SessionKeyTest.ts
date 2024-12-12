@@ -148,14 +148,14 @@ class SessionTester {
     this.sessionOwner = new Wallet(Wallet.createRandom().privateKey, provider);
     this.sessionAccount = new SmartAccount({
       payloadSigner: async (hash) => abiCoder.encode(
-        ["bytes", "address", "bytes[]"],
+        ["bytes", "address", "bytes"],
         [
           this.sessionOwner.signingKey.sign(hash).serialized,
           sessionKeyModuleAddress,
-          [abiCoder.encode(
+          abiCoder.encode(
             [sessionSpecAbi, "uint64[]"],
             [this.session, await this.periodIds(this.aaTransaction.to!, this.aaTransaction.data?.slice(0, 10))],
-          )], // this array supplies data for hooks
+          ),
         ],
       ),
       address: this.proxyAccountAddress,
@@ -178,7 +178,7 @@ class SessionTester {
     const aaTx = {
       ...await this.aaTxTemplate(),
       to: await sessionKeyModuleContract.getAddress(),
-      data: sessionKeyModuleContract.interface.encodeFunctionData("createSession", [this.session]),
+      data: sessionKeyModuleContract.interface.encodeFunctionData("createSession", [this.session])
     };
     aaTx.gasLimit = await provider.estimateGas(aaTx);
 
@@ -250,12 +250,11 @@ class SessionTester {
 
   async sendTxSuccess(txRequest: ethers.TransactionLike = {}) {
     this.aaTransaction = {
-      ...await this.aaTxTemplate(),
+      ...await this.aaTxTemplate(await this.periodIds(txRequest.to!, txRequest.data?.slice(0, 10))),
       ...txRequest,
     };
-    const estimatedGas = await provider.estimateGas(this.aaTransaction);
-    this.aaTransaction.gasLimit = BigInt(Math.ceil(Number(estimatedGas) * 1.1));
-    logInfo(`\`sessionTx\` gas estimated: ${await provider.estimateGas(this.aaTransaction)}`);
+    this.aaTransaction.gasLimit = await provider.estimateGas(this.aaTransaction);
+    logInfo(`\`sessionTx\` gas estimated: ${this.aaTransaction.gasLimit}`);
 
     const signedTransaction = await this.sessionAccount.signTransaction(this.aaTransaction);
     const tx = await provider.broadcastTransaction(signedTransaction);
@@ -265,7 +264,7 @@ class SessionTester {
 
   async sendTxFail(tx: ethers.TransactionLike = {}) {
     this.aaTransaction = {
-      ...await this.aaTxTemplate(),
+      ...await this.aaTxTemplate(await this.periodIds(tx.to!, tx.data?.slice(0, 10))),
       gasLimit: 100_000_000n,
       ...tx,
     };
@@ -277,21 +276,21 @@ class SessionTester {
   getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
     return limit == null
       ? {
-          limitType: LimitType.Unlimited,
-          limit: 0,
-          period: 0,
-        }
+        limitType: LimitType.Unlimited,
+        limit: 0,
+        period: 0,
+      }
       : limit.period == null
         ? {
-            limitType: LimitType.Lifetime,
-            limit: limit.limit,
-            period: 0,
-          }
+          limitType: LimitType.Lifetime,
+          limit: limit.limit,
+          period: 0,
+        }
         : {
-            limitType: LimitType.Allowance,
-            limit: limit.limit,
-            period: limit.period,
-          };
+          limitType: LimitType.Allowance,
+          limit: limit.limit,
+          period: limit.period,
+        };
   }
 
   getSession(session: PartialSession): SessionLib.SessionSpecStruct {
@@ -320,8 +319,7 @@ class SessionTester {
     };
   }
 
-  async aaTxTemplate() {
-    const numberOfConstraints = this.session.callPolicies.map((policy) => policy.constraints.length);
+  async aaTxTemplate(periodIds?: number[]) {
     return {
       type: 113,
       from: this.proxyAccountAddress,
@@ -332,17 +330,17 @@ class SessionTester {
       gasPrice: await provider.getGasPrice(),
       customData: {
         gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-        customSignature: abiCoder.encode(
-          ["bytes", "address", "bytes[]"],
+        customSignature: periodIds ? abiCoder.encode(
+          ["bytes", "address", "bytes"],
           [
             ethers.zeroPadValue("0x1b", 65),
             await fixtures.getSessionKeyModuleAddress(),
-            [abiCoder.encode(
+            abiCoder.encode(
               [sessionSpecAbi, "uint64[]"],
-              [this.session, new Array(2 + Math.max(0, ...numberOfConstraints)).fill(0)],
-            )],
+              [this.session, periodIds],
+            ),
           ],
-        ),
+        ) : undefined,
       },
       gasLimit: 0n,
     };
@@ -394,7 +392,6 @@ describe("SessionKeyModule tests", function () {
       randomBytes(32),
       "session-key-test-id",
       [sessionKeyPayload],
-      [sessionKeyPayload],
       [fixtures.wallet.address],
     );
 
@@ -407,7 +404,7 @@ describe("SessionKeyModule tests", function () {
 
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
     assert(await account.k1IsOwner(fixtures.wallet.address));
-    assert(await account.isHook(sessionKeyModuleAddress), "session key module should be a hook");
+    assert(!await account.isHook(sessionKeyModuleAddress), "session key module should not be an execution hook");
     assert(await account.isModuleValidator(sessionKeyModuleAddress), "session key module should be a validator");
   });
 
@@ -440,6 +437,7 @@ describe("SessionKeyModule tests", function () {
         value: parseEther("0.02"),
       });
     });
+
   });
 
   describe("ERC20 transfer limit tests", function () {

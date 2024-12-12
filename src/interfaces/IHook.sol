@@ -5,8 +5,11 @@ import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/li
 import { IInitable } from "../interfaces/IInitable.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
+// Validation hooks are a non-standard way to always perform validation,
+// They can't expect any specific transaction data or signature, but can be used to enforce
+// additional restrictions on the account during the validation phase
 interface IValidationHook is IInitable, IERC165 {
-  function validationHook(bytes32 signedHash, Transaction calldata transaction, bytes calldata hookData) external;
+  function validationHook(bytes32 signedHash, Transaction calldata transaction) external;
 }
 
 interface IExecutionHook is IInitable, IERC165 {
