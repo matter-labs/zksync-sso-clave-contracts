@@ -131,6 +131,8 @@ contract SessionKeyValidator is IModuleValidator {
       return false;
     }
     require(recoveredAddress == spec.signer, "Invalid signer (mismatch)");
+    // This check is separate and performed last to prevent gas estimation failures
+    sessions[sessionHash].validateFeeLimit(transaction, spec, periodIds[0]);
     return true;
   }
 
