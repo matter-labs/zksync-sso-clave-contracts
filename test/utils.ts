@@ -12,15 +12,16 @@ import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2
 import { AAFactory, ERC20, ExampleAuthServerPaymaster, SessionKeyValidator, SsoAccount, WebAuthValidator, SsoBeacon } from "../typechain-types";
 import { AAFactory__factory, ERC20__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, SsoAccount__factory, WebAuthValidator__factory, SsoBeacon__factory } from "../typechain-types";
 
+export const ethersStaticSalt = new Uint8Array([
+  205, 241, 161, 186, 101, 105, 79,
+  248, 98, 64, 50, 124, 168, 204,
+  200, 71, 214, 169, 195, 118, 199,
+  62, 140, 111, 128, 47, 32, 21,
+  177, 177, 174, 166,
+]);
+
 export class ContractFixtures {
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
-  readonly ethersStaticSalt = new Uint8Array([
-    205, 241, 161, 186, 101, 105, 79,
-    248, 98, 64, 50, 124, 168, 204,
-    200, 71, 214, 169, 195, 118, 199,
-    62, 140, 111, 128, 47, 32, 21,
-    177, 177, 174, 166,
-  ]);
 
   private _aaFactory: AAFactory;
   async getAaFactory() {
@@ -38,7 +39,7 @@ export class ContractFixtures {
   private _sessionKeyModule: SessionKeyValidator;
   async getSessionKeyContract() {
     if (!this._sessionKeyModule) {
-      const contract = await create2("SessionKeyValidator", this.wallet, this.ethersStaticSalt);
+      const contract = await create2("SessionKeyValidator", this.wallet, ethersStaticSalt);
       this._sessionKeyModule = SessionKeyValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._sessionKeyModule;
@@ -52,7 +53,7 @@ export class ContractFixtures {
   async getBeaconContract() {
     if (!this._beacon) {
       const implAddress = await this.getAccountImplAddress();
-      const contract = await create2("SsoBeacon", this.wallet, this.ethersStaticSalt, [implAddress]);
+      const contract = await create2("SsoBeacon", this.wallet, ethersStaticSalt, [implAddress]);
       this._beacon = SsoBeacon__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._beacon;
@@ -66,7 +67,7 @@ export class ContractFixtures {
   // does passkey validation via modular interface
   async getWebAuthnVerifierContract() {
     if (!this._webauthnValidatorModule) {
-      const contract = await create2("WebAuthValidator", this.wallet, this.ethersStaticSalt);
+      const contract = await create2("WebAuthValidator", this.wallet, ethersStaticSalt);
       this._webauthnValidatorModule = WebAuthValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._webauthnValidatorModule;
@@ -79,7 +80,7 @@ export class ContractFixtures {
   private _accountImplContract: SsoAccount;
   async getAccountImplContract() {
     if (!this._accountImplContract) {
-      const contract = await create2("SsoAccount", this.wallet, this.ethersStaticSalt);
+      const contract = await create2("SsoAccount", this.wallet, ethersStaticSalt);
       this._accountImplContract = SsoAccount__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._accountImplContract;
@@ -90,7 +91,7 @@ export class ContractFixtures {
   }
 
   async deployERC20(mintTo: string): Promise<ERC20> {
-    const contract = await create2("TestERC20", this.wallet, this.ethersStaticSalt, [mintTo]);
+    const contract = await create2("TestERC20", this.wallet, ethersStaticSalt, [mintTo]);
     return ERC20__factory.connect(await contract.getAddress(), this.wallet);
   }
 
@@ -101,7 +102,7 @@ export class ContractFixtures {
     const contract = await create2(
       "ExampleAuthServerPaymaster",
       this.wallet,
-      this.ethersStaticSalt,
+      ethersStaticSalt,
       [
         aaFactoryAddress,
         sessionKeyValidatorAddress,

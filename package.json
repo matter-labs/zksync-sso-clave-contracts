@@ -20,7 +20,8 @@
     "build": "pnpm hardhat compile",
     "clean": "pnpm hardhat clean",
     "test": "pnpm hardhat test",
-    "deploy": "pnpm hardhat deploy"
+    "deploy": "pnpm hardhat deploy",
+    "upgrade": "pnpm hardhat upgrade"
   },
   "devDependencies": {
     "@commitlint/cli": "19.5.0",
