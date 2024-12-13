@@ -5,9 +5,10 @@ import { ethers } from "ethers";
 // TODO: add support for constructor args
 task("upgrade", "Upgrades ZKsync SSO contracts")
   .addParam("proxy", "address of the proxy to upgrade")
+  .addParam("beaconAddress", "address of the beacon proxy for the upgrade")
   .addPositionalParam("artifactName", "name of the artifact to upgrade to")
   .setAction(async (cmd, hre) => {
-    const { LOCAL_RICH_WALLETS, getProvider, create2, ethersStaticSalt } = require("../test/utils");
+    const { LOCAL_RICH_WALLETS, getProvider, deployFactory, create2, ethersStaticSalt } = require("../test/utils");
 
     let privateKey: string;
     if (hre.network.name == "inMemoryNode" || hre.network.name == "dockerizedNode") {
@@ -20,9 +21,15 @@ task("upgrade", "Upgrades ZKsync SSO contracts")
     }
 
     const wallet = new Wallet(privateKey, getProvider());
+    let newImpl;
 
     console.log("Deploying new implementation of", cmd.artifactName, "contract...");
-    const newImpl = await create2(cmd.artifactName, wallet, ethersStaticSalt, []);
+    if (cmd.artifactName == "AAFactory") {
+      if (!cmd.beaconAddress) throw "Deploying the AAFactory requires a Beacon Address '--beacon-address <value>'";
+      newImpl = await deployFactory(wallet, cmd.beaconAddress);
+    } else {
+      newImpl = await create2(cmd.artifactName, wallet, ethersStaticSalt, []);
+    }
     console.log("New implementation deployed at:", await newImpl.getAddress());
 
     console.log("Upgrading proxy at", cmd.proxy, "to new implementation...");
