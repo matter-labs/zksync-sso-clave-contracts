@@ -4,18 +4,16 @@ pragma solidity ^0.8.24;
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-import { IModule } from "../interfaces/IModule.sol";
-import { IValidationHook } from "../interfaces/IHook.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import { IHookManager } from "../interfaces/IHookManager.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
+import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 
-contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
+contract SessionKeyValidator is IModuleValidator {
   using SessionLib for SessionLib.SessionStorage;
   using EnumerableSet for EnumerableSet.Bytes32Set;
 
@@ -41,30 +39,19 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
     return sessions[sessionHash].status[account];
   }
 
-  function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
-    // This only succeeds if the validationHook has previously succeeded for this hash.
-    uint256 slot = uint256(signedHash);
-    uint256 hookResult;
-    assembly {
-      hookResult := tload(slot)
-    }
-    require(hookResult == 1, "Can't call this function without calling validationHook");
-    return true;
+  // This module should not be used to validate signatures
+  function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+    return false;
   }
 
   function addValidationKey(bytes memory sessionData) external returns (bool) {
-    if (sessionData.length == 0) {
-      return false;
-    }
-    SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
-    createSession(sessionSpec);
-    return true;
+    return _addValidationKey(sessionData);
   }
 
   function createSession(SessionLib.SessionSpec memory sessionSpec) public {
     bytes32 sessionHash = keccak256(abi.encode(sessionSpec));
-    require(_isInitialized(msg.sender), "Account not initialized");
-    require(sessionSpec.signer != address(0), "Invalid signer");
+    require(isInitialized(msg.sender), "Account not initialized");
+    require(sessionSpec.signer != address(0), "Invalid signer (create)");
     require(sessions[sessionHash].status[msg.sender] == SessionLib.Status.NotInitialized, "Session already exists");
     require(sessionSpec.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
     sessionCounter[msg.sender]++;
@@ -73,32 +60,32 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
   }
 
   function init(bytes calldata data) external {
-    // to prevent recursion, since addHook also calls init
-    if (!_isInitialized(msg.sender)) {
-      IHookManager(msg.sender).addHook(abi.encodePacked(address(this)), true);
-      IValidatorManager(msg.sender).addModuleValidator(address(this), data);
+    if (data.length != 0) {
+      require(_addValidationKey(data), "Init failed");
     }
   }
 
+  function _addValidationKey(bytes memory sessionData) internal returns (bool) {
+    SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
+    createSession(sessionSpec);
+    return true;
+  }
+
   function disable() external {
-    if (_isInitialized(msg.sender)) {
+    if (isInitialized(msg.sender)) {
       // Here we have to revoke all keys, so that if the module
       // is installed again later, there will be no active sessions from the past.
       // Problem: if there are too many keys, this will run out of gas.
       // Solution: before uninstalling, require that all keys are revoked manually.
       require(sessionCounter[msg.sender] == 0, "Revoke all keys first");
       IValidatorManager(msg.sender).removeModuleValidator(address(this));
-      IHookManager(msg.sender).removeHook(address(this), true);
     }
   }
 
   function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
     return
       interfaceId != 0xffffffff &&
-      (interfaceId == type(IERC165).interfaceId ||
-        interfaceId == type(IValidationHook).interfaceId ||
-        interfaceId == type(IModuleValidator).interfaceId ||
-        interfaceId == type(IModule).interfaceId);
+      (interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId);
   }
 
   // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?
@@ -120,34 +107,33 @@ contract SessionKeyValidator is IValidationHook, IModuleValidator, IModule {
    * @param smartAccount The smart account to check
    * @return true if validator is registered for the account, false otherwise
    */
-  function isInitialized(address smartAccount) external view returns (bool) {
-    return _isInitialized(smartAccount);
+  function isInitialized(address smartAccount) public view returns (bool) {
+    return IValidatorManager(smartAccount).isModuleValidator(address(this));
   }
 
-  function _isInitialized(address smartAccount) internal view returns (bool) {
-    return IHookManager(smartAccount).isHook(address(this));
-  }
-
-  function validationHook(bytes32 signedHash, Transaction calldata transaction, bytes calldata hookData) external {
-    (bytes memory signature, address validator, ) = abi.decode(transaction.signature, (bytes, address, bytes[]));
-    if (validator != address(this)) {
-      // This transaction is not meant to be validated by this module
-      return;
-    }
+  function validateTransaction(
+    bytes32 signedHash,
+    bytes memory _signature,
+    Transaction calldata transaction
+  ) external returns (bool) {
+    (bytes memory transactionSignature, address validator, bytes memory validatorData) = SignatureDecoder
+      .decodeSignature(transaction.signature);
     (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
-      hookData,
+      validatorData, // this is passed by the signature builder
       (SessionLib.SessionSpec, uint64[])
     );
-    (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, signature);
-    require(recoveredAddress == spec.signer, "Invalid signer");
+    require(spec.signer != address(0), "Invalid signer (empty)");
     bytes32 sessionHash = keccak256(abi.encode(spec));
+    // this generally throws instead of returning false
     sessions[sessionHash].validate(transaction, spec, periodIds);
-
-    // Set the validation result to 1 for this hash, so that isValidSignature succeeds
-    uint256 slot = uint256(signedHash);
-    assembly {
-      tstore(slot, 1)
+    (address recoveredAddress, ECDSA.RecoverError recoverError) = ECDSA.tryRecover(signedHash, transactionSignature);
+    if (recoverError != ECDSA.RecoverError.NoError || recoveredAddress == address(0)) {
+      return false;
     }
+    require(recoveredAddress == spec.signer, "Invalid signer (mismatch)");
+    // This check is separate and performed last to prevent gas estimation failures
+    sessions[sessionHash].validateFeeLimit(transaction, spec, periodIds[0]);
+    return true;
   }
 
   /**

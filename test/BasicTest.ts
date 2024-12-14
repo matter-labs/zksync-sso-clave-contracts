@@ -1,5 +1,5 @@
 import { assert, expect } from "chai";
-import { parseEther, randomBytes } from "ethers";
+import { ethers, parseEther, randomBytes } from "ethers";
 import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
@@ -36,17 +36,40 @@ describe("Basic tests", function () {
     const aaFactoryContract = await fixtures.getAaFactory();
     assert(aaFactoryContract != null, "No AA Factory deployed");
 
+    const factoryAddress = await aaFactoryContract.getAddress();
+    expect(factoryAddress, "the factory address").to.equal(await fixtures.getAaFactoryAddress(), "factory address match");
+
+    const bytecodeHash = await aaFactoryContract.beaconProxyBytecodeHash();
+    const deployedAccountContract = await fixtures.getAccountProxyContract();
+    const deployedAccountContractCode = await deployedAccountContract.getDeployedCode();
+    assert(deployedAccountContractCode != null, "No account code deployed");
+    const ssoBeaconBytecodeHash = ethers.hexlify(utils.hashBytecode(deployedAccountContractCode));
+    expect(bytecodeHash, "deployed account bytecode hash").to.equal(ssoBeaconBytecodeHash, "deployed account code doesn't match");
+
+    const args = await aaFactoryContract.getEncodedBeacon();
+    const deployedBeaconAddress = new ethers.AbiCoder().encode(["address"], [await fixtures.getBeaconAddress()]);
+    expect(args, "the beacon address").to.equal(deployedBeaconAddress, "the deployment beacon");
+    
+    const randomSalt = randomBytes(32);
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args) ;
+
+    const preDeployAccountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
+    expect(preDeployAccountCode , "expected deploy location").to.equal("0x", "nothing deployed here (yet)");
+
     const deployTx = await aaFactoryContract.deployProxySsoAccount(
-      randomBytes(32),
-      "id",
-      [],
+      randomSalt,
+      "id" + randomBytes(32).toString(),
       [],
       [fixtures.wallet.address],
     );
     const deployTxReceipt = await deployTx.wait();
     proxyAccountAddress = deployTxReceipt!.contractAddress!;
 
+    const postDeployAccountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
+    expect(postDeployAccountCode, "expected deploy location").to.not.equal("0x", "deployment didn't match create2!");
+
     expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
+    expect(proxyAccountAddress, "the proxy account location").to.equal(standardCreate2Address, "be what create2 returns");
 
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
     assert(await account.k1IsOwner(fixtures.wallet.address));
@@ -72,8 +95,7 @@ describe("Basic tests", function () {
       value,
       gasLimit: 300_000n,
     };
-    // TODO: fix gas estimation
-    // aaTx.gasLimit = await provider.estimateGas(aaTx);
+    aaTx.gasLimit = await provider.estimateGas(aaTx);
 
     const signedTransaction = await smartAccount.signTransaction(aaTx);
     assert(signedTransaction != null, "valid transaction to sign");

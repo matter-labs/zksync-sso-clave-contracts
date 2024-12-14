@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import { BootloaderAuth } from "./BootloaderAuth.sol";
-import { ModuleAuth } from "./ModuleAuth.sol";
 import { SelfAuth } from "./SelfAuth.sol";
 import { HookAuth } from "./HookAuth.sol";
 import { Errors } from "../libraries/Errors.sol";
@@ -12,11 +11,4 @@ import { Errors } from "../libraries/Errors.sol";
  * @notice Abstract contract that organizes authentication logic for the contract
  * @author https://getclave.io
  */
-abstract contract Auth is BootloaderAuth, SelfAuth, ModuleAuth, HookAuth {
-  modifier onlySelfOrModule() {
-    if (msg.sender != address(this) && !_isModule(msg.sender)) {
-      revert Errors.NOT_FROM_SELF_OR_MODULE();
-    }
-    _;
-  }
-}
+abstract contract Auth is BootloaderAuth, SelfAuth, HookAuth {}

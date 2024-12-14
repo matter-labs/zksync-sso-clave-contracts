@@ -24,7 +24,7 @@ complete developer solution, this project is just the smart contract components.
 
 1. Install workspace dependencies with `pnpm install`.
 2. Install the latest release of
-   [Era Test Node](https://github.com/matter-labs/era-test-node).
+   [Era Test Node](https://github.com/matter-labs/anvil-zksync).
 3. Run `pnpm build` to build the contracts.
 4. Run `era_test_node run` and `pnpm test` in separate terminals to run the
    tests.

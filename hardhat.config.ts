@@ -2,6 +2,7 @@ import "@typechain/hardhat";
 import "@matterlabs/hardhat-zksync";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "./scripts/deploy";
+import "./scripts/upgrade";
 
 import { HardhatUserConfig } from "hardhat/config";
 

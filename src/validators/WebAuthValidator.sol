@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
+import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
@@ -21,7 +24,23 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public upperKeyHalf;
 
+  function init(bytes calldata key) external {
+    require(_addValidationKey(key), "failed to init");
+  }
+
   function addValidationKey(bytes memory key) external returns (bool) {
+    return _addValidationKey(key);
+  }
+
+  // There's no mapping from account address to domains,
+  // so there's no way to just delete all the keys
+  // We can only disconnect the module from the account,
+  // re-linking it will allow any previous keys
+  function disable() external {
+    revert("Cannot disable module without removing it from account");
+  }
+
+  function _addValidationKey(bytes memory key) internal returns (bool) {
     (bytes32[2] memory key32, string memory originDomain) = abi.decode(key, (bytes32[2], string));
     bytes32 initialLowerHalf = lowerKeyHalf[originDomain][msg.sender];
     bytes32 initialUpperHalf = upperKeyHalf[originDomain][msg.sender];
@@ -34,7 +53,15 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     return initialLowerHalf == 0 && initialUpperHalf == 0;
   }
 
-  function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+  function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+    return webAuthVerify(signedHash, signature);
+  }
+
+  function validateTransaction(
+    bytes32 signedHash,
+    bytes memory signature,
+    Transaction calldata _transaction
+  ) external view returns (bool) {
     return webAuthVerify(signedHash, signature);
   }
 

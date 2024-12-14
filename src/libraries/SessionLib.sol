@@ -162,6 +162,30 @@ library SessionLib {
     constraint.limit.checkAndUpdate(tracker, uint256(param), period);
   }
 
+  function validateFeeLimit(
+    SessionStorage storage state,
+    Transaction calldata transaction,
+    SessionSpec memory spec,
+    uint64 periodId
+  ) internal {
+    // This is split from `validate` to prevent gas estimation failures.
+    // When this check was part of `validate`, gas estimation could fail due to
+    // fee limit being smaller than the upper bound of the gas estimation binary search.
+    // By splitting this check, we can now have this order of operations in `validateTransaction`:
+    // 1. session.validate()
+    // 2. ECDSA.tryRecover()
+    // 3. session.validateFeeLimit()
+    // This way, gas estimation will exit on step 2 instead of failing, but will still run through
+    // most of the computation needed to validate the session.
+
+    // TODO: update fee allowance with the gasleft/refund at the end of execution
+    if (transaction.paymaster != 0) {
+      // If a paymaster is paying the fee, we don't need to check the fee limit
+      uint256 fee = transaction.maxFeePerGas * transaction.gasLimit;
+      spec.feeLimit.checkAndUpdate(state.fee, fee, periodId);
+    }
+  }
+
   function validate(
     SessionStorage storage state,
     Transaction calldata transaction,
@@ -178,10 +202,6 @@ library SessionLib {
 
     require(state.status[msg.sender] == Status.Active, "Session is not active");
     TimestampAsserterLocator.locate().assertTimestampInRange(0, spec.expiresAt);
-
-    // TODO: update fee allowance with the gasleft/refund at the end of execution
-    uint256 fee = transaction.maxFeePerGas * transaction.gasLimit;
-    spec.feeLimit.checkAndUpdate(state.fee, fee, periodIds[0]);
 
     address target = address(uint160(transaction.to));
 
