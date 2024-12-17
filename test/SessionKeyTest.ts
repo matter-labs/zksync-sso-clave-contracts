@@ -273,7 +273,11 @@ class SessionTester {
     await expect(provider.broadcastTransaction(signedTransaction)).to.be.reverted;
   };
 
-  getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
+  _getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
+    return SessionTester.getLimit(limit);
+  }
+
+  static getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
     return limit == null
       ? {
         limitType: LimitType.Unlimited,
@@ -293,28 +297,30 @@ class SessionTester {
         };
   }
 
+
+
   getSession(session: PartialSession): SessionLib.SessionSpecStruct {
     return {
       signer: this.sessionOwner.address,
       expiresAt: session.expiresAt ?? Math.floor(Date.now() / 1000) + 60 * 60 * 24,
       // unlimited fees are not safe
-      feeLimit: session.feeLimit ? this.getLimit(session.feeLimit) : this.getLimit({ limit: parseEther("0.1") }),
+      feeLimit: session.feeLimit ? this._getLimit(session.feeLimit) : this._getLimit({ limit: parseEther("0.1") }),
       callPolicies: session.callPolicies?.map((policy) => ({
         target: policy.target,
         selector: policy.selector ?? "0x00000000",
         maxValuePerUse: policy.maxValuePerUse ?? 0,
-        valueLimit: this.getLimit(policy.valueLimit),
+        valueLimit: this._getLimit(policy.valueLimit),
         constraints: policy.constraints?.map((constraint) => ({
           condition: constraint.condition ?? 0,
           index: constraint.index,
           refValue: constraint.refValue ?? ethers.ZeroHash,
-          limit: this.getLimit(constraint.limit),
+          limit: this._getLimit(constraint.limit),
         })) ?? [],
       })) ?? [],
       transferPolicies: session.transferPolicies?.map((policy) => ({
         target: policy.target,
         maxValuePerUse: policy.maxValuePerUse ?? 0,
-        valueLimit: this.getLimit(policy.valueLimit),
+        valueLimit: this._getLimit(policy.valueLimit),
       })) ?? [],
     };
   }
@@ -386,21 +392,43 @@ describe("SessionKeyModule tests", function () {
   it("should deploy proxy account via factory", async () => {
     const factoryContract = await fixtures.getAaFactory();
     const sessionKeyModuleAddress = await fixtures.getSessionKeyModuleAddress();
-    const sessionKeyPayload = abiCoder.encode(["address", "bytes"], [sessionKeyModuleAddress, "0x"]);
+    const transferSessionTarget = Wallet.createRandom().address;
+    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
 
+    // create a session to encode (before the account is deployed)
+    const args = await factoryContract.getEncodedBeacon();
+    const randomSalt = randomBytes(32);
+    const bytecodeHash = await factoryContract.beaconProxyBytecodeHash();
+    const factoryAddress = await factoryContract.getAddress();
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args) ;
+    let tester = new SessionTester(standardCreate2Address, await fixtures.getSessionKeyModuleAddress());
+    const initialSession = await tester.getSession({
+        transferPolicies: [{
+          target: transferSessionTarget,
+          maxValuePerUse: parseEther("0.01"),
+        }],
+      });
+    const initSessionData = abiCoder.encode(sessionKeyModuleContract.interface.getFunction("createSession").inputs, [initialSession]);
+
+    const sessionKeyPayload = abiCoder.encode(["address", "bytes"], [sessionKeyModuleAddress, initSessionData]);
     const deployTx = await factoryContract.deployProxySsoAccount(
-      randomBytes(32),
-      "session-key-test-id",
+      randomSalt,
+      "session-key-test-id" + randomBytes(32).toString(),
       [sessionKeyPayload],
       [fixtures.wallet.address],
     );
 
     const deployTxReceipt = await deployTx.wait();
+    logInfo(`\`deployProxySsoAccount\` gas used: ${deployTxReceipt?.gasUsed.toString()}`);
+
     proxyAccountAddress = deployTxReceipt!.contractAddress!;
     expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
 
     const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("1"), to: proxyAccountAddress });
-    await fundTx.wait();
+    const receipt = await fundTx.wait();
+
+    const initState = await sessionKeyModuleContract.sessionState(proxyAccountAddress, initialSession);
+    expect(initState.status).to.equal(1, "initial session should be active");
 
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
     assert(await account.k1IsOwner(fixtures.wallet.address));
