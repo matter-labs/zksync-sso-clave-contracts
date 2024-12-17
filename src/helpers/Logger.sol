@@ -24,7 +24,7 @@ library Logger {
     }
   }
 
-  function logUint(uint intToLog) internal view {
+  function logUint(uint256 intToLog) internal view {
     if (block.chainid == 260) {
       console.logUint(intToLog);
     }

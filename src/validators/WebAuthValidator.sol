@@ -81,7 +81,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
 
     // parse out the important fields (type, challenge, and origin): https://goo.gl/yabPex
     // TODO: test if the parse fails for more than 10 elements, otherwise can have a malicious header
-    (uint returnValue, JsmnSolLib.Token[] memory tokens, uint actualNum) = JsmnSolLib.parse(clientDataJSON, 20);
+    (uint256 returnValue, JsmnSolLib.Token[] memory tokens, uint256 actualNum) = JsmnSolLib.parse(clientDataJSON, 20);
     if (returnValue != 0) {
       return false;
     }
