@@ -83,7 +83,7 @@ abstract contract HookManager is IHookManager, Auth {
   /// @inheritdoc IHookManager
   function setHookData(bytes32 key, bytes calldata data) external override onlyHook {
     if (key == CONTEXT_KEY) {
-      revert Errors.INVALID_KEY();
+      revert Errors.INVALID_KEY(key);
     }
 
     _hookDataStore()[msg.sender][key] = data;
@@ -161,7 +161,7 @@ abstract contract HookManager is IHookManager, Auth {
 
   function _addHook(bytes calldata hookAndData, bool isValidation) internal {
     if (hookAndData.length < 20) {
-      revert Errors.EMPTY_HOOK_ADDRESS();
+      revert Errors.EMPTY_HOOK_ADDRESS(hookAndData.length);
     }
 
     address hookAddress = address(bytes20(hookAndData[0:20]));
@@ -173,7 +173,7 @@ abstract contract HookManager is IHookManager, Auth {
 
   function _installHook(address hookAddress, bytes memory initData, bool isValidation) internal {
     if (!_supportsHook(hookAddress, isValidation)) {
-      revert Errors.HOOK_ERC165_FAIL();
+      revert Errors.HOOK_ERC165_FAIL(hookAddress, isValidation);
     }
 
     if (isValidation) {
