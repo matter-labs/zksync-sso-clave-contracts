@@ -14,14 +14,14 @@ library BytesLinkedList {
 
   modifier validBytes(bytes calldata value) {
     if (value.length <= SENTINEL_LENGTH) {
-      revert Errors.INVALID_BYTES();
+      revert Errors.INVALID_BYTES(value.length);
     }
     _;
   }
 
   function add(mapping(bytes => bytes) storage self, bytes calldata value) internal validBytes(value) {
     if (self[value].length != 0) {
-      revert Errors.BYTES_ALREADY_EXISTS();
+      revert Errors.BYTES_ALREADY_EXISTS(self[value]);
     }
 
     bytes memory prev = self[SENTINEL_BYTES];
@@ -36,10 +36,10 @@ library BytesLinkedList {
 
   function replace(mapping(bytes => bytes) storage self, bytes calldata oldValue, bytes calldata newValue) internal {
     if (!exists(self, oldValue)) {
-      revert Errors.BYTES_NOT_EXISTS();
+      revert Errors.BYTES_NOT_EXISTS(oldValue);
     }
     if (exists(self, newValue)) {
-      revert Errors.BYTES_ALREADY_EXISTS();
+      revert Errors.BYTES_ALREADY_EXISTS(newValue);
     }
 
     bytes memory cursor = SENTINEL_BYTES;
@@ -63,13 +63,13 @@ library BytesLinkedList {
     bytes calldata newValue
   ) internal {
     if (!exists(self, oldValue)) {
-      revert Errors.BYTES_NOT_EXISTS();
+      revert Errors.BYTES_NOT_EXISTS(oldValue);
     }
     if (exists(self, newValue)) {
-      revert Errors.BYTES_ALREADY_EXISTS();
+      revert Errors.BYTES_ALREADY_EXISTS(newValue);
     }
     if (!equals(self[prevValue], oldValue)) {
-      revert Errors.INVALID_PREV();
+      revert Errors.INVALID_PREV_BYTES(self[prevValue], oldValue);
     }
 
     self[newValue] = self[oldValue];
@@ -79,7 +79,7 @@ library BytesLinkedList {
 
   function remove(mapping(bytes => bytes) storage self, bytes calldata value) internal {
     if (!exists(self, value)) {
-      revert Errors.BYTES_NOT_EXISTS();
+      revert Errors.BYTES_NOT_EXISTS(value);
     }
 
     bytes memory cursor = SENTINEL_BYTES;
@@ -101,10 +101,10 @@ library BytesLinkedList {
     bytes calldata value
   ) internal {
     if (!exists(self, value)) {
-      revert Errors.BYTES_NOT_EXISTS();
+      revert Errors.BYTES_NOT_EXISTS(value);
     }
     if (!equals(self[prevValue], value)) {
-      revert Errors.INVALID_PREV();
+      revert Errors.INVALID_PREV_BYTES(self[prevValue], value);
     }
 
     self[prevValue] = self[value];
@@ -175,14 +175,14 @@ library AddressLinkedList {
 
   modifier validAddress(address value) {
     if (value <= SENTINEL_ADDRESS) {
-      revert Errors.INVALID_ADDRESS();
+      revert Errors.INVALID_ADDRESS(value);
     }
     _;
   }
 
   function add(mapping(address => address) storage self, address value) internal validAddress(value) {
     if (self[value] != address(0)) {
-      revert Errors.ADDRESS_ALREADY_EXISTS();
+      revert Errors.ADDRESS_ALREADY_EXISTS(value);
     }
 
     address prev = self[SENTINEL_ADDRESS];
@@ -197,10 +197,10 @@ library AddressLinkedList {
 
   function replace(mapping(address => address) storage self, address oldValue, address newValue) internal {
     if (!exists(self, oldValue)) {
-      revert Errors.ADDRESS_NOT_EXISTS();
+      revert Errors.ADDRESS_NOT_EXISTS(oldValue);
     }
     if (exists(self, newValue)) {
-      revert Errors.ADDRESS_ALREADY_EXISTS();
+      revert Errors.ADDRESS_ALREADY_EXISTS(newValue);
     }
 
     address cursor = SENTINEL_ADDRESS;
@@ -224,13 +224,13 @@ library AddressLinkedList {
     address newValue
   ) internal {
     if (!exists(self, oldValue)) {
-      revert Errors.ADDRESS_NOT_EXISTS();
+      revert Errors.ADDRESS_NOT_EXISTS(oldValue);
     }
     if (exists(self, newValue)) {
-      revert Errors.ADDRESS_ALREADY_EXISTS();
+      revert Errors.ADDRESS_ALREADY_EXISTS(newValue);
     }
     if (self[prevValue] != oldValue) {
-      revert Errors.INVALID_PREV();
+      revert Errors.INVALID_PREV_ADDR(self[prevValue], oldValue);
     }
 
     self[newValue] = self[oldValue];
@@ -240,7 +240,7 @@ library AddressLinkedList {
 
   function remove(mapping(address => address) storage self, address value) internal {
     if (!exists(self, value)) {
-      revert Errors.ADDRESS_NOT_EXISTS();
+      revert Errors.ADDRESS_NOT_EXISTS(value);
     }
 
     address cursor = SENTINEL_ADDRESS;
@@ -258,10 +258,10 @@ library AddressLinkedList {
 
   function removeUsingPrev(mapping(address => address) storage self, address prevValue, address value) internal {
     if (!exists(self, value)) {
-      revert Errors.ADDRESS_NOT_EXISTS();
+      revert Errors.ADDRESS_NOT_EXISTS(value);
     }
     if (self[prevValue] != value) {
-      revert Errors.INVALID_PREV();
+      revert Errors.INVALID_PREV_ADDR(self[prevValue], value);
     }
 
     self[prevValue] = self[value];
