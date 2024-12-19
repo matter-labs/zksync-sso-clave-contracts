@@ -162,7 +162,7 @@ library JsmnSolLib {
     (parser, tokens) = init(numberElements);
 
     // Token memory token;
-    uint256 r;
+    uint256 returnFlag;
     uint256 count = parser.toknext;
     uint256 i;
     Token memory token;
@@ -227,10 +227,10 @@ library JsmnSolLib {
 
       // 0x42
       if (c == '"') {
-        r = parseString(parser, tokens, s);
+        returnFlag = parseString(parser, tokens, s);
 
-        if (r != RETURN_SUCCESS) {
-          return (r, tokens, 0);
+        if (returnFlag != RETURN_SUCCESS) {
+          return (returnFlag, tokens, 0);
         }
         //JsmnError.INVALID;
         count++;
@@ -276,9 +276,9 @@ library JsmnSolLib {
           }
         }
 
-        r = parsePrimitive(parser, tokens, s);
-        if (r != RETURN_SUCCESS) {
-          return (r, tokens, 0);
+        returnFlag = parsePrimitive(parser, tokens, s);
+        if (returnFlag != RETURN_SUCCESS) {
+          return (returnFlag, tokens, 0);
         }
         count++;
         if (parser.toksuper != -1) {
@@ -311,9 +311,8 @@ library JsmnSolLib {
   }
 
   // parseInt(parseFloat*10^_b)
-  function parseInt(string memory _a, uint256 _b) internal pure returns (int) {
+  function parseInt(string memory _a, uint256 _b) internal pure returns (int256 result) {
     bytes memory bresult = bytes(_a);
-    int256 mint = 0;
     bool decimals = false;
     bool negative = false;
     for (uint256 i = 0; i < bresult.length; i++) {
@@ -325,13 +324,13 @@ library JsmnSolLib {
           if (_b == 0) break;
           else _b--;
         }
-        mint *= 10;
-        mint += int(int8(uint8(bresult[i]))) - 48;
+        result *= 10;
+        result += int(int8(uint8(bresult[i]))) - 48;
       } else if (uint8(bresult[i]) == 46) decimals = true;
     }
-    if (_b > 0) mint *= int(10 ** _b);
-    if (negative) mint *= -1;
-    return mint;
+    if (_b > 0) result *= int(10 ** _b);
+    if (negative) result *= -1;
+    return result;
   }
 
   function parseBool(string memory _a) internal pure returns (bool) {
