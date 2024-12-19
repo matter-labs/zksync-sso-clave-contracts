@@ -17,7 +17,7 @@ async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any
   console.log("Deploying", name, "contract...");
   let implContract;
   if (name == FACTORY_NAME) {
-    implContract = await deployFactory(deployer, args![0]);
+    implContract = await deployFactory(deployer, args![0], ethersStaticSalt);
   } else {
     implContract = await create2(name, deployer, ethersStaticSalt, args);
   }
