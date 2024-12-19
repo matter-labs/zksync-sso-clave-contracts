@@ -48,12 +48,12 @@ abstract contract BatchCaller is SelfAuth {
       }
 
       if (!_calls[i].allowFailure && !success) {
-        revert Errors.CALL_FAILED();
+        revert Errors.CALL_FAILED(i);
       }
     }
 
     if (totalValue != msg.value) {
-      revert Errors.MsgValueMismatch(msg.value, totalValue);
+      revert Errors.MSG_VALUE_MISMATCH(msg.value, totalValue);
     }
   }
 }

@@ -75,7 +75,7 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     // If there is not enough balance for the transaction, the account should reject it
     // on the validation step to prevent paying fees for revertable transactions.
     if (_transaction.totalRequiredBalance() > address(this).balance) {
-      revert Errors.INSUFFICIENT_FUNDS();
+      revert Errors.INSUFFICIENT_FUNDS(_transaction.totalRequiredBalance(), address(this).balance);
     }
 
     // While the suggested signed hash is usually provided, it is generally

@@ -13,7 +13,7 @@ abstract contract HookAuth {
 
   modifier onlyHook() {
     if (!_isHook(msg.sender)) {
-      revert Errors.NOT_FROM_HOOK();
+      revert Errors.NOT_FROM_HOOK(msg.sender);
     }
     _;
   }

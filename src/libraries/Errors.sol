@@ -6,7 +6,7 @@ library Errors {
                                ACCOUNT
     //////////////////////////////////////////////////////////////*/
 
-  error INSUFFICIENT_FUNDS();
+  error INSUFFICIENT_FUNDS(uint256 required, uint256 available);
   error FEE_PAYMENT_FAILED();
   error METHOD_NOT_IMPLEMENTED();
 
@@ -14,58 +14,43 @@ library Errors {
                                LINKED LIST
     //////////////////////////////////////////////////////////////*/
 
-  error INVALID_PREV();
+  error INVALID_PREV_BYTES(bytes prevValue, bytes oldValue);
+  error INVALID_PREV_ADDR(address prevValue, address oldValue);
   // Bytes
-  error INVALID_BYTES();
-  error BYTES_ALREADY_EXISTS();
-  error BYTES_NOT_EXISTS();
+  error INVALID_BYTES(uint256 length);
+  error BYTES_ALREADY_EXISTS(bytes length);
+  error BYTES_NOT_EXISTS(bytes lookup);
   // Address
-  error INVALID_ADDRESS();
-  error ADDRESS_ALREADY_EXISTS();
-  error ADDRESS_NOT_EXISTS();
-
-  /*//////////////////////////////////////////////////////////////
-                              OWNER MANAGER
-    //////////////////////////////////////////////////////////////*/
-
-  error INVALID_PUBKEY_LENGTH();
+  error INVALID_ADDRESS(address valid);
+  error ADDRESS_ALREADY_EXISTS(address exists);
+  error ADDRESS_NOT_EXISTS(address notExists);
 
   /*//////////////////////////////////////////////////////////////
                              VALIDATOR MANAGER
     //////////////////////////////////////////////////////////////*/
 
-  error VALIDATOR_ERC165_FAIL();
+  error VALIDATOR_ERC165_FAIL(address validator);
 
   /*//////////////////////////////////////////////////////////////
                               HOOK MANAGER
     //////////////////////////////////////////////////////////////*/
 
-  error EMPTY_HOOK_ADDRESS();
-  error HOOK_ERC165_FAIL();
-  error INVALID_KEY();
-
-  /*//////////////////////////////////////////////////////////////
-                             MODULE MANAGER
-    //////////////////////////////////////////////////////////////*/
-
-  error EMPTY_MODULE_ADDRESS();
-  error RECURSIVE_MODULE_CALL();
-  error MODULE_ERC165_FAIL();
+  error EMPTY_HOOK_ADDRESS(uint256 hookAndDataLength);
+  error HOOK_ERC165_FAIL(address hookAddress, bool isValidation);
+  error INVALID_KEY(bytes32 key);
 
   /*//////////////////////////////////////////////////////////////
                               AUTH
     //////////////////////////////////////////////////////////////*/
 
-  error NOT_FROM_BOOTLOADER();
-  error NOT_FROM_MODULE();
-  error NOT_FROM_HOOK();
-  error NOT_FROM_SELF();
-  error NOT_FROM_SELF_OR_MODULE();
+  error NOT_FROM_BOOTLOADER(address notBootloader);
+  error NOT_FROM_HOOK(address notHook);
+  error NOT_FROM_SELF(address notSelf);
 
   /*//////////////////////////////////////////////////////////////
                             BatchCaller
     //////////////////////////////////////////////////////////////*/
 
-  error CALL_FAILED();
-  error MsgValueMismatch(uint256 actualValue, uint256 expectedValue);
+  error CALL_FAILED(uint256 batchCallIndex);
+  error MSG_VALUE_MISMATCH(uint256 actualValue, uint256 expectedValue);
 }

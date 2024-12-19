@@ -47,7 +47,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
 
   function _addModuleValidator(address validator, bytes memory accountValidationKey) internal {
     if (!_supportsModuleValidator(validator)) {
-      revert Errors.VALIDATOR_ERC165_FAIL();
+      revert Errors.VALIDATOR_ERC165_FAIL(validator);
     }
 
     _moduleValidatorsLinkedList().add(validator);
