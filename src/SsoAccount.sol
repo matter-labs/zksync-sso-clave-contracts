@@ -39,16 +39,16 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
 
   /// @notice Initializer function that sets account initial configuration. Expected to be used in the proxy.
   /// @dev Sets passkey and passkey validator within account storage
-  /// @param _initialValidators An array of module validator addresses and initial validation keys
+  /// @param initialValidators An array of module validator addresses and initial validation keys
   /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey))`.
-  /// @param _initialK1Owners An array of addresses with full control over the account.
-  function initialize(bytes[] calldata _initialValidators, address[] calldata _initialK1Owners) external initializer {
-    for (uint256 i = 0; i < _initialValidators.length; ++i) {
-      (address validatorAddr, bytes memory validationKey) = abi.decode(_initialValidators[i], (address, bytes));
+  /// @param initialK1Owners An array of addresses with full control over the account.
+  function initialize(bytes[] calldata initialValidators, address[] calldata initialK1Owners) external initializer {
+    for (uint256 i = 0; i < initialValidators.length; ++i) {
+      (address validatorAddr, bytes memory validationKey) = abi.decode(initialValidators[i], (address, bytes));
       _addModuleValidator(validatorAddr, validationKey);
     }
-    for (uint256 i = 0; i < _initialK1Owners.length; ++i) {
-      _k1AddOwner(_initialK1Owners[i]);
+    for (uint256 i = 0; i < initialK1Owners.length; ++i) {
+      _k1AddOwner(initialK1Owners[i]);
     }
   }
 

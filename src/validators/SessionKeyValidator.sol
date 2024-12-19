@@ -44,8 +44,8 @@ contract SessionKeyValidator is IModuleValidator {
     return false;
   }
 
-  function addValidationKey(bytes memory sessionData) external returns (bool) {
-    return _addValidationKey(sessionData);
+  function addValidationKey(bytes memory key) external returns (bool) {
+    return _addValidationKey(key);
   }
 
   function createSession(SessionLib.SessionSpec memory sessionSpec) public {
