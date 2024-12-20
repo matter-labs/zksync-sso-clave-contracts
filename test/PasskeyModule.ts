@@ -10,6 +10,9 @@ import { Wallet } from "zksync-ethers";
 
 import { WebAuthValidator, WebAuthValidator__factory } from "../typechain-types";
 import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
+import { AbiCoder, encodeBase64 } from "ethers";
+import { base64UrlToUint8Array } from "zksync-sso/utils";
+import { encodeAbiParameters, toHex } from "viem";
 
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
@@ -209,6 +212,71 @@ export async function toHash(
   return new Uint8Array(await crypto.subtle.digest("SHA-256", data));
 }
 
+async function generateES256R1Key() {
+  // Generate an ECDSA key pair with the P-256 curve (secp256r1)
+  const keyPair = await crypto.subtle.generateKey(
+    {
+      name: "ECDSA",
+      namedCurve: "P-256",
+    },
+    true,
+    ["sign"]
+  );
+
+  return keyPair;
+}
+
+async function signStringWithR1Key(privateKey: CryptoKey, message: string) {
+  // Convert the message to an ArrayBuffer
+  const messageBuffer = new TextEncoder().encode(message);
+
+  // Sign the message
+  const signature = await crypto.subtle.sign(
+    {
+      name: "ECDSA",
+      hash: { name: "SHA-256" }
+    },
+    privateKey,
+    messageBuffer
+  );
+
+  // Extract r and s from the signature (assuming DER encoding)
+  const signatureArray = new Uint8Array(signature);
+  const rLength = signatureArray[3]; // Length of r
+  const r = signatureArray.slice(4, 4 + rLength);
+  const sLength = signatureArray[4 + rLength + 1]; // Length of s
+  const s = signatureArray.slice(5 + rLength, 5 + rLength + sLength);
+
+  // Convert r and s to hex strings (optional)
+
+  return { r, s, signature };
+}
+
+function encodeFatSignature(
+  passkeyResponse: {
+    authenticatorData: string;
+    clientDataJSON: string;
+    signature: string;
+  },
+  contracts: {
+    passkey: string;
+  },
+) {
+  const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeyResponse.signature));
+  return encodeAbiParameters(
+    [
+      { type: "bytes" }, // authData
+      { type: "bytes" }, // clientDataJson
+      { type: "bytes32[2]" }, // signature (two elements)
+    ],
+    [
+      toHex(base64UrlToUint8Array(passkeyResponse.authenticatorData)),
+      toHex(base64UrlToUint8Array(passkeyResponse.clientDataJSON)),
+      [toHex(signature[0]), toHex(signature[1])],
+    ],
+  );
+}
+
 async function rawVerify(
   passkeyValidator: PasskeyValidator,
   authenticatorData: string,
@@ -220,12 +288,65 @@ async function rawVerify(
   const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
   const rs = unwrapEC2Signature(toBuffer(b64SignedChallange));
   const publicKeys = await getPublicKey(publicKeyEs256Bytes);
+
   return await passkeyValidator.rawVerify(hashedData, rs, publicKeys);
 }
 
-describe("Passkey validation", function () {
+describe.only("Passkey validation", function () {
   const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
   const ethersResponse = new RecordedResponse("test/signed-challenge.json");
+  // this is a binary object formatted by @simplewebauthn that contains the alg type and public key
+  const publicKeyEs256Bytes = new Uint8Array([
+    165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 167, 69,
+    109, 166, 67, 163, 110, 143, 71, 60, 77, 232, 220, 7,
+    121, 156, 141, 24, 71, 28, 210, 116, 124, 90, 115, 166,
+    213, 190, 89, 4, 216, 128, 34, 88, 32, 193, 67, 151,
+    85, 245, 24, 139, 246, 220, 204, 228, 76, 247, 65, 179,
+    235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73,
+    37, 195, 20, 194, 9,
+  ]);
+
+  it("should save a passkey", async function () {
+    const passkeyValidator = await deployValidator(wallet);
+
+    const publicKeys = await getPublicKey(publicKeyEs256Bytes);
+    const initData = new AbiCoder().encode(["bytes32[2]", "string"], [publicKeys, "http://localhost:5173"]);
+    const createdKey = await passkeyValidator.init(initData);
+    const keyRecipt = await createdKey.wait();
+    assert(keyRecipt?.status == 1, "key was saved");
+  })
+
+  it("should add a second validation key", async function () {
+    const passkeyValidator = await deployValidator(wallet);
+
+    const publicKeys = await getPublicKey(publicKeyEs256Bytes);
+    const initData = new AbiCoder().encode(["bytes32[2]", "string"], [publicKeys, "http://localhost:5173"]);
+    await passkeyValidator.init(initData);
+    const duplicateCreatedKey = await passkeyValidator.addValidationKey(initData);
+    const keyRecipt = await duplicateCreatedKey.wait();
+    assert(keyRecipt?.status == 1, "key was saved");
+  })
+
+  it("should validate signature", async function () {
+    const passkeyValidator = await deployValidator(wallet);
+
+    const publicKeys = await getPublicKey(ethersResponse.passkeyBytes);
+    const fatSignature = encodeFatSignature({
+      authenticatorData: ethersResponse.authenticatorData,
+      clientDataJSON: ethersResponse.clientData,
+      signature: ethersResponse.b64SignedChallenge
+    }, { passkey: publicKeys[0] });
+
+    const initData = new AbiCoder().encode(["bytes32[2]", "string"], [publicKeys, "http://localhost:5173"]);
+    await passkeyValidator.init(initData);
+
+    // get the signature from the same place the checker gets it
+    const clientDataJson = JSON.parse(new TextDecoder().decode(ethersResponse.clientDataBuffer));
+    const signatureData = base64UrlToUint8Array(clientDataJson['challenge'])
+
+    const createdKey = await passkeyValidator.validateSignature(signatureData, fatSignature);
+    assert(createdKey, "invalid sig");
+  })
 
   it("should verify passkey", async function () {
     const passkeyValidator = await deployValidator(wallet);
@@ -235,21 +356,30 @@ describe("Passkey validation", function () {
     const clientData = "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZFhPM3ctdWdycS00SkdkZUJLNDFsZFk1V2lNd0ZORDkiLCJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2UsIm90aGVyX2tleXNfY2FuX2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgifQ";
     const b64SignedChallange = "MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A";
 
-    // this is a binary object formatted by @simplewebauthn that contains the alg type and public key
-    const publicKeyEs256Bytes = new Uint8Array([
-      165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 167, 69,
-      109, 166, 67, 163, 110, 143, 71, 60, 77, 232, 220, 7,
-      121, 156, 141, 24, 71, 28, 210, 116, 124, 90, 115, 166,
-      213, 190, 89, 4, 216, 128, 34, 88, 32, 193, 67, 151,
-      85, 245, 24, 139, 246, 220, 204, 228, 76, 247, 65, 179,
-      235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73,
-      37, 195, 20, 194, 9,
-    ]);
     const verifyMessage = await rawVerify(
       passkeyValidator,
       authenticatorData, clientData, b64SignedChallange, publicKeyEs256Bytes);
 
     assert(verifyMessage == true, "valid sig");
+  });
+
+  it("should sign with new data", async function () {
+    const passkeyValidator = await deployValidator(wallet);
+
+    const testR1Key = await generateES256R1Key();
+    assert(testR1Key != null, "no key was generated");
+    const clientDataString = new TextDecoder().decode(ethersResponse.clientDataBuffer)
+    const signedClientData = await signStringWithR1Key(testR1Key.privateKey, clientDataString);
+    assert(signedClientData != null, "no signature was generated");
+
+    const verifyMessage = await rawVerify(
+      passkeyValidator,
+      ethersResponse.authenticatorData,
+      ethersResponse.clientData,
+      encodeBase64(new Uint8Array(signedClientData.signature)),
+      concat([signedClientData.r, signedClientData.s]));
+
+    assert(verifyMessage == true, "test sig is valid");
   });
 
   it("should verify other test passkey data", async function () {
