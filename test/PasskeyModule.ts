@@ -118,6 +118,16 @@ export type COSEPublicKey = {
   set(key: COSEKEYS.alg, value: COSEALG): void;
 };
 
+const r1KeygenParams: EcKeyGenParams = {
+  name: "ECDSA",
+  namedCurve: "P-256",
+};
+
+const r1KeyParams: EcdsaParams =
+{
+  name: "ECDSA",
+  hash: { name: "SHA-256" },
+}
 export function decodeFirst<Type>(input: Uint8Array): Type {
   // Make a copy so we don't mutate the original
   const _input = new Uint8Array(input);
@@ -135,17 +145,18 @@ export function fromBuffer(
   return fromArrayBuffer(buffer, to === "base64url");
 }
 
-async function getCrpytoKeyFromBytes(publicPasskeyBytes: Uint8Array<ArrayBufferLike>): Promise<CryptoKey> {
-    const [recordedPubkeyXBytes, recordedPubkeyYBytes] = await getRawPublicKey(publicPasskeyBytes);
-    const rawRecordedKeyMaterial = new Uint8Array(65); // 1 byte for prefix, 32 bytes for x, 32 bytes for y
-    rawRecordedKeyMaterial[0] = 0x04; // Uncompressed format prefix
-    rawRecordedKeyMaterial.set(recordedPubkeyXBytes, 1);
-    rawRecordedKeyMaterial.set(recordedPubkeyYBytes, 33);
-    const importedKeyMaterial = await crypto.subtle.importKey("raw", rawRecordedKeyMaterial, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
-    return importedKeyMaterial;
+async function getCrpytoKeyFromBytes(publicPasskeyXyBytes: Uint8Array<ArrayBufferLike>[]): Promise<CryptoKey> {
+  const recordedPubkeyXBytes = publicPasskeyXyBytes[0];
+  const recordedPubkeyYBytes = publicPasskeyXyBytes[1];
+  const rawRecordedKeyMaterial = new Uint8Array(65); // 1 byte for prefix, 32 bytes for x, 32 bytes for y
+  rawRecordedKeyMaterial[0] = 0x04; // Uncompressed format prefix
+  rawRecordedKeyMaterial.set(recordedPubkeyXBytes, 1);
+  rawRecordedKeyMaterial.set(recordedPubkeyYBytes, 33);
+  const importedKeyMaterial = await crypto.subtle.importKey("raw", rawRecordedKeyMaterial, r1KeygenParams, false, ["verify"]);
+  return importedKeyMaterial;
 }
 
-async function getRawPublicKey(publicPasskey: Uint8Array): Promise<[Uint8Array<ArrayBufferLike>, Uint8Array<ArrayBufferLike>]> {
+async function getRawPublicKeyFromWebAuthN(publicPasskey: Uint8Array): Promise<[Uint8Array<ArrayBufferLike>, Uint8Array<ArrayBufferLike>]> {
   const cosePublicKey = decodeFirst<Map<number, unknown>>(publicPasskey);
   const x = cosePublicKey.get(COSEKEYS.x) as Uint8Array;
   const y = cosePublicKey.get(COSEKEYS.y) as Uint8Array;
@@ -153,19 +164,15 @@ async function getRawPublicKey(publicPasskey: Uint8Array): Promise<[Uint8Array<A
   return [x, y];
 }
 
+// Expects simple-webauthn public key format
 async function getPublicKey(publicPasskey: Uint8Array): Promise<[string, string]> {
-  const cosePublicKey = decodeFirst<Map<number, unknown>>(publicPasskey);
-  const x = cosePublicKey.get(COSEKEYS.x) as Uint8Array;
-  const y = cosePublicKey.get(COSEKEYS.y) as Uint8Array;
-
+  const [x, y] = await getRawPublicKeyFromWebAuthN(publicPasskey);
   return ["0x" + Buffer.from(x).toString("hex"), "0x" + Buffer.from(y).toString("hex")];
 }
 
-async function getPublicKeyFromCrpyto(cryptoKeyPair: CryptoKeyPair) {
-    const keyMaterial = await crypto.subtle.exportKey("raw", cryptoKeyPair.publicKey);
-    const xHex = "0x" + Buffer.from(keyMaterial.slice(1, 33)).toString("hex");
-    const yHex = "0x" + Buffer.from(keyMaterial.slice(33, 65)).toString("hex");
-    return [xHex, yHex];
+async function getRawPublicKeyFromCrpyto(cryptoKeyPair: CryptoKeyPair) {
+  const keyMaterial = await crypto.subtle.exportKey("raw", cryptoKeyPair.publicKey);
+  return [new Uint8Array(keyMaterial.slice(1, 33)), new Uint8Array(keyMaterial.slice(33, 65))];
 }
 
 /**
@@ -244,26 +251,18 @@ export async function toHash(
   return new Uint8Array(await crypto.subtle.digest("SHA-256", data));
 }
 
+// Generate an ECDSA key pair with the P-256 curve (secp256r1)
 async function generateES256R1Key() {
-  // Generate an ECDSA key pair with the P-256 curve (secp256r1)
-  const keyPair = await crypto.subtle.generateKey(
-    {
-      name: "ECDSA",
-      namedCurve: "P-256",
-    },
-    true,
+  return await crypto.subtle.generateKey(
+    r1KeygenParams,
+    false,
     ["sign", "verify"]
   );
-
-  return keyPair;
 }
 
 async function signStringWithR1Key(privateKey: CryptoKey, messageBuffer: Uint8Array<ArrayBufferLike>) {
   const signatureBytes = await crypto.subtle.sign(
-    {
-      name: "ECDSA",
-      hash: { name: "SHA-256" },
-    },
+    r1KeyParams,
     privateKey,
     messageBuffer
   );
@@ -309,17 +308,15 @@ async function signStringWithR1Key(privateKey: CryptoKey, messageBuffer: Uint8Ar
 }
 
 async function verifySignatureWithR1Key(
-  publicKey: CryptoKey,
   messageBuffer: Uint8Array<ArrayBufferLike>,
-  signatureArray: Uint8Array<ArrayBufferLike>) {
+  signatureArray: Uint8Array<ArrayBufferLike>[],
+  publicKeyBytes: Uint8Array<ArrayBufferLike>[]) {
 
+  const publicKey = await getCrpytoKeyFromBytes(publicKeyBytes)
   const verification = await crypto.subtle.verify(
-    {
-      name: "ECDSA",
-      hash: { name: "SHA-256" }
-    },
+    r1KeyParams,
     publicKey,
-    signatureArray,
+    concat(signatureArray),
     messageBuffer
   );
 
@@ -443,21 +440,25 @@ describe.only("Passkey validation", function () {
     const hashedData = await toHash(concat([toBuffer(ethersResponse.authenticatorData), await toHash(toBuffer(ethersResponse.clientData))]));
     const recordedSignature = toBuffer(ethersResponse.b64SignedChallenge);
     const [recordedR, recordedS] = unwrapEC2Signature(recordedSignature);
-    const [recordedX, recordedY] = await getPublicKey(ethersResponse.passkeyBytes);
+    const [recordedX, recordedY] = await getRawPublicKeyFromWebAuthN(ethersResponse.passkeyBytes);
 
     // try to compare the signature with the one generated by the browser
     const generatedR1Key = await generateES256R1Key();
     assert(generatedR1Key != null, "no key was generated");
-    const [generatedX, generatedY] = await getPublicKeyFromCrpyto(generatedR1Key);
+    const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
 
     const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, hashedData);
     assert(generatedSignature != null, "no signature was generated");
 
-    const offChainGeneratedVerified = await verifySignatureWithR1Key(generatedR1Key.publicKey, hashedData, generatedSignature.signature);
-    const offChainRecordedVerified = await verifySignatureWithR1Key(await getCrpytoKeyFromBytes(ethersResponse.passkeyBytes), hashedData, recordedSignature);
-
-    const onChainRecordedVerified = await passkeyValidator.rawVerify(hashedData, [recordedR, recordedS], [recordedX, recordedY]);
+    const offChainGeneratedVerified = await verifySignatureWithR1Key(hashedData, [generatedSignature.r, generatedSignature.s], [generatedX, generatedY]);
     const onChainGeneratedVerified = await passkeyValidator.rawVerify(hashedData, [generatedSignature.r, generatedSignature.s], [generatedX, generatedY]);
+    const offChainRecordedVerified = await verifySignatureWithR1Key(hashedData, [recordedR, recordedS], [recordedX, recordedY]);
+    const onChainRecordedVerified = await passkeyValidator.rawVerify(hashedData, [recordedR, recordedS], [recordedX, recordedY]);
+
+    console.log("offChainGeneratedVerified", [generatedSignature.r, generatedSignature.s], [generatedX, generatedY]);
+    console.log("offChainRecordedVerified ", [recordedR, recordedS], [recordedX, recordedY])
+    console.log("onChainRecordedVerified", [recordedR, recordedS], [recordedX, recordedY])
+    console.log("onChainGeneratedVerified", [generatedSignature.r, generatedSignature.s], [generatedX, generatedY]);
 
     console.log("recorded on-chain, verified on-chain", onChainRecordedVerified);
     console.log("recorded on-chain, verified off-chain", offChainRecordedVerified);
