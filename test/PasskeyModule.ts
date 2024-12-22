@@ -10,7 +10,7 @@ import { Wallet } from "zksync-ethers";
 
 import { WebAuthValidator, WebAuthValidator__factory } from "../typechain-types";
 import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
-import { AbiCoder, encodeBase64 } from "ethers";
+import { AbiCoder } from "ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 import { encodeAbiParameters, toHex } from "viem";
 
@@ -28,6 +28,13 @@ export function toBuffer(
 ): Uint8Array {
   const _buffer = toArrayBuffer(base64urlString, from === "base64url");
   return new Uint8Array(_buffer);
+}
+
+// Helper function to convert ArrayBuffer to hex string
+function arrayBufferToHex(buffer: ArrayBuffer) {
+  return Array.from(new Uint8Array(buffer))
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 async function deployValidator(
@@ -128,12 +135,37 @@ export function fromBuffer(
   return fromArrayBuffer(buffer, to === "base64url");
 }
 
+async function getCrpytoKeyFromBytes(publicPasskeyBytes: Uint8Array<ArrayBufferLike>): Promise<CryptoKey> {
+    const [recordedPubkeyXBytes, recordedPubkeyYBytes] = await getRawPublicKey(publicPasskeyBytes);
+    const rawRecordedKeyMaterial = new Uint8Array(65); // 1 byte for prefix, 32 bytes for x, 32 bytes for y
+    rawRecordedKeyMaterial[0] = 0x04; // Uncompressed format prefix
+    rawRecordedKeyMaterial.set(recordedPubkeyXBytes, 1);
+    rawRecordedKeyMaterial.set(recordedPubkeyYBytes, 33);
+    const importedKeyMaterial = await crypto.subtle.importKey("raw", rawRecordedKeyMaterial, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+    return importedKeyMaterial;
+}
+
+async function getRawPublicKey(publicPasskey: Uint8Array): Promise<[Uint8Array<ArrayBufferLike>, Uint8Array<ArrayBufferLike>]> {
+  const cosePublicKey = decodeFirst<Map<number, unknown>>(publicPasskey);
+  const x = cosePublicKey.get(COSEKEYS.x) as Uint8Array;
+  const y = cosePublicKey.get(COSEKEYS.y) as Uint8Array;
+
+  return [x, y];
+}
+
 async function getPublicKey(publicPasskey: Uint8Array): Promise<[string, string]> {
   const cosePublicKey = decodeFirst<Map<number, unknown>>(publicPasskey);
   const x = cosePublicKey.get(COSEKEYS.x) as Uint8Array;
   const y = cosePublicKey.get(COSEKEYS.y) as Uint8Array;
 
   return ["0x" + Buffer.from(x).toString("hex"), "0x" + Buffer.from(y).toString("hex")];
+}
+
+async function getPublicKeyFromCrpyto(cryptoKeyPair: CryptoKeyPair) {
+    const keyMaterial = await crypto.subtle.exportKey("raw", cryptoKeyPair.publicKey);
+    const xHex = "0x" + Buffer.from(keyMaterial.slice(1, 33)).toString("hex");
+    const yHex = "0x" + Buffer.from(keyMaterial.slice(33, 65)).toString("hex");
+    return [xHex, yHex];
 }
 
 /**
@@ -220,36 +252,78 @@ async function generateES256R1Key() {
       namedCurve: "P-256",
     },
     true,
-    ["sign"]
+    ["sign", "verify"]
   );
 
   return keyPair;
 }
 
-async function signStringWithR1Key(privateKey: CryptoKey, message: string) {
-  // Convert the message to an ArrayBuffer
-  const messageBuffer = new TextEncoder().encode(message);
-
-  // Sign the message
-  const signature = await crypto.subtle.sign(
+async function signStringWithR1Key(privateKey: CryptoKey, messageBuffer: Uint8Array<ArrayBufferLike>) {
+  const signatureBytes = await crypto.subtle.sign(
     {
       name: "ECDSA",
-      hash: { name: "SHA-256" }
+      hash: { name: "SHA-256" },
     },
     privateKey,
     messageBuffer
   );
 
-  // Extract r and s from the signature (assuming DER encoding)
-  const signatureArray = new Uint8Array(signature);
-  const rLength = signatureArray[3]; // Length of r
-  const r = signatureArray.slice(4, 4 + rLength);
-  const sLength = signatureArray[4 + rLength + 1]; // Length of s
-  const s = signatureArray.slice(5 + rLength, 5 + rLength + sLength);
+  // Check for SEQUENCE marker (0x30) for DER encoding
+  if (signatureBytes[0] !== 0x30) {
+    if (signatureBytes.byteLength != 64) {
+      console.log("no idea what format this is")
+      return null;
+    }
+    return {
+      r: new Uint8Array(signatureBytes.slice(0, 32)),
+      s: new Uint8Array(signatureBytes.slice(32)),
+      signature: new Uint8Array(signatureBytes),
+    };
+  }
 
-  // Convert r and s to hex strings (optional)
+  const totalLength = signatureBytes[1];
 
-  return { r, s, signature };
+  if (signatureBytes[2] !== 0x02) {
+    console.log("No r marker")
+    return null;
+  }
+
+  const rLength = signatureBytes[3];
+
+  if (signatureBytes[4 + rLength] !== 0x02) {
+    console.log("No s marker")
+    return null;
+  }
+
+  const sLength = signatureBytes[5 + rLength];
+
+  if (totalLength !== rLength + sLength + 4) {
+    console.log("unexpected data")
+    return null;
+  }
+
+  const r = new Uint8Array(signatureBytes.slice(4, 4 + rLength));
+  const s = new Uint8Array(signatureBytes.slice(4 + rLength + 1, 4 + rLength + 1 + sLength));
+
+  return { r, s, signature: new Uint8Array(signatureBytes) };
+}
+
+async function verifySignatureWithR1Key(
+  publicKey: CryptoKey,
+  messageBuffer: Uint8Array<ArrayBufferLike>,
+  signatureArray: Uint8Array<ArrayBufferLike>) {
+
+  const verification = await crypto.subtle.verify(
+    {
+      name: "ECDSA",
+      hash: { name: "SHA-256" }
+    },
+    publicKey,
+    signatureArray,
+    messageBuffer
+  );
+
+  return verification;
 }
 
 function encodeFatSignature(
@@ -278,7 +352,7 @@ function encodeFatSignature(
 }
 
 async function rawVerify(
-  passkeyValidator: PasskeyValidator,
+  passkeyValidator: WebAuthValidator,
   authenticatorData: string,
   clientData: string,
   b64SignedChallange: string,
@@ -363,23 +437,37 @@ describe.only("Passkey validation", function () {
     assert(verifyMessage == true, "valid sig");
   });
 
+  // fully expand the raw validation to compare step by step
   it("should sign with new data", async function () {
     const passkeyValidator = await deployValidator(wallet);
+    const hashedData = await toHash(concat([toBuffer(ethersResponse.authenticatorData), await toHash(toBuffer(ethersResponse.clientData))]));
+    const recordedSignature = toBuffer(ethersResponse.b64SignedChallenge);
+    const [recordedR, recordedS] = unwrapEC2Signature(recordedSignature);
+    const [recordedX, recordedY] = await getPublicKey(ethersResponse.passkeyBytes);
 
-    const testR1Key = await generateES256R1Key();
-    assert(testR1Key != null, "no key was generated");
-    const clientDataString = new TextDecoder().decode(ethersResponse.clientDataBuffer)
-    const signedClientData = await signStringWithR1Key(testR1Key.privateKey, clientDataString);
-    assert(signedClientData != null, "no signature was generated");
+    // try to compare the signature with the one generated by the browser
+    const generatedR1Key = await generateES256R1Key();
+    assert(generatedR1Key != null, "no key was generated");
+    const [generatedX, generatedY] = await getPublicKeyFromCrpyto(generatedR1Key);
 
-    const verifyMessage = await rawVerify(
-      passkeyValidator,
-      ethersResponse.authenticatorData,
-      ethersResponse.clientData,
-      encodeBase64(new Uint8Array(signedClientData.signature)),
-      concat([signedClientData.r, signedClientData.s]));
+    const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, hashedData);
+    assert(generatedSignature != null, "no signature was generated");
 
-    assert(verifyMessage == true, "test sig is valid");
+    const offChainGeneratedVerified = await verifySignatureWithR1Key(generatedR1Key.publicKey, hashedData, generatedSignature.signature);
+    const offChainRecordedVerified = await verifySignatureWithR1Key(await getCrpytoKeyFromBytes(ethersResponse.passkeyBytes), hashedData, recordedSignature);
+
+    const onChainRecordedVerified = await passkeyValidator.rawVerify(hashedData, [recordedR, recordedS], [recordedX, recordedY]);
+    const onChainGeneratedVerified = await passkeyValidator.rawVerify(hashedData, [generatedSignature.r, generatedSignature.s], [generatedX, generatedY]);
+
+    console.log("recorded on-chain, verified on-chain", onChainRecordedVerified);
+    console.log("recorded on-chain, verified off-chain", offChainRecordedVerified);
+    console.log("created off-chain, verified off-chain", offChainGeneratedVerified);
+    console.log("created off-chain, verified on-chain", onChainGeneratedVerified);
+
+    assert(onChainRecordedVerified, "on-chain recording self-check");
+    assert(offChainGeneratedVerified, "generated self-check");
+    assert(onChainGeneratedVerified, "verify generated sig on chain");
+    assert(offChainRecordedVerified, "verify recorded sig off chain");
   });
 
   it("should verify other test passkey data", async function () {
