@@ -13,6 +13,7 @@ import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
 import { AbiCoder } from "ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 import { encodeAbiParameters, toHex } from "viem";
+import { randomBytes } from "crypto";
 
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
@@ -28,13 +29,6 @@ export function toBuffer(
 ): Uint8Array {
   const _buffer = toArrayBuffer(base64urlString, from === "base64url");
   return new Uint8Array(_buffer);
-}
-
-// Helper function to convert ArrayBuffer to hex string
-function arrayBufferToHex(buffer: ArrayBuffer) {
-  return Array.from(new Uint8Array(buffer))
-    .map(byte => byte.toString(16).padStart(2, '0'))
-    .join('');
 }
 
 async function deployValidator(
@@ -145,7 +139,7 @@ export function fromBuffer(
   return fromArrayBuffer(buffer, to === "base64url");
 }
 
-async function getCrpytoKeyFromBytes(publicPasskeyXyBytes: Uint8Array<ArrayBufferLike>[]): Promise<CryptoKey> {
+async function getCrpytoKeyFromPublicBytes(publicPasskeyXyBytes: Uint8Array<ArrayBufferLike>[]): Promise<CryptoKey> {
   const recordedPubkeyXBytes = publicPasskeyXyBytes[0];
   const recordedPubkeyYBytes = publicPasskeyXyBytes[1];
   const rawRecordedKeyMaterial = new Uint8Array(65); // 1 byte for prefix, 32 bytes for x, 32 bytes for y
@@ -270,7 +264,7 @@ async function signStringWithR1Key(privateKey: CryptoKey, messageBuffer: Uint8Ar
   // Check for SEQUENCE marker (0x30) for DER encoding
   if (signatureBytes[0] !== 0x30) {
     if (signatureBytes.byteLength != 64) {
-      console.log("no idea what format this is")
+      console.error("no idea what format this is")
       return null;
     }
     return {
@@ -283,21 +277,21 @@ async function signStringWithR1Key(privateKey: CryptoKey, messageBuffer: Uint8Ar
   const totalLength = signatureBytes[1];
 
   if (signatureBytes[2] !== 0x02) {
-    console.log("No r marker")
+    console.error("No r marker")
     return null;
   }
 
   const rLength = signatureBytes[3];
 
   if (signatureBytes[4 + rLength] !== 0x02) {
-    console.log("No s marker")
+    console.error("No s marker")
     return null;
   }
 
   const sLength = signatureBytes[5 + rLength];
 
   if (totalLength !== rLength + sLength + 4) {
-    console.log("unexpected data")
+    console.error("unexpected data")
     return null;
   }
 
@@ -312,7 +306,7 @@ async function verifySignatureWithR1Key(
   signatureArray: Uint8Array<ArrayBufferLike>[],
   publicKeyBytes: Uint8Array<ArrayBufferLike>[]) {
 
-  const publicKey = await getCrpytoKeyFromBytes(publicKeyBytes)
+  const publicKey = await getCrpytoKeyFromPublicBytes(publicKeyBytes)
   const verification = await crypto.subtle.verify(
     r1KeyParams,
     publicKey,
@@ -437,7 +431,10 @@ describe.only("Passkey validation", function () {
   // fully expand the raw validation to compare step by step
   it("should sign with new data", async function () {
     const passkeyValidator = await deployValidator(wallet);
-    const hashedData = await toHash(concat([toBuffer(ethersResponse.authenticatorData), await toHash(toBuffer(ethersResponse.clientData))]));
+    // The precompile expects the fully hashed data
+    const preHashedData = await toHash(concat([toBuffer(ethersResponse.authenticatorData), await toHash(toBuffer(ethersResponse.clientData))]));
+    // the web crpyto library automatically performs the final hash on the data, so we need to do that here
+    const partiallyHashedData = concat([toBuffer(ethersResponse.authenticatorData), await toHash(toBuffer(ethersResponse.clientData))]);
     const recordedSignature = toBuffer(ethersResponse.b64SignedChallenge);
     const [recordedR, recordedS] = unwrapEC2Signature(recordedSignature);
     const [recordedX, recordedY] = await getRawPublicKeyFromWebAuthN(ethersResponse.passkeyBytes);
@@ -447,23 +444,13 @@ describe.only("Passkey validation", function () {
     assert(generatedR1Key != null, "no key was generated");
     const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
 
-    const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, hashedData);
+    const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
     assert(generatedSignature != null, "no signature was generated");
 
-    const offChainGeneratedVerified = await verifySignatureWithR1Key(hashedData, [generatedSignature.r, generatedSignature.s], [generatedX, generatedY]);
-    const onChainGeneratedVerified = await passkeyValidator.rawVerify(hashedData, [generatedSignature.r, generatedSignature.s], [generatedX, generatedY]);
-    const offChainRecordedVerified = await verifySignatureWithR1Key(hashedData, [recordedR, recordedS], [recordedX, recordedY]);
-    const onChainRecordedVerified = await passkeyValidator.rawVerify(hashedData, [recordedR, recordedS], [recordedX, recordedY]);
-
-    console.log("offChainGeneratedVerified", [generatedSignature.r, generatedSignature.s], [generatedX, generatedY]);
-    console.log("offChainRecordedVerified ", [recordedR, recordedS], [recordedX, recordedY])
-    console.log("onChainRecordedVerified", [recordedR, recordedS], [recordedX, recordedY])
-    console.log("onChainGeneratedVerified", [generatedSignature.r, generatedSignature.s], [generatedX, generatedY]);
-
-    console.log("recorded on-chain, verified on-chain", onChainRecordedVerified);
-    console.log("recorded on-chain, verified off-chain", offChainRecordedVerified);
-    console.log("created off-chain, verified off-chain", offChainGeneratedVerified);
-    console.log("created off-chain, verified on-chain", onChainGeneratedVerified);
+    const offChainGeneratedVerified = await verifySignatureWithR1Key(partiallyHashedData, [generatedSignature.r, generatedSignature.s], [generatedX, generatedY]);
+    const onChainGeneratedVerified = await passkeyValidator.rawVerify(preHashedData, [generatedSignature.r, generatedSignature.s], [generatedX, generatedY]);
+    const offChainRecordedVerified = await verifySignatureWithR1Key(partiallyHashedData, [recordedR, recordedS], [recordedX, recordedY]);
+    const onChainRecordedVerified = await passkeyValidator.rawVerify(preHashedData, [recordedR, recordedS], [recordedX, recordedY]);
 
     assert(onChainRecordedVerified, "on-chain recording self-check");
     assert(offChainGeneratedVerified, "generated self-check");
@@ -496,5 +483,224 @@ describe.only("Passkey validation", function () {
       ethersResponse.passkeyBytes);
 
     assert(verifyMessage == false, "bad sig should be false");
+  });
+
+  describe("webAuthVerify", () => {
+
+    it("should add a key", async () => {
+      const passkeyValidator = await deployValidator(wallet);
+      const generatedR1Key = await generateES256R1Key();
+      assert(generatedR1Key != null, "no key was generated");
+      const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
+      const randomDomain = randomBytes(32).toString("hex");
+      const generatedKey = new AbiCoder().encode(["bytes32[2]", "string"], [[generatedX, generatedY], randomDomain]);
+      const generatedKeyAdded = await passkeyValidator.addValidationKey(generatedKey);
+      const recipt = await generatedKeyAdded.wait();
+      assert(recipt?.status == 1, "generated key added");
+    });
+
+    it("should verify a signature", async () => {
+      const passkeyValidator = await deployValidator(wallet);
+      const generatedR1Key = await generateES256R1Key();
+      assert(generatedR1Key != null, "no key was generated");
+      const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
+      const randomDomain = randomBytes(32).toString("hex");
+      const generatedKey = new AbiCoder().encode(["bytes32[2]", "string"], [[generatedX, generatedY], randomDomain]);
+      const addingKey = await passkeyValidator.addValidationKey(generatedKey);
+      await addingKey.wait();
+
+      const sampleClientObject = {
+        type:"webauthn.get",
+        challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
+        origin: randomDomain,
+        crossOrigin:false
+      }
+      const sampleClientString = JSON.stringify(sampleClientObject);
+      const sampleClientBuffer = Buffer.from(sampleClientString)
+      const authData = toBuffer(ethersResponse.authenticatorData)
+      const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
+      const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
+      assert(generatedSignature, "valid generated signature");
+      const transactionHash = Buffer.from(sampleClientObject.challenge, 'base64url')
+      const fatSignature = new AbiCoder().encode(["bytes", "string", "bytes32[2]"], [authData, sampleClientString, [generatedSignature.r, normalizeS(generatedSignature.s)]]);
+      const isValidSignature = await passkeyValidator.validateSignature(transactionHash, fatSignature);
+      assert(isValidSignature, "valid signature");
+    });
+
+    it("should fail to verify a signature with low-s", async () => {
+      const passkeyValidator = await deployValidator(wallet);
+      const generatedR1Key = await generateES256R1Key();
+      assert(generatedR1Key != null, "no key was generated");
+      const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
+      const randomDomain = randomBytes(32).toString("hex");
+      const generatedKey = new AbiCoder().encode(["bytes32[2]", "string"], [[generatedX, generatedY], randomDomain]);
+      const addingKey = await passkeyValidator.addValidationKey(generatedKey);
+      await addingKey.wait();
+
+      const sampleClientObject = {
+        type:"webauthn.get",
+        challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
+        origin: randomDomain,
+        crossOrigin:false
+      }
+      const sampleClientString = JSON.stringify(sampleClientObject);
+      const sampleClientBuffer = Buffer.from(sampleClientString)
+      const authData = toBuffer(ethersResponse.authenticatorData)
+      const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
+      const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
+      assert(generatedSignature, "valid generated signature");
+      const transactionHash = Buffer.from(sampleClientObject.challenge, 'base64url')
+      // not normalizing the s value so it fails, but it's really only a chance that's necessary it's forceablely de-normalized
+      const fatSignature = new AbiCoder().encode(["bytes", "string", "bytes32[2]"], [authData, sampleClientString, [generatedSignature.r, generatedSignature.s]]);
+      const isValidSignature = await passkeyValidator.validateSignature(transactionHash, fatSignature);
+      assert(!isValidSignature, "invalid signature for s");
+    });
+
+    it("should fail to verify a signature with bad auth data", async () => {
+      const passkeyValidator = await deployValidator(wallet);
+      const generatedR1Key = await generateES256R1Key();
+      assert(generatedR1Key != null, "no key was generated");
+      const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
+      const randomDomain = randomBytes(32).toString("hex");
+      const generatedKey = new AbiCoder().encode(["bytes32[2]", "string"], [[generatedX, generatedY], randomDomain]);
+      const addingKey = await passkeyValidator.addValidationKey(generatedKey);
+      await addingKey.wait();
+
+      const sampleClientObject = {
+        type:"webauthn.get",
+        challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
+        origin: randomDomain,
+        crossOrigin:false
+      }
+      const sampleClientString = JSON.stringify(sampleClientObject);
+      const sampleClientBuffer = Buffer.from(sampleClientString)
+      const authData = toBuffer(ethersResponse.authenticatorData);
+      authData[32] = 0x00;
+      const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
+      const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
+      assert(generatedSignature, "valid generated signature");
+      const transactionHash = Buffer.from(sampleClientObject.challenge, 'base64url')
+      const fatSignature = new AbiCoder().encode(["bytes", "string", "bytes32[2]"], [authData, sampleClientString, [generatedSignature.r, normalizeS(generatedSignature.s)]]);
+      const isValidSignature = await passkeyValidator.validateSignature(transactionHash, fatSignature);
+      assert(!isValidSignature, "invalid signature for auth data");
+    });
+
+    it("should fail to verify a signature with long json", async () => {
+      const passkeyValidator = await deployValidator(wallet);
+      const generatedR1Key = await generateES256R1Key();
+      assert(generatedR1Key != null, "no key was generated");
+      const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
+      const randomDomain = randomBytes(32).toString("hex");
+      const generatedKey = new AbiCoder().encode(["bytes32[2]", "string"], [[generatedX, generatedY], randomDomain]);
+      const addingKey = await passkeyValidator.addValidationKey(generatedKey);
+      await addingKey.wait();
+
+      const sampleClientObject = {
+        type:"webauthn.get",
+        challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
+        origin: randomDomain,
+        crossOrigin:false,
+      }
+      const sampleClientString = (JSON.stringify(sampleClientObject).slice(0, -1) + ","
+        + JSON.stringify(sampleClientObject).slice(1, -1) + ","
+        + JSON.stringify(sampleClientObject).slice(1));
+      const sampleClientBuffer = Buffer.from(sampleClientString)
+      const authData = toBuffer(ethersResponse.authenticatorData);
+      const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
+      const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
+      assert(generatedSignature, "valid generated signature");
+      const transactionHash = Buffer.from(sampleClientObject.challenge, 'base64url')
+      // not normalizing the s value so it fails, but it's really only a chance that's necessary it's forceablely de-normalized
+      const fatSignature = new AbiCoder().encode(["bytes", "string", "bytes32[2]"], [authData, sampleClientString, [generatedSignature.r, normalizeS(generatedSignature.s)]]);
+      const isValidSignature = await passkeyValidator.validateSignature(transactionHash, fatSignature);
+      assert(!isValidSignature, "invalid signature for auth data");
+    });
+
+    it("should fail to verify a signature a mismached signature", async () => {
+      const passkeyValidator = await deployValidator(wallet);
+      const generatedR1Key = await generateES256R1Key();
+      assert(generatedR1Key != null, "no key was generated");
+      const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
+      const randomDomain = randomBytes(32).toString("hex");
+      const generatedKey = new AbiCoder().encode(["bytes32[2]", "string"], [[generatedX, generatedY], randomDomain]);
+      const addingKey = await passkeyValidator.addValidationKey(generatedKey);
+      await addingKey.wait();
+
+      const sampleClientObject = {
+        type:"webauthn.get",
+        challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
+        origin: randomDomain,
+        crossOrigin:false,
+      }
+      const sampleClientString = JSON.stringify(sampleClientObject);
+      const sampleClientBuffer = Buffer.from(sampleClientString)
+      const authData = toBuffer(ethersResponse.authenticatorData);
+      const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
+      const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
+      assert(generatedSignature, "valid generated signature");
+      const transactionHash = randomBytes(32);
+      // not normalizing the s value so it fails, but it's really only a chance that's necessary it's forceablely de-normalized
+      const fatSignature = new AbiCoder().encode(["bytes", "string", "bytes32[2]"], [authData, sampleClientString, [generatedSignature.r, normalizeS(generatedSignature.s)]]);
+      const isValidSignature = await passkeyValidator.validateSignature(transactionHash, fatSignature);
+      assert(!isValidSignature, "invalid signature for mismatched signature");
+    });
+
+    it("should fail to verify a signature a bad json type", async () => {
+      const passkeyValidator = await deployValidator(wallet);
+      const generatedR1Key = await generateES256R1Key();
+      assert(generatedR1Key != null, "no key was generated");
+      const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
+      const randomDomain = randomBytes(32).toString("hex");
+      const generatedKey = new AbiCoder().encode(["bytes32[2]", "string"], [[generatedX, generatedY], randomDomain]);
+      const addingKey = await passkeyValidator.addValidationKey(generatedKey);
+      await addingKey.wait();
+
+      const sampleClientObject = {
+        type:"webauthn.create",
+        challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
+        origin: randomDomain,
+        crossOrigin:false,
+      }
+      const sampleClientString = JSON.stringify(sampleClientObject);
+      const sampleClientBuffer = Buffer.from(sampleClientString)
+      const authData = toBuffer(ethersResponse.authenticatorData);
+      const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
+      const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
+      assert(generatedSignature, "valid generated signature");
+      const transactionHash = Buffer.from(sampleClientObject.challenge, 'base64url')
+      // not normalizing the s value so it fails, but it's really only a chance that's necessary it's forceablely de-normalized
+      const fatSignature = new AbiCoder().encode(["bytes", "string", "bytes32[2]"], [authData, sampleClientString, [generatedSignature.r, normalizeS(generatedSignature.s)]]);
+      const isValidSignature = await passkeyValidator.validateSignature(transactionHash, fatSignature);
+      assert(!isValidSignature, "invalid signature for bad type");
+    });
+
+    it("should fail to verify a signature a bad origin", async () => {
+      const passkeyValidator = await deployValidator(wallet);
+      const generatedR1Key = await generateES256R1Key();
+      assert(generatedR1Key != null, "no key was generated");
+      const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
+      const randomDomain = randomBytes(32).toString("hex");
+      const generatedKey = new AbiCoder().encode(["bytes32[2]", "string"], [[generatedX, generatedY], randomDomain]);
+      const addingKey = await passkeyValidator.addValidationKey(generatedKey);
+      await addingKey.wait();
+
+      const sampleClientObject = {
+        type:"webauthn.create",
+        challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
+        origin: "http://localhost:5173",
+        crossOrigin:false,
+      }
+      const sampleClientString = JSON.stringify(sampleClientObject);
+      const sampleClientBuffer = Buffer.from(sampleClientString)
+      const authData = toBuffer(ethersResponse.authenticatorData);
+      const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
+      const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
+      assert(generatedSignature, "valid generated signature");
+      const transactionHash = Buffer.from(sampleClientObject.challenge, 'base64url')
+      // not normalizing the s value so it fails, but it's really only a chance that's necessary it's forceablely de-normalized
+      const fatSignature = new AbiCoder().encode(["bytes", "string", "bytes32[2]"], [authData, sampleClientString, [generatedSignature.r, normalizeS(generatedSignature.s)]]);
+      const isValidSignature = await passkeyValidator.validateSignature(transactionHash, fatSignature);
+      assert(!isValidSignature, "invalid signature for bad origin");
+    });
   });
 });
