@@ -23,8 +23,10 @@ deployments-zk
 # Disable prettier for files if VSCode settings are ignored
 **/*.vue
 **/*.js
-**/*.ts
 **/*.jsx
 **/*.tsx
 **/*.mjs
 **/*.cjs
+
+# These are explicitly poorly formatted files to test json parsing
+test/json-files/*.json

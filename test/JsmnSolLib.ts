@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { readFileSync, readdirSync } from "fs";
+import { join } from "path";
 import * as hre from "hardhat";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
 import { Wallet } from "zksync-ethers";
@@ -19,7 +21,6 @@ import { JsmnSolLibTest, JsmnSolLibTest__factory } from "../typechain-types";
 import { getWallet, LOCAL_RICH_WALLETS } from "./utils";
 import { expect } from "chai";
 import { describe } from "mocha";
-import exp from "constants";
 
 describe.only("JsmnSolLib", function () {
   const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
@@ -329,6 +330,44 @@ describe.only("JsmnSolLib", function () {
         const t = tokens[6];
         expect(await jsmnSolLib.getBytes(json, t.start, t.end)).to.eq("Fußball", "Problems with svensk 2");
       }
+    });
+  });
+
+  describe("file parsing", () => {
+    const jsonDir = join("test", "json-files");
+
+    function generateTestCase(filename: string) {
+      return async () => {
+        const jsmnSolLib = await deployParser(wallet);
+        const testFile = readFileSync(join(jsonDir, filename), "utf-8");
+
+        const tryParse = async () => {
+          try {
+            const [returnValue, _tokens, _actualNum] = await jsmnSolLib.parse(testFile, 1000);
+            return returnValue;
+          } catch (e) {
+            console.log("e", e);
+            return RETURN_ERROR_INVALID_JSON;
+          }
+        };
+
+        const returnValue = await tryParse();
+
+        if (filename.startsWith("y_")) {
+          expect(returnValue).to.eq(RETURN_SUCCESS, `File ${filename} should have succeeded`);
+        } else if (filename.startsWith("n_")) {
+          expect(returnValue).to.not.eq(RETURN_SUCCESS, `File ${filename} should have failed`);
+        } else {
+          expect(false, `File ${filename} should start with 'y_' or 'n_'`);
+        }
+      };
+    }
+
+    // there are lots of files to run so want to include them individually to avoid timeout issues
+    // Generate test cases dynamically
+    const jsonFiles = readdirSync(jsonDir);
+    jsonFiles.forEach((filename) => {
+      it(filename, generateTestCase(filename));
     });
   });
 });
