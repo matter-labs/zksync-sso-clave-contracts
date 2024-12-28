@@ -9,7 +9,7 @@ import { HardhatUserConfig } from "hardhat/config";
 const config: HardhatUserConfig = {
   paths: {
     sources: "src",
-    deployPaths: "scripts",
+    deploy: "scripts",
   },
   defaultNetwork: "inMemoryNode",
   networks: {
@@ -56,7 +56,7 @@ const config: HardhatUserConfig = {
     version: "0.8.28",
     settings: {
       evmVersion: "cancun",
-    }
+    },
   },
 };
 
