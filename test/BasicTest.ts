@@ -37,24 +37,30 @@ describe("Basic tests", function () {
     assert(aaFactoryContract != null, "No AA Factory deployed");
 
     const factoryAddress = await aaFactoryContract.getAddress();
-    expect(factoryAddress, "the factory address").to.equal(await fixtures.getAaFactoryAddress(), "factory address match");
+    expect(factoryAddress, "the factory address").to.equal(
+      await fixtures.getAaFactoryAddress(),
+      "factory address match",
+    );
 
     const bytecodeHash = await aaFactoryContract.beaconProxyBytecodeHash();
     const deployedAccountContract = await fixtures.getAccountProxyContract();
     const deployedAccountContractCode = await deployedAccountContract.getDeployedCode();
     assert(deployedAccountContractCode != null, "No account code deployed");
     const ssoBeaconBytecodeHash = ethers.hexlify(utils.hashBytecode(deployedAccountContractCode));
-    expect(bytecodeHash, "deployed account bytecode hash").to.equal(ssoBeaconBytecodeHash, "deployed account code doesn't match");
+    expect(bytecodeHash, "deployed account bytecode hash").to.equal(
+      ssoBeaconBytecodeHash,
+      "deployed account code doesn't match",
+    );
 
     const args = await aaFactoryContract.getEncodedBeacon();
     const deployedBeaconAddress = new ethers.AbiCoder().encode(["address"], [await fixtures.getBeaconAddress()]);
     expect(args, "the beacon address").to.equal(deployedBeaconAddress, "the deployment beacon");
-    
+
     const randomSalt = randomBytes(32);
-    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args) ;
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args);
 
     const preDeployAccountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
-    expect(preDeployAccountCode , "expected deploy location").to.equal("0x", "nothing deployed here (yet)");
+    expect(preDeployAccountCode, "expected deploy location").to.equal("0x", "nothing deployed here (yet)");
 
     const deployTx = await aaFactoryContract.deployProxySsoAccount(
       randomSalt,
@@ -69,7 +75,10 @@ describe("Basic tests", function () {
     expect(postDeployAccountCode, "expected deploy location").to.not.equal("0x", "deployment didn't match create2!");
 
     expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
-    expect(proxyAccountAddress, "the proxy account location").to.equal(standardCreate2Address, "be what create2 returns");
+    expect(proxyAccountAddress, "the proxy account location").to.equal(
+      standardCreate2Address,
+      "be what create2 returns",
+    );
 
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
     assert(await account.k1IsOwner(fixtures.wallet.address));
@@ -81,16 +90,19 @@ describe("Basic tests", function () {
 
     const balanceBefore = await provider.getBalance(proxyAccountAddress);
 
-    const smartAccount = new SmartAccount({
-      address: proxyAccountAddress,
-      secret: fixtures.wallet.privateKey,
-    }, provider);
+    const smartAccount = new SmartAccount(
+      {
+        address: proxyAccountAddress,
+        secret: fixtures.wallet.privateKey,
+      },
+      provider,
+    );
 
     const value = parseEther("0.01");
     const target = Wallet.createRandom().address;
 
     const aaTx = {
-      ...await aaTxTemplate(),
+      ...(await aaTxTemplate()),
       to: target,
       value,
       gasLimit: 300_000n,
@@ -103,15 +115,21 @@ describe("Basic tests", function () {
     const tx = await provider.broadcastTransaction(signedTransaction);
     const receipt = await tx.wait();
     const fee = receipt.gasUsed * aaTx.gasPrice;
-    expect(await provider.getBalance(proxyAccountAddress)).to.equal(balanceBefore - value - fee, "invalid final balance");
+    expect(await provider.getBalance(proxyAccountAddress)).to.equal(
+      balanceBefore - value - fee,
+      "invalid final balance",
+    );
     expect(await provider.getBalance(target)).to.equal(value, "invalid final balance");
   });
 
   it("should execute a multicall", async () => {
-    const smartAccount = new SmartAccount({
-      address: proxyAccountAddress,
-      secret: fixtures.wallet.privateKey,
-    }, provider);
+    const smartAccount = new SmartAccount(
+      {
+        address: proxyAccountAddress,
+        secret: fixtures.wallet.privateKey,
+      },
+      provider,
+    );
 
     const balanceBefore = await provider.getBalance(proxyAccountAddress);
     const value = parseEther("0.01");
@@ -136,7 +154,7 @@ describe("Basic tests", function () {
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
 
     const aaTx = {
-      ...await aaTxTemplate(),
+      ...(await aaTxTemplate()),
       to: proxyAccountAddress,
       data: account.interface.encodeFunctionData("batchCall", [calls]),
       value: value * 2n,
@@ -152,7 +170,10 @@ describe("Basic tests", function () {
     const receipt = await tx.wait();
     const fee = receipt.gasUsed * aaTx.gasPrice;
 
-    expect(await provider.getBalance(proxyAccountAddress)).to.equal(balanceBefore - value * 2n - fee, "invalid final own balance");
+    expect(await provider.getBalance(proxyAccountAddress)).to.equal(
+      balanceBefore - value * 2n - fee,
+      "invalid final own balance",
+    );
     expect(await provider.getBalance(target1)).to.equal(value, "invalid final target-1 balance");
     expect(await provider.getBalance(target2)).to.equal(value, "invalid final target-2 balance");
   });

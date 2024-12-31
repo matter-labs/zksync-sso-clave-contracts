@@ -32,7 +32,6 @@ async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any
   return proxyAddress;
 }
 
-
 task("deploy", "Deploys ZKsync SSO contracts")
   .addOptionalParam("only", "name of a specific contract to deploy")
   .addFlag("noProxy", "do not deploy transparent proxies for factory and modules")

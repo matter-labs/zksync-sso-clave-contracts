@@ -9,15 +9,30 @@ import * as hre from "hardhat";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
 
-import { AAFactory, ERC20, ExampleAuthServerPaymaster, SessionKeyValidator, SsoAccount, WebAuthValidator, SsoBeacon, AccountProxy__factory, AccountProxy } from "../typechain-types";
-import { AAFactory__factory, ERC20__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, SsoAccount__factory, WebAuthValidator__factory, SsoBeacon__factory } from "../typechain-types";
+import {
+  AAFactory,
+  ERC20,
+  ExampleAuthServerPaymaster,
+  SessionKeyValidator,
+  SsoAccount,
+  WebAuthValidator,
+  SsoBeacon,
+  AccountProxy__factory,
+  AccountProxy,
+} from "../typechain-types";
+import {
+  AAFactory__factory,
+  ERC20__factory,
+  ExampleAuthServerPaymaster__factory,
+  SessionKeyValidator__factory,
+  SsoAccount__factory,
+  WebAuthValidator__factory,
+  SsoBeacon__factory,
+} from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
-  205, 241, 161, 186, 101, 105, 79,
-  248, 98, 64, 50, 124, 168, 204,
-  200, 71, 214, 169, 195, 118, 199,
-  62, 140, 111, 128, 47, 32, 21,
-  177, 177, 174, 166,
+  205, 241, 161, 186, 101, 105, 79, 248, 98, 64, 50, 124, 168, 204, 200, 71, 214, 169, 195, 118, 199, 62, 140, 111, 128,
+  47, 32, 21, 177, 177, 174, 166,
 ]);
 
 export class ContractFixtures {
@@ -108,15 +123,10 @@ export class ContractFixtures {
     aaFactoryAddress: string,
     sessionKeyValidatorAddress: string,
   ): Promise<ExampleAuthServerPaymaster> {
-    const contract = await create2(
-      "ExampleAuthServerPaymaster",
-      this.wallet,
-      ethersStaticSalt,
-      [
-        aaFactoryAddress,
-        sessionKeyValidatorAddress,
-      ],
-    );
+    const contract = await create2("ExampleAuthServerPaymaster", this.wallet, ethersStaticSalt, [
+      aaFactoryAddress,
+      sessionKeyValidatorAddress,
+    ]);
     const paymasterAddress = ExampleAuthServerPaymaster__factory.connect(await contract.getAddress(), this.wallet);
 
     // Fund the paymaster with 1 ETH
@@ -136,7 +146,8 @@ dotenv.config();
 
 export const getProvider = () => {
   const rpcUrl = hre.network.config["url"];
-  if (!rpcUrl) throw `⛔️ RPC URL wasn't found in "${hre.network.name}"! Please add a "url" field to the network config in hardhat.config.ts`;
+  if (!rpcUrl)
+    throw `⛔️ RPC URL wasn't found in "${hre.network.name}"! Please add a "url" field to the network config in hardhat.config.ts`;
 
   // Initialize ZKsync Provider
   const provider = new Provider(rpcUrl);
@@ -154,27 +165,36 @@ export const getProviderL1 = () => {
   return provider;
 };
 
-export async function deployFactory(wallet: Wallet, beaconAddress: string, salt?: ethers.BytesLike): Promise<AAFactory> {
+export async function deployFactory(
+  wallet: Wallet,
+  beaconAddress: string,
+  salt?: ethers.BytesLike,
+): Promise<AAFactory> {
   const factoryArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AAFactory.sol/AAFactory.json", "utf8"));
-  const proxyAaArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"));
+  const proxyAaArtifact = JSON.parse(
+    await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"),
+  );
 
   const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet, "create2");
   const bytecodeHash = utils.hashBytecode(proxyAaArtifact.bytecode);
   const factoryBytecodeHash = utils.hashBytecode(factoryArtifact.bytecode);
   const factorySalt = ethers.hexlify(salt ?? randomBytes(32));
   const constructorArgs = deployer.interface.encodeDeploy([bytecodeHash, beaconAddress]);
-  const standardCreate2Address = utils.create2Address(wallet.address, factoryBytecodeHash, factorySalt, constructorArgs);
+  const standardCreate2Address = utils.create2Address(
+    wallet.address,
+    factoryBytecodeHash,
+    factorySalt,
+    constructorArgs,
+  );
   const accountCode = await wallet.provider.getCode(standardCreate2Address);
   if (accountCode != "0x") {
     logInfo(`Factory already exists!`);
     return AAFactory__factory.connect(standardCreate2Address, wallet);
   }
   logInfo(`Factory doesn't exist at ${standardCreate2Address}!`);
-  const factory = await deployer.deploy(
-    bytecodeHash,
-    beaconAddress,
-    { customData: { salt: factorySalt, factoryDeps: [proxyAaArtifact.bytecode] } },
-  );
+  const factory = await deployer.deploy(bytecodeHash, beaconAddress, {
+    customData: { salt: factorySalt, factoryDeps: [proxyAaArtifact.bytecode] },
+  });
   const factoryAddress = await factory.getAddress();
 
   if (hre.network.config.verifyURL) {
@@ -209,7 +229,8 @@ export const getWallet = (privateKey?: string) => {
 export const verifyEnoughBalance = async (wallet: Wallet, amount: bigint) => {
   // Check if the wallet has enough balance
   const balance = await wallet.getBalance();
-  if (balance < amount) throw `Wallet balance is too low! Required ${ethers.formatEther(amount)} ETH, but current ${wallet.address} balance is ${ethers.formatEther(balance)} ETH`;
+  if (balance < amount)
+    throw `Wallet balance is too low! Required ${ethers.formatEther(amount)} ETH, but current ${wallet.address} balance is ${ethers.formatEther(balance)} ETH`;
 };
 
 /**
@@ -228,20 +249,32 @@ export const verifyContract = async (data: {
   return verificationRequestId;
 };
 
-export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args?: ReadonlyArray<string>) => {
+export const create2 = async (
+  contractName: string,
+  wallet: Wallet,
+  salt: ethers.BytesLike,
+  args?: ReadonlyArray<string>,
+) => {
   salt = ethers.hexlify(salt);
   const contractArtifact = await hre.artifacts.readArtifact(contractName);
   const deployer = new ContractFactory(contractArtifact.abi, contractArtifact.bytecode, wallet, "create2");
   const bytecodeHash = utils.hashBytecode(contractArtifact.bytecode);
   const constructorArgs = deployer.interface.encodeDeploy(args);
-  const standardCreate2Address = utils.create2Address(wallet.address, bytecodeHash, salt, args ? constructorArgs : "0x");
+  const standardCreate2Address = utils.create2Address(
+    wallet.address,
+    bytecodeHash,
+    salt,
+    args ? constructorArgs : "0x",
+  );
   const accountCode = await wallet.provider.getCode(standardCreate2Address);
   if (accountCode != "0x") {
     logInfo(`Contract ${contractName} already exists!`);
     return new ethers.Contract(standardCreate2Address, contractArtifact.abi, wallet);
   }
 
-  const deployingContract = await (args ? deployer.deploy(...args, { customData: { salt } }) : deployer.deploy({ customData: { salt } }));
+  const deployingContract = await (args
+    ? deployer.deploy(...args, { customData: { salt } })
+    : deployer.deploy({ customData: { salt } }));
   const deployedContract = await deployingContract.waitForDeployment();
   const deployedContractAddress = await deployedContract.getAddress();
   logInfo(`"${contractName}" was successfully deployed to ${deployedContractAddress}`);
@@ -274,7 +307,9 @@ export function logWarning(message: string) {
   console.log("\x1b[33m%s\x1b[0m", message);
 }
 
-const masterWallet = ethers.Wallet.fromPhrase("stuff slice staff easily soup parent arm payment cotton trade scatter struggle");
+const masterWallet = ethers.Wallet.fromPhrase(
+  "stuff slice staff easily soup parent arm payment cotton trade scatter struggle",
+);
 
 /**
  * Rich wallets can be used for testing purposes.
@@ -283,13 +318,13 @@ const masterWallet = ethers.Wallet.fromPhrase("stuff slice staff easily soup par
 export const LOCAL_RICH_WALLETS = [
   hre.network.name == "dockerizedNode"
     ? {
-      address: masterWallet.address,
-      privateKey: masterWallet.privateKey,
-    }
+        address: masterWallet.address,
+        privateKey: masterWallet.privateKey,
+      }
     : {
-      address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-      privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-    },
+        address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+      },
   {
     address: "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049",
     privateKey: "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110",
@@ -332,9 +367,7 @@ export const LOCAL_RICH_WALLETS = [
   },
 ];
 
-const convertObjArrayToUint8Array = (objArray: {
-  [key: string]: number;
-}): Uint8Array => {
+const convertObjArrayToUint8Array = (objArray: { [key: string]: number }): Uint8Array => {
   const objEntries = Object.entries(objArray);
   return objEntries.reduce((existingArray, nextKv) => {
     const index = parseInt(nextKv[0]);
@@ -364,9 +397,15 @@ export class RecordedResponse {
     return getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
   }
 
-  get authDataBuffer() { return base64UrlToUint8Array(this.authenticatorData); }
-  get clientDataBuffer() { return base64UrlToUint8Array(this.clientData); }
-  get rs() { return unwrapEC2Signature(base64UrlToUint8Array(this.b64SignedChallenge)); }
+  get authDataBuffer() {
+    return base64UrlToUint8Array(this.authenticatorData);
+  }
+  get clientDataBuffer() {
+    return base64UrlToUint8Array(this.clientData);
+  }
+  get rs() {
+    return unwrapEC2Signature(base64UrlToUint8Array(this.b64SignedChallenge));
+  }
 
   // this is the encoded data explaining what authenticator was used (fido, web, etc)
   readonly authenticatorData: string;
