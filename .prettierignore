@@ -28,3 +28,6 @@ deployments-zk
 **/*.tsx
 **/*.mjs
 **/*.cjs
+
+# These are explicitly poorly formatted files to test json parsing
+test/json-files/*.json
