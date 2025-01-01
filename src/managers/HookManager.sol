@@ -10,7 +10,6 @@ import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { IExecutionHook, IValidationHook } from "../interfaces/IHook.sol";
-import { IInitable } from "../interfaces/IInitable.sol";
 import { IHookManager } from "../interfaces/IHookManager.sol";
 
 /**
@@ -178,11 +177,11 @@ abstract contract HookManager is IHookManager, Auth {
 
     if (isValidation) {
       _validationHooksLinkedList().add(hookAddress);
+      IValidationHook(hookAddress).addHook(initData);
     } else {
       _executionHooksLinkedList().add(hookAddress);
+      IExecutionHook(hookAddress).addHook(initData);
     }
-
-    IInitable(hookAddress).init(initData);
 
     emit AddHook(hookAddress);
   }
@@ -193,8 +192,6 @@ abstract contract HookManager is IHookManager, Auth {
     } else {
       _executionHooksLinkedList().remove(hook);
     }
-
-    hook.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
 
     emit RemoveHook(hook);
   }

@@ -59,12 +59,6 @@ contract SessionKeyValidator is IModuleValidator {
     emit SessionCreated(msg.sender, sessionHash, sessionSpec);
   }
 
-  function init(bytes calldata data) external {
-    if (data.length != 0) {
-      require(_addValidationKey(data), "Init failed");
-    }
-  }
-
   function _addValidationKey(bytes memory sessionData) internal returns (bool) {
     SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
     createSession(sessionSpec);
@@ -72,14 +66,7 @@ contract SessionKeyValidator is IModuleValidator {
   }
 
   function disable() external {
-    if (isInitialized(msg.sender)) {
-      // Here we have to revoke all keys, so that if the module
-      // is installed again later, there will be no active sessions from the past.
-      // Problem: if there are too many keys, this will run out of gas.
-      // Solution: before uninstalling, require that all keys are revoked manually.
-      require(sessionCounter[msg.sender] == 0, "Revoke all keys first");
-      IValidatorManager(msg.sender).removeModuleValidator(address(this));
-    }
+    revert("Cannot disable module without removing it from account");
   }
 
   function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
