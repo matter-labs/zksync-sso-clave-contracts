@@ -170,7 +170,7 @@ library JsmnSolLib {
     for (; parser.pos < s.length; parser.pos++) {
       bytes1 c = s[parser.pos];
 
-      // 0x7b, 0x5b opening curly parentheses or brackets
+      // 0x7b, 0x5b opening curly braces or square brackets
       if (c == 0x7b || c == 0x5b) {
         count++;
         (success, token) = allocateToken(parser, tokens);
@@ -225,14 +225,13 @@ library JsmnSolLib {
         continue;
       }
 
-      // 0x42
+      // 0x22
       if (c == '"') {
         r = parseString(parser, tokens, s);
 
         if (r != RETURN_SUCCESS) {
           return (r, tokens, 0);
         }
-        //JsmnError.INVALID;
         count++;
         if (parser.toksuper != -1) tokens[uint(parser.toksuper)].size++;
         continue;
