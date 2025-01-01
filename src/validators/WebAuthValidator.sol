@@ -20,6 +20,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   bytes1 constant AUTH_DATA_MASK = 0x05;
   bytes32 constant lowSmax = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
 
+  event PasskeyCreated(address keyOwner, string indexed originDomain);
+
   // The layout is weird due to EIP-7562 storage read restrictions for validation phase.
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public upperKeyHalf;
@@ -46,7 +48,11 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     upperKeyHalf[originDomain][msg.sender] = key32[1];
 
     // we're returning true if this was a new key, false for update
-    return initialLowerHalf == 0 && initialUpperHalf == 0;
+    bool keyExists = initialLowerHalf == 0 && initialUpperHalf == 0;
+
+    emit PasskeyCreated(msg.sender, originDomain);
+
+    return keyExists;
   }
 
   function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
