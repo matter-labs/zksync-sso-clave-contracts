@@ -24,10 +24,6 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public upperKeyHalf;
 
-  function init(bytes calldata key) external {
-    require(_addValidationKey(key), "failed to init");
-  }
-
   function addValidationKey(bytes memory key) external returns (bool) {
     return _addValidationKey(key);
   }
