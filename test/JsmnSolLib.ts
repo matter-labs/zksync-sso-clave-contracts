@@ -144,6 +144,34 @@ describe("JsmnSolLib", function () {
             expect(returnValue).to.eq(RETURN_SUCCESS, "Valid JSON should return a success.");
             expect(t.jsmnType).to.eq(3, "Not an string");
         });
+
+        it("should error on duplicate keys", async () => {
+            const jsmnSolLib = await deployParser(wallet);
+            const json = '{"importantKey": "goodValue", "importantKey": "badValue"}';
+
+            const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, 20);
+
+            expect(actualNum).to.eq(5, "1 obj, 2kv pairs")
+            expect(returnValue).to.eq(RETURN_SUCCESS, "Valid JSON should return a success.");
+            expect(tokens[0].jsmnType).to.eq(1, "the obj");
+            expect(tokens[1].jsmnType).to.eq(3, "the first key");
+            expect(tokens[2].jsmnType).to.eq(3, "the first val");
+            expect(tokens[3].jsmnType).to.eq(3, "the second key");
+            expect(tokens[4].jsmnType).to.eq(3, "the second val");
+        });
+
+        it("should error if tokens more than parsed", async () => {
+            const jsmnSolLib = await deployParser(wallet);
+            const json = '{"importantKey": "goodValue", "importantKey": "badValue"}';
+
+            const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, 3);
+
+            expect(returnValue).to.eq(RETURN_ERROR_NO_MEM, "incomplete JSON should return an error.");
+            expect(actualNum).to.eq(0, "incomplete JSON should return 0 tokens.");
+            expect(tokens[0].jsmnType).to.eq(1, "the obj");
+            expect(tokens[1].jsmnType).to.eq(3, "the first key");
+            expect(tokens[2].jsmnType).to.eq(3, "the first val");
+        });
     });
 
     describe("parse primatives", () => {
