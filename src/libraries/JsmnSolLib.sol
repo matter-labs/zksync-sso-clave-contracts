@@ -134,7 +134,7 @@ library JsmnSolLib {
         found = true;
         break;
       }
-      if (uint8(c) < 32 || uint8(c) > 127) {
+      if (uint8(c) < 32 || uint8(c) >= 127) {
         parser.pos = start;
         return RETURN_ERROR_INVALID_JSON;
       }
