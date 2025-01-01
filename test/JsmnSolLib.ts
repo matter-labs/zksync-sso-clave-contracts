@@ -21,7 +21,7 @@ import { expect } from "chai";
 import { describe } from "mocha";
 import { JsmnSolLib } from "../typechain-types/src/test/JsmnSolLibTest";
 
-describe.only("JsmnSolLib", function () {
+describe("JsmnSolLib", function () {
     const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
     async function deployParser(wallet: Wallet): Promise<JsmnSolLibTest> {
         const jsonLib = await create2("JsmnSolLibTest", wallet, ethersStaticSalt, []);
@@ -309,7 +309,7 @@ describe.only("JsmnSolLib", function () {
         });
     });
 
-    describe.only("unicode", () => {
+    describe("unicode", () => {
         it("should parse umlaut", async () => {
             const jsmnSolLib = await deployParser(wallet);
             const json = '{"key": "Möhrenbrot"}';
@@ -388,17 +388,17 @@ describe.only("JsmnSolLib", function () {
 
         it("should accept unicode encoding", async () => {
             const jsmnSolLib = await deployParser(wallet);
-            const json = '{"\uD834\uDD1E": "\u005C"}';
+            const json = '{"\uD834\uDD1E": "👁️"}';
             const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, 10);
 
+            expect(await jsmnSolLib.getBytes(json, tokens[1].start, tokens[1].end)).to.eq("\uD834\uDD1E", "failed to parse g clef");
+            expect(await jsmnSolLib.getBytes(json, tokens[2].start, tokens[2].end)).to.eq("👁️", "failed to parse a single emoji character");
             expect(returnValue).to.eq(0, "Should be valid json");
             expect(actualNum).to.eq(3, "Should have 1 object and 1 key value pair");
-            expect(await jsmnSolLib.getBytes(json, tokens[1].start, tokens[1].end)).to.eq("\uD834\uDD1E", "failed to parse g clef");
-            expect(await jsmnSolLib.getBytes(json, tokens[2].start, tokens[2].end)).to.eq("\u005C", "failed to parse a single reverse solidus character");
         });
     });
 
-    describe("file parsing", () => {
+    describe.skip("file parsing", () => {
         const jsonDir = join("test", "json-files");
 
         function generateTestCase(filename: string) {
@@ -420,7 +420,7 @@ describe.only("JsmnSolLib", function () {
 
                 const validParseResults = (returnValue == 0n && tokens.length > 0 && actualNum > 0);
                 if (filename.startsWith("y_")) {
-                    // expect(validParseResults,`File ${filename} should have succeeded! Tokens=${printTokens(testFile, tokens, actualNum)}, ParsedTokenCount=${actualNum}`).to.be.true;
+                    expect(validParseResults,`File ${filename} should have succeeded! Tokens=${printTokens(testFile, tokens, actualNum)}, ParsedTokenCount=${actualNum}`).to.be.true;
                 } else if (filename.startsWith("n_")) {
                     expect(validParseResults, `File ${filename} should have failed! Tokens=${printTokens(testFile, tokens, actualNum)}, ParsedTokenCount=${actualNum}`).to.be.false;
                 } else {

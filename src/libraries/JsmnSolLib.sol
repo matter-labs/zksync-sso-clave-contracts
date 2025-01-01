@@ -161,7 +161,6 @@ library JsmnSolLib {
     Parser memory parser;
     (parser, tokens) = init(numberElements);
 
-    // Token memory token;
     uint256 r;
     uint256 count = parser.toknext;
     uint256 i;
@@ -306,12 +305,12 @@ library JsmnSolLib {
   }
 
   // parseInt
-  function parseInt(string memory _a) internal pure returns (int) {
+  function parseInt(string memory _a) internal pure returns (int256) {
     return parseInt(_a, 0);
   }
 
   // parseInt(parseFloat*10^_b)
-  function parseInt(string memory _a, uint256 _b) internal pure returns (int) {
+  function parseInt(string memory _a, uint256 _b) internal pure returns (int256) {
     bytes memory bresult = bytes(_a);
     int256 mint = 0;
     bool decimals = false;
@@ -342,7 +341,7 @@ library JsmnSolLib {
     }
   }
 
-  function strCompare(string memory _a, string memory _b) internal pure returns (int) {
+  function strCompare(string memory _a, string memory _b) internal pure returns (int256) {
     bytes memory a = bytes(_a);
     bytes memory b = bytes(_b);
     uint256 minLength = a.length;
