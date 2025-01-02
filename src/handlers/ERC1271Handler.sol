@@ -18,7 +18,7 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.
     bytes32 signedHash;
   }
 
-  bytes32 constant _SSO_MESSAGE_TYPEHASH = keccak256("SsoMessage(bytes32 signedHash)");
+  bytes32 private constant _SSO_MESSAGE_TYPEHASH = keccak256("SsoMessage(bytes32 signedHash)");
 
   bytes4 private constant _ERC1271_MAGIC = 0x1626ba7e;
 

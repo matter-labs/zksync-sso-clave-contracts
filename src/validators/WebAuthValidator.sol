@@ -16,9 +16,9 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract allows secure user authentication using WebAuthn public keys.
 contract WebAuthValidator is VerifierCaller, IModuleValidator {
-  address constant P256_VERIFIER = address(0x100);
-  bytes1 constant AUTH_DATA_MASK = 0x05;
-  bytes32 constant lowSmax = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
+  address private constant P256_VERIFIER = address(0x100);
+  bytes1 private constant AUTH_DATA_MASK = 0x05;
+  bytes32 private constant lowSmax = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
 
   // The layout is weird due to EIP-7562 storage read restrictions for validation phase.
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;

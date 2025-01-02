@@ -20,8 +20,6 @@ contract SessionKeyValidator is IModuleValidator {
   event SessionCreated(address indexed account, bytes32 indexed sessionHash, SessionLib.SessionSpec sessionSpec);
   event SessionRevoked(address indexed account, bytes32 indexed sessionHash);
 
-  bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
-
   // account => number of open sessions
   // NOTE: expired sessions are still counted if not explicitly revoked
   mapping(address => uint256) private sessionCounter;
