@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../interfaces/ITimestampAsserter.sol";
+import { ITimestampAsserter } from "../interfaces/ITimestampAsserter.sol";
 
 library TimestampAsserterLocator {
   function locate() internal view returns (ITimestampAsserter) {
