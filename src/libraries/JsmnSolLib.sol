@@ -31,10 +31,10 @@ library JsmnSolLib {
     PRIMITIVE
   }
 
-  uint256 constant RETURN_SUCCESS = 0;
-  uint256 constant RETURN_ERROR_INVALID_JSON = 1;
-  uint256 constant RETURN_ERROR_PART = 2;
-  uint256 constant RETURN_ERROR_NO_MEM = 3;
+  uint256 public constant RETURN_SUCCESS = 0;
+  uint256 public constant RETURN_ERROR_INVALID_JSON = 1;
+  uint256 public constant RETURN_ERROR_PART = 2;
+  uint256 public constant RETURN_ERROR_NO_MEM = 3;
 
   struct Token {
     JsmnType jsmnType;
