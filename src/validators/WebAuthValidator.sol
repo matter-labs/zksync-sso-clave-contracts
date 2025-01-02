@@ -80,9 +80,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     }
 
     // parse out the important fields (type, challenge, and origin): https://goo.gl/yabPex
-    // TODO: test if the parse fails for more than 10 elements, otherwise can have a malicious header
     (uint256 returnValue, JsmnSolLib.Token[] memory tokens, uint256 actualNum) = JsmnSolLib.parse(clientDataJSON, 20);
-    if (returnValue != 0) {
+    if (returnValue != 0 || actualNum < 3) {
       return false;
     }
 
@@ -113,6 +112,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
           bytes32 challengeData = abi.decode(challengeDataArray, (bytes32));
 
           validChallenge = challengeData == transactionHash;
+          if (!validChallenge) {
+            return false;
+          }
         } else if (Strings.equal(keyOrValue, "type")) {
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory typeValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
@@ -121,6 +123,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
             return false;
           }
           validType = Strings.equal("webauthn.get", typeValue);
+          if (!validType) {
+            return false;
+          }
         } else if (Strings.equal(keyOrValue, "origin")) {
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory originValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
@@ -133,6 +138,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
 
           // This really only validates the origin is set
           validOrigin = pubKey[0] != 0 && pubKey[1] != 0;
+          if (!validOrigin) {
+            return false;
+          }
         } else if (Strings.equal(keyOrValue, "crossOrigin")) {
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory crossOriginValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
@@ -141,6 +149,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
             return false;
           }
           validCrossOrigin = Strings.equal("false", crossOriginValue);
+          if (!validCrossOrigin) {
+            return false;
+          }
         }
       }
     }

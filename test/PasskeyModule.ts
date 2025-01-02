@@ -411,14 +411,14 @@ describe("Passkey validation", function () {
   it("should revert if disabled directly", async () => {
     const passkeyValidator = await deployValidator(wallet);
 
-      const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-      const initData = new AbiCoder().encode(["bytes32[2]", "string"], [publicKeys, "http://localhost:5173"]);
-      const createdKey = await passkeyValidator.init(initData);
-      const keyRecipt = await createdKey.wait();
-      assert(keyRecipt?.status == 1, "initial key was saved");
-      await expect(passkeyValidator.init(initData), "fail to init").to.be.reverted;
+    const publicKeys = await getPublicKey(publicKeyEs256Bytes);
+    const initData = new AbiCoder().encode(["bytes32[2]", "string"], [publicKeys, "http://localhost:5173"]);
+    const createdKey = await passkeyValidator.init(initData);
+    const keyRecipt = await createdKey.wait();
+    assert(keyRecipt?.status == 1, "initial key was saved");
+    await expect(passkeyValidator.init(initData), "fail to init").to.be.reverted;
 
-      await expect(passkeyValidator.disable(), "disable not supported").to.be.reverted;
+    await expect(passkeyValidator.disable(), "disable not supported").to.be.reverted;
   });
 
   describe("init", () => {
@@ -730,22 +730,53 @@ describe("Passkey validation", function () {
       assert(!isValidSignature, "invalid signature for auth data");
     });
 
-    it("should fail to verify a signature with long json", async () => {
+    it("should fail to verify a signature with too long json", async () => {
       const keyDomain = randomBytes(32).toString("hex");
-      const sampleClientObject = {
+      const longClientObject = {
+        type: "webauthn.get",
+        challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
+        origin: keyDomain,
+        crossOrigin: false,
+        tokenBinding: {
+          status: "supported",
+          id: "lsdkjflsvnlsdk"
+        },
+        topOrigin: "http://localhost:5173",
+        unexpectedField0: "this should not be here",
+        unexpectedField1: "this should not be here",
+        unexpectedField2: "this is what causes it to fail",
+      };
+      const longClientString = JSON.stringify(longClientObject)
+      const authData = toBuffer(ethersResponse.authenticatorData);
+      const transactionHash = Buffer.from(longClientObject.challenge, "base64url");
+      const isValidSignature = await validateSignatureTest(
+        wallet,
+        keyDomain,
+        authData,
+        normalizeS,
+        longClientString,
+        transactionHash,
+      );
+      assert(!isValidSignature, "invalid signature for client data json");
+    });
+
+    it("should fail to verify a signature with duplicate json keys", async () => {
+      const keyDomain = randomBytes(32).toString("hex");
+      const badClientObject = {
         type: "webauthn.get",
         challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
         origin: keyDomain,
         crossOrigin: false,
       };
+      const partialClientObject = {
+        challenge: "jBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
+      };
       const duplicatedClientString =
-        JSON.stringify(sampleClientObject).slice(0, -1) +
+        JSON.stringify(partialClientObject).slice(0, -1) +
         "," +
-        JSON.stringify(sampleClientObject).slice(1, -1) +
-        "," +
-        JSON.stringify(sampleClientObject).slice(1);
+        JSON.stringify(badClientObject).slice(1);
       const authData = toBuffer(ethersResponse.authenticatorData);
-      const transactionHash = Buffer.from(sampleClientObject.challenge, "base64url");
+      const transactionHash = Buffer.from(badClientObject.challenge, "base64url");
       const isValidSignature = await validateSignatureTest(
         wallet,
         keyDomain,
