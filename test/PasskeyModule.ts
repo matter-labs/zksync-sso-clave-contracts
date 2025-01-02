@@ -213,6 +213,18 @@ function normalizeS(sBuf: Uint8Array): Uint8Array {
   }
 }
 
+// normalize r (to prevent signature malleability)
+function normalizeR(rBuf: Uint8Array): Uint8Array {
+  const n = BigInt("0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551");
+  const rNumber: bigint = bufToBigint(rBuf);
+
+  if (rNumber > n) {
+    return new Uint8Array(bigintToBuf(n - rNumber));
+  } else {
+    return rBuf;
+  }
+}
+
 // denormalize s (to ensure signature malleability)
 function denormalizeS(sBuf: Uint8Array): Uint8Array {
   const n = BigInt("0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551");
@@ -223,6 +235,18 @@ function denormalizeS(sBuf: Uint8Array): Uint8Array {
     return sBuf;
   } else {
     return new Uint8Array(bigintToBuf(halfN + sNumber));
+  }
+}
+
+// denormalize r (to ensure signature malleability)
+function denormalizeR(rBuf: Uint8Array): Uint8Array {
+  const n = BigInt("0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551");
+  const rNumber: bigint = bufToBigint(rBuf);
+
+  if (rNumber > n) {
+    return rBuf;
+  } else {
+    return new Uint8Array(bigintToBuf(n));
   }
 }
 
@@ -367,6 +391,7 @@ async function validateSignatureTest(
   keyDomain: string,
   authData: Uint8Array<ArrayBufferLike>,
   sNormalization: (s: Uint8Array) => Uint8Array,
+  rNormalization: (s: Uint8Array) => Uint8Array,
   sampleClientString: string,
   transactionHash: Buffer<ArrayBuffer>,
 ) {
@@ -385,7 +410,7 @@ async function validateSignatureTest(
   assert(generatedSignature, "valid generated signature");
   const fatSignature = new AbiCoder().encode(
     ["bytes", "string", "bytes32[2]"],
-    [authData, sampleClientString, [generatedSignature.r, sNormalization(generatedSignature.s)]],
+    [authData, sampleClientString, [rNormalization(generatedSignature.r), sNormalization(generatedSignature.s)]],
   );
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
@@ -658,6 +683,7 @@ describe("Passkey validation", function () {
         keyDomain,
         authData,
         normalizeS,
+        normalizeR,
         sampleClientString,
         transactionHash,
       );
@@ -679,6 +705,7 @@ describe("Passkey validation", function () {
         keyDomain,
         authData,
         normalizeS,
+        normalizeR,
         sampleClientString,
         transactionHash,
       );
@@ -701,6 +728,30 @@ describe("Passkey validation", function () {
         keyDomain,
         authData,
         denormalizeS,
+        normalizeR,
+        sampleClientString,
+        transactionHash,
+      );
+      assert(!isValidSignature, "invalid signature for s");
+    });
+
+    it("should fail to verify a signature with high-r", async () => {
+      const keyDomain = randomBytes(32).toString("hex");
+      const sampleClientObject = {
+        type: "webauthn.get",
+        challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
+        origin: keyDomain,
+        crossOrigin: false,
+      };
+      const sampleClientString = JSON.stringify(sampleClientObject);
+      const authData = toBuffer(ethersResponse.authenticatorData);
+      const transactionHash = Buffer.from(sampleClientObject.challenge, "base64url");
+      const isValidSignature = await validateSignatureTest(
+        wallet,
+        keyDomain,
+        authData,
+        normalizeS,
+        denormalizeR,
         sampleClientString,
         transactionHash,
       );
@@ -724,6 +775,7 @@ describe("Passkey validation", function () {
         keyDomain,
         invalidAuthData,
         normalizeS,
+        normalizeR,
         sampleClientString,
         transactionHash,
       );
@@ -754,6 +806,7 @@ describe("Passkey validation", function () {
         keyDomain,
         authData,
         normalizeS,
+        normalizeR,
         longClientString,
         transactionHash,
       );
@@ -782,6 +835,7 @@ describe("Passkey validation", function () {
         keyDomain,
         authData,
         normalizeS,
+        normalizeR,
         duplicatedClientString,
         transactionHash,
       );
@@ -800,6 +854,7 @@ describe("Passkey validation", function () {
         keyDomain,
         authData,
         normalizeS,
+        normalizeR,
         sampleClientString,
         randomTransactionHash,
       );
@@ -822,6 +877,7 @@ describe("Passkey validation", function () {
         keyDomain,
         authData,
         normalizeS,
+        normalizeR,
         sampleClientString,
         randomTransactionHash,
       );
@@ -844,6 +900,7 @@ describe("Passkey validation", function () {
         keyDomain,
         authData,
         normalizeS,
+        normalizeR,
         sampleClientString,
         transactionHash,
       );
@@ -866,6 +923,7 @@ describe("Passkey validation", function () {
         keyDomain,
         authData,
         normalizeS,
+        normalizeR,
         sampleClientString,
         transactionHash,
       );

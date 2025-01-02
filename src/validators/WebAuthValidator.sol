@@ -18,7 +18,8 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 contract WebAuthValidator is VerifierCaller, IModuleValidator {
   address constant P256_VERIFIER = address(0x100);
   bytes1 constant AUTH_DATA_MASK = 0x05;
-  bytes32 constant lowSmax = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
+  bytes32 constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
+  bytes32 constant HIGH_R_MAX = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
 
   // The layout is weird due to EIP-7562 storage read restrictions for validation phase.
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
@@ -70,7 +71,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       fatSignature
     );
 
-    if (rs[1] > lowSmax) {
+    if (rs[0] <= 0 || rs[0] > HIGH_R_MAX || rs[1] <= 0 || rs[1] > LOW_S_MAX) {
       return false;
     }
 
