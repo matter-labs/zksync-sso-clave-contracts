@@ -18,7 +18,8 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 contract WebAuthValidator is VerifierCaller, IModuleValidator {
   address constant P256_VERIFIER = address(0x100);
   bytes1 constant AUTH_DATA_MASK = 0x05;
-  bytes32 constant lowSmax = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
+  bytes32 constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
+  bytes32 constant HIGH_R_MAX = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
 
   // The layout is weird due to EIP-7562 storage read restrictions for validation phase.
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
@@ -65,12 +66,12 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     return webAuthVerify(signedHash, signature);
   }
 
-  function webAuthVerify(bytes32 transactionHash, bytes memory fatSignature) internal view returns (bool valid) {
+  function webAuthVerify(bytes32 transactionHash, bytes memory fatSignature) internal view returns (bool) {
     (bytes memory authenticatorData, string memory clientDataJSON, bytes32[2] memory rs) = _decodeFatSignature(
       fatSignature
     );
 
-    if (rs[1] > lowSmax) {
+    if (rs[0] <= 0 || rs[0] > HIGH_R_MAX || rs[1] <= 0 || rs[1] > LOW_S_MAX) {
       return false;
     }
 
@@ -80,9 +81,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     }
 
     // parse out the important fields (type, challenge, and origin): https://goo.gl/yabPex
-    // TODO: test if the parse fails for more than 10 elements, otherwise can have a malicious header
     (uint256 returnValue, JsmnSolLib.Token[] memory tokens, uint256 actualNum) = JsmnSolLib.parse(clientDataJSON, 20);
-    if (returnValue != 0) {
+    if (returnValue != 0 || actualNum < 3) {
       return false;
     }
 
@@ -113,6 +113,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
           bytes32 challengeData = abi.decode(challengeDataArray, (bytes32));
 
           validChallenge = challengeData == transactionHash;
+          if (!validChallenge) {
+            return false;
+          }
         } else if (Strings.equal(keyOrValue, "type")) {
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory typeValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
@@ -121,6 +124,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
             return false;
           }
           validType = Strings.equal("webauthn.get", typeValue);
+          if (!validType) {
+            return false;
+          }
         } else if (Strings.equal(keyOrValue, "origin")) {
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory originValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
@@ -133,6 +139,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
 
           // This really only validates the origin is set
           validOrigin = pubKey[0] != 0 && pubKey[1] != 0;
+          if (!validOrigin) {
+            return false;
+          }
         } else if (Strings.equal(keyOrValue, "crossOrigin")) {
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory crossOriginValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
@@ -141,6 +150,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
             return false;
           }
           validCrossOrigin = Strings.equal("false", crossOriginValue);
+          if (!validCrossOrigin) {
+            return false;
+          }
         }
       }
     }
@@ -150,7 +162,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     }
 
     bytes32 message = _createMessage(authenticatorData, bytes(clientDataJSON));
-    valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
+    return callVerifier(P256_VERIFIER, message, rs, pubKey);
   }
 
   function supportsInterface(bytes4 interfaceId) public pure returns (bool) {

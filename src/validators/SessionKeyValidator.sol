@@ -135,20 +135,4 @@ contract SessionKeyValidator is IModuleValidator {
     sessions[sessionHash].validateFeeLimit(transaction, spec, periodIds[0]);
     return true;
   }
-
-  /**
-   * The name of the module
-   * @return name The name of the module
-   */
-  function name() external pure returns (string memory) {
-    return "SessionKeyValidator";
-  }
-
-  /**
-   * Currently in dev
-   * @return version The version of the module
-   */
-  function version() external pure returns (string memory) {
-    return "0.0.0";
-  }
 }
