@@ -57,7 +57,7 @@ abstract contract OwnerManager is IOwnerManager, Auth {
     return _k1OwnersLinkedList().exists(addr);
   }
 
-  function _k1OwnersLinkedList() internal view returns (mapping(address => address) storage k1Owners) {
+  function _k1OwnersLinkedList() private view returns (mapping(address => address) storage k1Owners) {
     k1Owners = SsoStorage.layout().k1Owners;
   }
 

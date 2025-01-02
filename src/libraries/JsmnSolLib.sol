@@ -57,7 +57,7 @@ library JsmnSolLib {
     return (p, t);
   }
 
-  function allocateToken(Parser memory parser, Token[] memory tokens) internal pure returns (bool, Token memory) {
+  function allocateToken(Parser memory parser, Token[] memory tokens) private pure returns (bool, Token memory) {
     if (parser.toknext >= tokens.length) {
       // no more space in tokens
       return (false, tokens[tokens.length - 1]);
@@ -68,7 +68,7 @@ library JsmnSolLib {
     return (true, token);
   }
 
-  function fillToken(Token memory token, JsmnType jsmnType, uint256 start, uint256 end) internal pure {
+  function fillToken(Token memory token, JsmnType jsmnType, uint256 start, uint256 end) private pure {
     token.jsmnType = jsmnType;
     token.start = start;
     token.startSet = true;
@@ -77,7 +77,7 @@ library JsmnSolLib {
     token.size = 0;
   }
 
-  function parseString(Parser memory parser, Token[] memory tokens, bytes memory s) internal pure returns (uint) {
+  function parseString(Parser memory parser, Token[] memory tokens, bytes memory s) private pure returns (uint) {
     uint256 start = parser.pos;
     bool success;
     Token memory token;
@@ -122,7 +122,7 @@ library JsmnSolLib {
     return RETURN_ERROR_PART;
   }
 
-  function parsePrimitive(Parser memory parser, Token[] memory tokens, bytes memory s) internal pure returns (uint) {
+  function parsePrimitive(Parser memory parser, Token[] memory tokens, bytes memory s) private pure returns (uint) {
     bool found = false;
     uint256 start = parser.pos;
     bool success;

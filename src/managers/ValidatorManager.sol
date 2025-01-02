@@ -56,7 +56,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     emit AddModuleValidator(validator);
   }
 
-  function _removeModuleValidator(address validator) internal {
+  function _removeModuleValidator(address validator) private {
     _moduleValidatorsLinkedList().remove(validator);
 
     validator.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
@@ -68,7 +68,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     return _moduleValidatorsLinkedList().exists(validator);
   }
 
-  function _supportsModuleValidator(address validator) internal view returns (bool) {
+  function _supportsModuleValidator(address validator) private view returns (bool) {
     return validator.supportsInterface(type(IModuleValidator).interfaceId);
   }
 

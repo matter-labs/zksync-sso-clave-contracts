@@ -40,7 +40,7 @@ contract SessionKeyValidator is IModuleValidator {
   }
 
   // This module should not be used to validate signatures
-  function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+  function validateSignature(bytes32 signedHash, bytes memory signature) external pure returns (bool) {
     return false;
   }
 
