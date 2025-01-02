@@ -66,7 +66,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     return webAuthVerify(signedHash, signature);
   }
 
-  function webAuthVerify(bytes32 transactionHash, bytes memory fatSignature) internal view returns (bool valid) {
+  function webAuthVerify(bytes32 transactionHash, bytes memory fatSignature) internal view returns (bool) {
     (bytes memory authenticatorData, string memory clientDataJSON, bytes32[2] memory rs) = _decodeFatSignature(
       fatSignature
     );
@@ -162,7 +162,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     }
 
     bytes32 message = _createMessage(authenticatorData, bytes(clientDataJSON));
-    valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
+    return callVerifier(P256_VERIFIER, message, rs, pubKey);
   }
 
   function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
