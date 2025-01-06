@@ -175,7 +175,7 @@ describe("JsmnSolLib", function () {
     });
 
     describe("parse primitives", () => {
-        it("should prase a string key", async () => {
+        it("should parse a string key", async () => {
             const jsmnSolLib = await deployParser(wallet);
             const json = '{"key": "value"}';
 
