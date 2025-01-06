@@ -25,8 +25,8 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   // Low level calls helper library
   using ExcessivelySafeCall for address;
 
-  function addModuleValidator(address validator, bytes memory initialAccountValidationKey) external onlySelf {
-    _addModuleValidator(validator, initialAccountValidationKey);
+  function addModuleValidator(address validator, bytes memory accountValidationKey) external onlySelf {
+    _addModuleValidator(validator, accountValidationKey);
   }
 
   ///@inheritdoc IValidatorManager
@@ -57,7 +57,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     emit AddModuleValidator(validator);
   }
 
-  function _removeModuleValidator(address validator) internal {
+  function _removeModuleValidator(address validator) private {
     _moduleValidatorsLinkedList().remove(validator);
 
     emit RemoveModuleValidator(validator);
@@ -67,7 +67,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     return _moduleValidatorsLinkedList().exists(validator);
   }
 
-  function _supportsModuleValidator(address validator) internal view returns (bool) {
+  function _supportsModuleValidator(address validator) private view returns (bool) {
     return validator.supportsInterface(type(IModuleValidator).interfaceId);
   }
 

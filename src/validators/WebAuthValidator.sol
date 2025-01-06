@@ -16,9 +16,9 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract allows secure user authentication using WebAuthn public keys.
 contract WebAuthValidator is VerifierCaller, IModuleValidator {
-  address constant P256_VERIFIER = address(0x100);
-  bytes1 constant AUTH_DATA_MASK = 0x05;
-  bytes32 constant lowSmax = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
+  address private constant P256_VERIFIER = address(0x100);
+  bytes1 private constant AUTH_DATA_MASK = 0x05;
+  bytes32 private constant lowSmax = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
 
   event PasskeyCreated(address keyOwner, string indexed originDomain);
 
@@ -34,7 +34,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   // so there's no way to just delete all the keys
   // We can only disconnect the module from the account,
   // re-linking it will allow any previous keys
-  function disable() external {
+  function disable() external pure {
     revert("Cannot disable module without removing it from account");
   }
 
@@ -162,14 +162,14 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   function _createMessage(
     bytes memory authenticatorData,
     bytes memory clientData
-  ) internal pure returns (bytes32 message) {
+  ) private pure returns (bytes32 message) {
     bytes32 clientDataHash = sha256(clientData);
     message = sha256(bytes.concat(authenticatorData, clientDataHash));
   }
 
   function _decodeFatSignature(
     bytes memory fatSignature
-  ) internal pure returns (bytes memory authenticatorData, string memory clientDataSuffix, bytes32[2] memory rs) {
+  ) private pure returns (bytes memory authenticatorData, string memory clientDataSuffix, bytes32[2] memory rs) {
     (authenticatorData, clientDataSuffix, rs) = abi.decode(fatSignature, (bytes, string, bytes32[2]));
   }
 

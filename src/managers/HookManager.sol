@@ -158,7 +158,7 @@ abstract contract HookManager is IHookManager, Auth {
     }
   }
 
-  function _addHook(bytes calldata hookAndData, bool isValidation) internal {
+  function _addHook(bytes calldata hookAndData, bool isValidation) private {
     if (hookAndData.length < 20) {
       revert Errors.EMPTY_HOOK_ADDRESS(hookAndData.length);
     }
@@ -186,7 +186,7 @@ abstract contract HookManager is IHookManager, Auth {
     emit AddHook(hookAddress);
   }
 
-  function _removeHook(address hook, bool isValidation) internal {
+  function _removeHook(address hook, bool isValidation) private {
     if (isValidation) {
       _validationHooksLinkedList().remove(hook);
     } else {
@@ -230,7 +230,7 @@ abstract contract HookManager is IHookManager, Auth {
     hookDataStore = SsoStorage.layout().hookDataStore;
   }
 
-  function _supportsHook(address hook, bool isValidation) internal view returns (bool) {
+  function _supportsHook(address hook, bool isValidation) private view returns (bool) {
     return
       isValidation
         ? hook.supportsInterface(type(IValidationHook).interfaceId)
