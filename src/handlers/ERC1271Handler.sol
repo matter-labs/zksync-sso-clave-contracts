@@ -24,20 +24,17 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.
 
   /**
    * @dev Should return whether the signature provided is valid for the provided data
-   * @param signedHash bytes32                   - Hash of the data that is signed
-   * @param signatureAndValidator bytes calldata - Validator address concatenated to signature
+   * @param hash bytes32 - Hash of the data that is signed
+   * @param signature bytes calldata - Validator address concatenated to signature
    * @return magicValue bytes4 - Magic value if the signature is valid, 0 otherwise
    */
-  function isValidSignature(
-    bytes32 signedHash,
-    bytes memory signatureAndValidator
-  ) public view override returns (bytes4 magicValue) {
-    (bytes memory signature, address validator) = SignatureDecoder.decodeSignatureNoHookData(signatureAndValidator);
+  function isValidSignature(bytes32 hash, bytes memory signature) public view override returns (bytes4 magicValue) {
+    (bytes memory decodedSignature, address validator) = SignatureDecoder.decodeSignatureNoHookData(signature);
 
-    bytes32 eip712Hash = _hashTypedDataV4(_ssoMessageHash(SsoMessage(signedHash)));
+    bytes32 eip712Hash = _hashTypedDataV4(_ssoMessageHash(SsoMessage(hash)));
 
     bool isValid = _isModuleValidator(validator) &&
-      IModuleValidator(validator).validateSignature(eip712Hash, signature);
+      IModuleValidator(validator).validateSignature(eip712Hash, decodedSignature);
 
     magicValue = isValid ? _ERC1271_MAGIC : bytes4(0);
   }
