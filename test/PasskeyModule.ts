@@ -19,21 +19,14 @@ import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
  * @param buffer Value to decode from base64
  * @param to (optional) The decoding to use, in case it's desirable to decode from base64 instead
  */
-export function toBuffer(
-  base64urlString: string,
-  from: "base64" | "base64url" = "base64url",
-): Uint8Array {
+export function toBuffer(base64urlString: string, from: "base64" | "base64url" = "base64url"): Uint8Array {
   const _buffer = toArrayBuffer(base64urlString, from === "base64url");
   return new Uint8Array(_buffer);
 }
 
-async function deployValidator(
-  wallet: Wallet,
-): Promise<WebAuthValidator> {
+async function deployValidator(wallet: Wallet): Promise<WebAuthValidator> {
   const deployer: Deployer = new Deployer(hre, wallet);
-  const passkeyValidatorArtifact = await deployer.loadArtifact(
-    "WebAuthValidator",
-  );
+  const passkeyValidatorArtifact = await deployer.loadArtifact("WebAuthValidator");
 
   const validator = await deployer.deploy(passkeyValidatorArtifact, []);
   return WebAuthValidator__factory.connect(await validator.getAddress(), wallet);
@@ -118,10 +111,7 @@ export function decodeFirst<Type>(input: Uint8Array): Type {
   return first;
 }
 
-export function fromBuffer(
-  buffer: Uint8Array,
-  to: "base64" | "base64url" = "base64url",
-): string {
+export function fromBuffer(buffer: Uint8Array, to: "base64" | "base64url" = "base64url"): string {
   return fromArrayBuffer(buffer, to === "base64url");
 }
 
@@ -199,9 +189,7 @@ function shouldRemoveLeadingZero(bytes: Uint8Array): boolean {
  * Returns hash digest of the given data, using the given algorithm when provided. Defaults to using
  * SHA-256.
  */
-export async function toHash(
-  data: Uint8Array | string,
-): Promise<Uint8Array> {
+export async function toHash(data: Uint8Array | string): Promise<Uint8Array> {
   if (typeof data === "string") {
     data = new TextEncoder().encode(data);
   }
@@ -214,7 +202,8 @@ async function rawVerify(
   authenticatorData: string,
   clientData: string,
   b64SignedChallange: string,
-  publicKeyEs256Bytes: Uint8Array) {
+  publicKeyEs256Bytes: Uint8Array,
+) {
   const authDataBuffer = toBuffer(authenticatorData);
   const clientDataHash = await toHash(toBuffer(clientData));
   const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
@@ -232,22 +221,24 @@ describe("Passkey validation", function () {
 
     // 37 bytes
     const authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABQ";
-    const clientData = "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZFhPM3ctdWdycS00SkdkZUJLNDFsZFk1V2lNd0ZORDkiLCJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2UsIm90aGVyX2tleXNfY2FuX2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgifQ";
-    const b64SignedChallange = "MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A";
+    const clientData =
+      "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZFhPM3ctdWdycS00SkdkZUJLNDFsZFk1V2lNd0ZORDkiLCJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2UsIm90aGVyX2tleXNfY2FuX2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgifQ";
+    const b64SignedChallange =
+      "MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A";
 
     // this is a binary object formatted by @simplewebauthn that contains the alg type and public key
     const publicKeyEs256Bytes = new Uint8Array([
-      165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 167, 69,
-      109, 166, 67, 163, 110, 143, 71, 60, 77, 232, 220, 7,
-      121, 156, 141, 24, 71, 28, 210, 116, 124, 90, 115, 166,
-      213, 190, 89, 4, 216, 128, 34, 88, 32, 193, 67, 151,
-      85, 245, 24, 139, 246, 220, 204, 228, 76, 247, 65, 179,
-      235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73,
-      37, 195, 20, 194, 9,
+      165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 167, 69, 109, 166, 67, 163, 110, 143, 71, 60, 77, 232, 220, 7, 121, 156, 141,
+      24, 71, 28, 210, 116, 124, 90, 115, 166, 213, 190, 89, 4, 216, 128, 34, 88, 32, 193, 67, 151, 85, 245, 24, 139,
+      246, 220, 204, 228, 76, 247, 65, 179, 235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73, 37, 195, 20, 194, 9,
     ]);
     const verifyMessage = await rawVerify(
       passkeyValidator,
-      authenticatorData, clientData, b64SignedChallange, publicKeyEs256Bytes);
+      authenticatorData,
+      clientData,
+      b64SignedChallange,
+      publicKeyEs256Bytes,
+    );
 
     assert(verifyMessage == true, "valid sig");
   });
@@ -260,7 +251,8 @@ describe("Passkey validation", function () {
       ethersResponse.authenticatorData,
       ethersResponse.clientData,
       ethersResponse.b64SignedChallenge,
-      ethersResponse.passkeyBytes);
+      ethersResponse.passkeyBytes,
+    );
 
     assert(verifyMessage == true, "test sig is valid");
   });
@@ -268,13 +260,15 @@ describe("Passkey validation", function () {
   it("should fail when signature is bad", async function () {
     const passkeyValidator = await deployValidator(wallet);
 
-    const b64SignedChallenge = "MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A";
+    const b64SignedChallenge =
+      "MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A";
     const verifyMessage = await rawVerify(
       passkeyValidator,
       ethersResponse.authenticatorData,
       ethersResponse.clientData,
       b64SignedChallenge,
-      ethersResponse.passkeyBytes);
+      ethersResponse.passkeyBytes,
+    );
 
     assert(verifyMessage == false, "bad sig should be false");
   });

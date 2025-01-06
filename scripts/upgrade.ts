@@ -38,4 +38,4 @@ task("upgrade", "Upgrades ZKsync SSO contracts")
     const tx = await proxy.upgradeTo(await newImpl.getAddress());
     await tx.wait();
     console.log("Proxy upgraded successfully");
-});
+  });
