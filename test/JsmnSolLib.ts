@@ -238,7 +238,7 @@ describe("JsmnSolLib", function () {
             }
         });
 
-        it("should parse an integegr key value", async () => {
+        it("should parse an integer key value", async () => {
             const jsmnSolLib = await deployParser(wallet);
             const json = '{"key": 23}';
 
