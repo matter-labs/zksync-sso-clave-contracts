@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { SsoStorage } from "../libraries/SsoStorage.sol";
-import { BytesLinkedList, AddressLinkedList } from "../libraries/LinkedList.sol";
+import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { Auth } from "../auth/Auth.sol";
 import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
@@ -16,8 +16,6 @@ import { IOwnerManager } from "../interfaces/IOwnerManager.sol";
  * @author https://getclave.io
  */
 abstract contract OwnerManager is IOwnerManager, Auth {
-  // Helper library for bytes to bytes mappings
-  using BytesLinkedList for mapping(bytes => bytes);
   // Helper library for address to address mappings
   using AddressLinkedList for mapping(address => address);
 
