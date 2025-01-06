@@ -20,8 +20,6 @@ contract SessionKeyValidator is IModuleValidator {
   event SessionCreated(address indexed account, bytes32 indexed sessionHash, SessionLib.SessionSpec sessionSpec);
   event SessionRevoked(address indexed account, bytes32 indexed sessionHash);
 
-  bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
-
   // account => number of open sessions
   // NOTE: expired sessions are still counted if not explicitly revoked
   mapping(address => uint256) private sessionCounter;
@@ -40,12 +38,12 @@ contract SessionKeyValidator is IModuleValidator {
   }
 
   // This module should not be used to validate signatures
-  function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+  function validateSignature(bytes32 signedHash, bytes memory signature) external pure returns (bool) {
     return false;
   }
 
-  function addValidationKey(bytes memory sessionData) external returns (bool) {
-    return _addValidationKey(sessionData);
+  function addValidationKey(bytes memory key) external returns (bool) {
+    return _addValidationKey(key);
   }
 
   function createSession(SessionLib.SessionSpec memory sessionSpec) public {
