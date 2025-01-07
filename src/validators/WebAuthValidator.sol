@@ -9,7 +9,6 @@ import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Base64 } from "solady/src/utils/Base64.sol";
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /// @title AAFactory
 /// @author Matter Labs
@@ -60,7 +59,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   function validateTransaction(
     bytes32 signedHash,
     bytes memory signature,
-    Transaction calldata _transaction
+    Transaction calldata
   ) external view returns (bool) {
     return webAuthVerify(signedHash, signature);
   }
@@ -153,7 +152,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
   }
 
-  function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
     return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
   }
 

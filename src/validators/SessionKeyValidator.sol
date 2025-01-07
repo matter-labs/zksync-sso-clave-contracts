@@ -38,7 +38,7 @@ contract SessionKeyValidator is IModuleValidator {
   }
 
   // This module should not be used to validate signatures
-  function validateSignature(bytes32 signedHash, bytes memory signature) external pure returns (bool) {
+  function validateSignature(bytes32, bytes memory) external pure returns (bool) {
     return false;
   }
 
@@ -80,10 +80,8 @@ contract SessionKeyValidator is IModuleValidator {
     }
   }
 
-  function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
-    return
-      interfaceId != 0xffffffff &&
-      (interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId);
+  function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
+    return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
   }
 
   // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?
@@ -111,10 +109,10 @@ contract SessionKeyValidator is IModuleValidator {
 
   function validateTransaction(
     bytes32 signedHash,
-    bytes memory _signature,
+    bytes memory,
     Transaction calldata transaction
   ) external returns (bool) {
-    (bytes memory transactionSignature, address validator, bytes memory validatorData) = SignatureDecoder
+    (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SignatureDecoder
       .decodeSignature(transaction.signature);
     (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
       validatorData, // this is passed by the signature builder
