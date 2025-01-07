@@ -166,10 +166,9 @@ export async function deployFactory(wallet: Wallet, beaconAddress: string, salt?
   const standardCreate2Address = utils.create2Address(wallet.address, factoryBytecodeHash, factorySalt, constructorArgs);
   const accountCode = await wallet.provider.getCode(standardCreate2Address);
   if (accountCode != "0x") {
-    logInfo(`Factory already exists!`);
+    logInfo(`Factory already exists at ${standardCreate2Address}`);
     return AAFactory__factory.connect(standardCreate2Address, wallet);
   }
-  logInfo(`Factory doesn't exist at ${standardCreate2Address}!`);
   const factory = await deployer.deploy(
     bytecodeHash,
     beaconAddress,

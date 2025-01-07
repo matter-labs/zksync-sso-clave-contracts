@@ -5,7 +5,6 @@ import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { Auth } from "../auth/Auth.sol";
-import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 import { IOwnerManager } from "../interfaces/IOwnerManager.sol";
 
 /**
