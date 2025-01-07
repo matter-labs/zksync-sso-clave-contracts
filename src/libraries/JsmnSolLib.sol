@@ -166,7 +166,6 @@ library JsmnSolLib {
     (parser, tokens) = init(numberElements);
 
     uint256 returnFlag;
-    uint256 count = parser.toknext;
     uint256 i;
     Token memory token;
 
