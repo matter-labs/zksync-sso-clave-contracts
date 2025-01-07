@@ -61,10 +61,6 @@ contract SessionKeyValidator is IModuleValidator {
     return true;
   }
 
-  function disable() external {
-    revert("Cannot disable module without removing it from account");
-  }
-
   function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
     return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
   }

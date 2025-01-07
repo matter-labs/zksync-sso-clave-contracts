@@ -30,14 +30,6 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     return _addValidationKey(key);
   }
 
-  // There's no mapping from account address to domains,
-  // so there's no way to just delete all the keys
-  // We can only disconnect the module from the account,
-  // re-linking it will allow any previous keys
-  function disable() external pure {
-    revert("Cannot disable module without removing it from account");
-  }
-
   function _addValidationKey(bytes memory key) internal returns (bool) {
     (bytes32[2] memory key32, string memory originDomain) = abi.decode(key, (bytes32[2], string));
     bytes32 initialLowerHalf = lowerKeyHalf[originDomain][msg.sender];

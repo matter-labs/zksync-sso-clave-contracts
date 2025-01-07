@@ -450,51 +450,24 @@ describe("Passkey validation", function () {
     assert(iModuleValidatorSupported, "should support IModuleValidator");
   });
 
-  it("should revert if disabled directly", async () => {
-    const passkeyValidator = await deployValidator(wallet);
-
-    const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-    const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
-    const createdKey = await passkeyValidator.init(initData);
-    const keyRecipt = await createdKey.wait();
-    assert(keyRecipt?.status == 1, "initial key was saved");
-    await expect(passkeyValidator.init(initData), "fail to init").to.be.reverted;
-
-    await expect(passkeyValidator.disable(), "disable not supported").to.be.reverted;
-  });
-
-  describe("init", () => {
+  describe("addValidationKey", () => {
     it("should save a passkey", async function () {
       const passkeyValidator = await deployValidator(wallet);
 
       const publicKeys = await getPublicKey(publicKeyEs256Bytes);
       const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
-      const createdKey = await passkeyValidator.init(initData);
+      const createdKey = await passkeyValidator.addValidationKey(initData);
       const keyRecipt = await createdKey.wait();
       assert(keyRecipt?.status == 1, "key was saved");
     });
 
-    it("should fail to init twice with the same domain", async function () {
-      const passkeyValidator = await deployValidator(wallet);
-
-      const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-      const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
-      const createdKey = await passkeyValidator.init(initData);
-      const keyRecipt = await createdKey.wait();
-      assert(keyRecipt?.status == 1, "initial key was saved");
-
-      await expect(passkeyValidator.init(initData), "fail to init").to.be.reverted;
-    });
-  });
-
-  describe("addValidationKey", () => {
     it("should add a second validation key", async function () {
       const passkeyValidator = await deployValidator(wallet);
       const firstDomain = randomBytes(32).toString("hex");
 
       const publicKeys = await getPublicKey(publicKeyEs256Bytes);
       const initData = encodeKeyFromHex(publicKeys, firstDomain);
-      const initTransaction = await passkeyValidator.init(initData);
+      const initTransaction = await passkeyValidator.addValidationKey(initData);
       const initReceipt = await initTransaction.wait();
       assert(initReceipt?.status == 1, "first domain key was saved");
 
@@ -569,7 +542,7 @@ describe("Passkey validation", function () {
       );
 
       const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
-      await passkeyValidator.init(initData);
+      await passkeyValidator.addValidationKey(initData);
 
       // get the signature from the same place the checker gets it
       const clientDataJson = JSON.parse(new TextDecoder().decode(ethersResponse.clientDataBuffer));
