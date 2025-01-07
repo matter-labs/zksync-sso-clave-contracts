@@ -34,7 +34,7 @@ describe("JsmnSolLib", function () {
         for (let i = 0; i < numTokens; i++) {
             const t = tokens[i];
             console.log(
-                `Token ${i}: type: ${t.jsmnType}, start: ${t.start}, end: ${t.end}, size: ${t.size}, parent: ${t.parent}`,
+                `Token ${i}: type: ${t.jsmnType}, start: ${t.start}, end: ${t.end}, size: ${t.size}`,
             );
             console.log(`Token ${i}: ${jsonStr.slice(Number(t.start), Number(t.end))}`);
             tokenList.push(jsonStr.slice(Number(t.start), Number(t.end)));
@@ -171,6 +171,53 @@ describe("JsmnSolLib", function () {
             expect(tokens[0].jsmnType).to.eq(1, "the obj");
             expect(tokens[1].jsmnType).to.eq(3, "the first key");
             expect(tokens[2].jsmnType).to.eq(3, "the first val");
+        });
+
+        it("should parse long character strings", async () => {
+            const jsmnSolLib = await deployParser(wallet);
+            const testObj = {
+                base64: "+/0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz",
+                base64url: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=",
+            };
+            const json = JSON.stringify(testObj);
+
+            const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, 10);
+
+            expect(returnValue).to.eq(RETURN_SUCCESS, "Valid JSON should return a success.");
+            expect(actualNum).to.eq(5, "outer object and 2 kv tokens.");
+            const parsedBase64 = await jsmnSolLib.getBytes(json, tokens[2].start, tokens[2].end)
+            expect(parsedBase64).to.eq(testObj.base64, "the base64 stinrg");
+            const parsedBase64Url = await jsmnSolLib.getBytes(json, tokens[4].start, tokens[4].end)
+            expect(parsedBase64Url).to.eq(testObj.base64url, "the url safe string");
+        });
+
+        it("should parse escaped characters", async () => {
+            const jsmnSolLib = await deployParser(wallet);
+            const testObj = {
+                tab: "\t",
+                quote: "\"",
+                backslash: "\\",
+                forwardSlash: "/",
+                formFeed: "\f",
+                lineReturn: "\r",
+                newLine: "\n",
+                backspace: "\b",
+            };
+            const json = JSON.stringify(testObj);
+            const testObjEntries = Object.entries(testObj);
+
+            const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, testObjEntries.length * 2 + 2);
+
+            expect(returnValue).to.eq(RETURN_SUCCESS, "Valid JSON should return a success.");
+            expect(actualNum).to.eq(testObjEntries.length * 2 + 1, "1 outer object and each kv tokens.");
+
+            for (const [index, [key, value]] of testObjEntries.entries()) {
+                const objIndex = (index * 2) + 2;
+                const parsedObj = await jsmnSolLib.getBytes(json, tokens[objIndex].start, tokens[objIndex].end)
+                const stringifiedValue = JSON.stringify(value)
+                const stingifiedWithoutQuotes = stringifiedValue.substring(1, stringifiedValue.length - 1);
+                expect(parsedObj).to.eq(stingifiedWithoutQuotes, `the ${key}`);
+            }
         });
     });
 
