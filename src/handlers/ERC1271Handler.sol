@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { IERC1271Upgradeable } from "@openzeppelin/contracts-upgradeable/interfaces/IERC1271Upgradeable.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
@@ -18,26 +19,29 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.
     bytes32 signedHash;
   }
 
-  bytes32 constant _SSO_MESSAGE_TYPEHASH = keccak256("SsoMessage(bytes32 signedHash)");
+  bytes32 private constant _SSO_MESSAGE_TYPEHASH = keccak256("SsoMessage(bytes32 signedHash)");
 
   bytes4 private constant _ERC1271_MAGIC = 0x1626ba7e;
 
   /**
-   * @dev Should return whether the signature provided is valid for the provided data
-   * @param signedHash bytes32                   - Hash of the data that is signed
-   * @param signatureAndValidator bytes calldata - Validator address concatenated to signature
+   * @dev Should return whether the signature provided is valid for the provided data. Does not run validation hooks.
+   * @param hash bytes32 - Hash of the data that is signed
+   * @param signature bytes calldata - K1 owner signature OR validator address concatenated to signature
    * @return magicValue bytes4 - Magic value if the signature is valid, 0 otherwise
    */
-  function isValidSignature(
-    bytes32 signedHash,
-    bytes memory signatureAndValidator
-  ) public view override returns (bytes4 magicValue) {
-    (bytes memory signature, address validator) = SignatureDecoder.decodeSignatureNoHookData(signatureAndValidator);
+  function isValidSignature(bytes32 hash, bytes memory signature) external view override returns (bytes4 magicValue) {
+    if (signature.length == 65) {
+      (address signer, ECDSA.RecoverError error) = ECDSA.tryRecover(hash, signature);
+      return
+        signer == address(0) || error != ECDSA.RecoverError.NoError || !_k1IsOwner(signer) ? bytes4(0) : _ERC1271_MAGIC;
+    }
 
-    bytes32 eip712Hash = _hashTypedDataV4(_ssoMessageHash(SsoMessage(signedHash)));
+    (bytes memory decodedSignature, address validator) = SignatureDecoder.decodeSignatureNoHookData(signature);
+
+    bytes32 eip712Hash = _hashTypedDataV4(_ssoMessageHash(SsoMessage(hash)));
 
     bool isValid = _isModuleValidator(validator) &&
-      IModuleValidator(validator).validateSignature(eip712Hash, signature);
+      IModuleValidator(validator).validateSignature(eip712Hash, decodedSignature);
 
     magicValue = isValid ? _ERC1271_MAGIC : bytes4(0);
   }
@@ -59,7 +63,7 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.
     return _SSO_MESSAGE_TYPEHASH;
   }
 
-  function _ssoMessageHash(SsoMessage memory ssoMessage) internal pure returns (bytes32) {
+  function _ssoMessageHash(SsoMessage memory ssoMessage) private pure returns (bytes32) {
     return keccak256(abi.encode(_SSO_MESSAGE_TYPEHASH, ssoMessage.signedHash));
   }
 }
