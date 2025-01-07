@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
@@ -15,7 +14,6 @@ import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 
 contract SessionKeyValidator is IModuleValidator {
   using SessionLib for SessionLib.SessionStorage;
-  using EnumerableSet for EnumerableSet.Bytes32Set;
 
   event SessionCreated(address indexed account, bytes32 indexed sessionHash, SessionLib.SessionSpec sessionSpec);
   event SessionRevoked(address indexed account, bytes32 indexed sessionHash);
@@ -132,21 +130,5 @@ contract SessionKeyValidator is IModuleValidator {
     // This check is separate and performed last to prevent gas estimation failures
     sessions[sessionHash].validateFeeLimit(transaction, spec, periodIds[0]);
     return true;
-  }
-
-  /**
-   * The name of the module
-   * @return name The name of the module
-   */
-  function name() external pure returns (string memory) {
-    return "SessionKeyValidator";
-  }
-
-  /**
-   * Currently in dev
-   * @return version The version of the module
-   */
-  function version() external pure returns (string memory) {
-    return "0.0.0";
   }
 }

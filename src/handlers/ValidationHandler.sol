@@ -3,7 +3,6 @@ pragma solidity ^0.8.24;
 
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 
-import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 import { OwnerManager } from "../managers/OwnerManager.sol";
 import { ValidatorManager } from "../managers/ValidatorManager.sol";
 

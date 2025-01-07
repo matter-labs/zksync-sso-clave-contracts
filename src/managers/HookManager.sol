@@ -32,44 +32,6 @@ abstract contract HookManager is IHookManager, Auth {
   error HookPostCheckFailed();
   error HookAlreadyInstalled(address currentHook);
 
-  function _setHook(address hook) internal virtual {
-    bytes32 slot = CONTEXT_KEY;
-    assembly {
-      sstore(slot, hook)
-    }
-  }
-
-  function _installHook(address hook, bytes calldata data) internal virtual {
-    address currentHook = _getHook();
-    if (currentHook != address(0)) {
-      revert HookAlreadyInstalled(currentHook);
-    }
-    // add to 4337 flow
-    _setHook(hook);
-
-    // add to ZKsync flow
-    _executionHooksLinkedList().add(hook);
-  }
-
-  function _uninstallHook(address hook, bytes calldata data) internal virtual {
-    _setHook(address(0));
-  }
-
-  function _getHook() internal view returns (address _hook) {
-    bytes32 slot = CONTEXT_KEY;
-    assembly {
-      _hook := sload(slot)
-    }
-  }
-
-  function _isHookInstalled(address module) internal view returns (bool) {
-    return _getHook() == module;
-  }
-
-  function getActiveHook() external view returns (address hook) {
-    return _getHook();
-  }
-
   /// @inheritdoc IHookManager
   function addHook(bytes calldata hookAndData, bool isValidation) external override onlySelf {
     _addHook(hookAndData, isValidation);
