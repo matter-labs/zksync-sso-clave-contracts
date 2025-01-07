@@ -10,9 +10,8 @@ import { Wallet } from "zksync-ethers";
 
 import { WebAuthValidator, WebAuthValidator__factory } from "../typechain-types";
 import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
-import { AbiCoder } from "ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
-import { encodeAbiParameters, toHex } from "viem";
+import { encodeAbiParameters, Hex, toHex } from "viem";
 import { randomBytes } from "crypto";
 
 /**
@@ -152,9 +151,9 @@ async function getRawPublicKeyFromWebAuthN(
 }
 
 // Expects simple-webauthn public key format
-async function getPublicKey(publicPasskey: Uint8Array): Promise<[string, string]> {
+async function getPublicKey(publicPasskey: Uint8Array): Promise<[Hex, Hex]> {
   const [x, y] = await getRawPublicKeyFromWebAuthN(publicPasskey);
-  return ["0x" + Buffer.from(x).toString("hex"), "0x" + Buffer.from(y).toString("hex")];
+  return [`0x${Buffer.from(x).toString("hex")}`, `0x${Buffer.from(y).toString("hex")}`];
 }
 
 async function getRawPublicKeyFromCrpyto(cryptoKeyPair: CryptoKeyPair) {
@@ -386,6 +385,21 @@ async function verifyKeyStorage(
   expect(upperKey).to.eq(publicKeys[1], `upper key ${error}`);
 }
 
+function encodeKeyFromHex(hexStrings: [Hex, Hex], domain: string) {
+  // the same as the ethers: new AbiCoder().encode(["bytes32[2]", "string"], [bytes, domain]);
+  return encodeAbiParameters(
+    [
+      { name: 'publicKeys', type: 'bytes32[2]' },
+      { name: 'domain', type: 'string' },
+    ],
+    [[hexStrings[0], hexStrings[1]], domain]
+  )
+}
+
+function encodeKeyFromBytes(bytes: [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>], domain: string) {
+  return encodeKeyFromHex([toHex(bytes[0]), toHex(bytes[1])], domain);
+}
+
 async function validateSignatureTest(
   wallet: Wallet,
   keyDomain: string,
@@ -399,7 +413,7 @@ async function validateSignatureTest(
   const generatedR1Key = await generateES256R1Key();
   assert(generatedR1Key != null, "no key was generated");
   const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
-  const generatedKey = new AbiCoder().encode(["bytes32[2]", "string"], [[generatedX, generatedY], keyDomain]);
+  const generatedKey = encodeKeyFromBytes([generatedX, generatedY], keyDomain);
   const addingKey = await passkeyValidator.addValidationKey(generatedKey);
   const addingKeyResult = await addingKey.wait();
   expect(addingKeyResult?.status).to.eq(1, "failed to add key during setup");
@@ -408,10 +422,13 @@ async function validateSignatureTest(
   const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
   const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
   assert(generatedSignature, "valid generated signature");
-  const fatSignature = new AbiCoder().encode(
-    ["bytes", "string", "bytes32[2]"],
-    [authData, sampleClientString, [rNormalization(generatedSignature.r), sNormalization(generatedSignature.s)]],
-  );
+  const fatSignature = encodeAbiParameters([
+    { name: "authData", type: "bytes" },
+    { name: "clientDataJson", type: "string" },
+    { name: "rs", type: "bytes32[2]" },
+  ],
+    [toHex(authData), sampleClientString, [toHex(rNormalization(generatedSignature.r)), toHex(sNormalization(generatedSignature.s))]]
+  )
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
 
@@ -437,7 +454,7 @@ describe("Passkey validation", function () {
     const passkeyValidator = await deployValidator(wallet);
 
     const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-    const initData = new AbiCoder().encode(["bytes32[2]", "string"], [publicKeys, "http://localhost:5173"]);
+    const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
     const createdKey = await passkeyValidator.init(initData);
     const keyRecipt = await createdKey.wait();
     assert(keyRecipt?.status == 1, "initial key was saved");
@@ -451,7 +468,7 @@ describe("Passkey validation", function () {
       const passkeyValidator = await deployValidator(wallet);
 
       const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-      const initData = new AbiCoder().encode(["bytes32[2]", "string"], [publicKeys, "http://localhost:5173"]);
+      const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
       const createdKey = await passkeyValidator.init(initData);
       const keyRecipt = await createdKey.wait();
       assert(keyRecipt?.status == 1, "key was saved");
@@ -461,7 +478,7 @@ describe("Passkey validation", function () {
       const passkeyValidator = await deployValidator(wallet);
 
       const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-      const initData = new AbiCoder().encode(["bytes32[2]", "string"], [publicKeys, "http://localhost:5173"]);
+      const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
       const createdKey = await passkeyValidator.init(initData);
       const keyRecipt = await createdKey.wait();
       assert(keyRecipt?.status == 1, "initial key was saved");
@@ -476,13 +493,13 @@ describe("Passkey validation", function () {
       const firstDomain = randomBytes(32).toString("hex");
 
       const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-      const initData = new AbiCoder().encode(["bytes32[2]", "string"], [publicKeys, firstDomain]);
+      const initData = encodeKeyFromHex(publicKeys, firstDomain);
       const initTransaction = await passkeyValidator.init(initData);
       const initReceipt = await initTransaction.wait();
       assert(initReceipt?.status == 1, "first domain key was saved");
 
       const secondDomain = randomBytes(32).toString("hex");
-      const secondKeyData = new AbiCoder().encode(["bytes32[2]", "string"], [publicKeys, secondDomain]);
+      const secondKeyData = encodeKeyFromHex(publicKeys, secondDomain);
       const secondCreatedKey = await passkeyValidator.addValidationKey(secondKeyData);
       const keyRecipt = await secondCreatedKey.wait();
       assert(keyRecipt?.status == 1, "second key was saved");
@@ -497,7 +514,7 @@ describe("Passkey validation", function () {
       const generatedR1Key = await generateES256R1Key();
       assert(generatedR1Key != null, "no key was generated");
       const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
-      const generatedKey = new AbiCoder().encode(["bytes32[2]", "string"], [[generatedX, generatedY], keyDomain]);
+      const generatedKey = encodeKeyFromBytes([generatedX, generatedY], keyDomain);
       const generatedKeyAdded = await passkeyValidator.addValidationKey(generatedKey);
       const recipt = await generatedKeyAdded.wait();
       assert(recipt?.status == 1, "generated key added");
@@ -507,7 +524,7 @@ describe("Passkey validation", function () {
       const nextR1Key = await generateES256R1Key();
       assert(nextR1Key != null, "no second key was generated");
       const [newX, newY] = await getRawPublicKeyFromCrpyto(nextR1Key);
-      const newKey = new AbiCoder().encode(["bytes32[2]", "string"], [[newX, newY], keyDomain]);
+      const newKey = encodeKeyFromBytes([newX, newY], keyDomain);
       const nextKeyAdded = await passkeyValidator.addValidationKey(newKey);
       const newRecipt = await nextKeyAdded.wait();
       assert(newRecipt?.status == 1, "new generated key added");
@@ -521,14 +538,14 @@ describe("Passkey validation", function () {
       assert(generatedR1Key != null, "no key was generated");
       const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
       const keyDomain = randomBytes(32).toString("hex");
-      const generatedKey = new AbiCoder().encode(["bytes32[2]", "string"], [[generatedX, generatedY], keyDomain]);
+      const generatedKey = encodeKeyFromBytes([generatedX, generatedY], keyDomain);
       const generatedKeyAdded = await passkeyValidator.addValidationKey(generatedKey);
       const recipt = await generatedKeyAdded.wait();
       assert(recipt?.status == 1, "generated key added");
       await verifyKeyStorage(passkeyValidator, keyDomain, [toHex(generatedX), toHex(generatedY)], wallet, "added");
 
       const zeroKey = new Uint8Array(32).fill(0);
-      const emptyKey = new AbiCoder().encode(["bytes32[2]", "string"], [[zeroKey, zeroKey], keyDomain]);
+      const emptyKey = encodeKeyFromBytes([zeroKey, zeroKey], keyDomain);
       const emptyKeyAdded = await passkeyValidator.addValidationKey(emptyKey);
       const emptyRecipt = await emptyKeyAdded.wait();
       assert(emptyRecipt?.status == 1, "empty key added");
@@ -551,7 +568,7 @@ describe("Passkey validation", function () {
         { passkey: publicKeys[0] },
       );
 
-      const initData = new AbiCoder().encode(["bytes32[2]", "string"], [publicKeys, "http://localhost:5173"]);
+      const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
       await passkeyValidator.init(initData);
 
       // get the signature from the same place the checker gets it
@@ -579,7 +596,7 @@ describe("Passkey validation", function () {
         passkeyValidator,
         authenticatorData,
         clientData,
-        b64SignedChallange,
+        b64SignedChallenge,
         publicKeyEs256Bytes,
       );
 
