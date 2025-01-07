@@ -9,17 +9,16 @@ import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Base64 } from "solady/src/utils/Base64.sol";
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /// @title AAFactory
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract allows secure user authentication using WebAuthn public keys.
 contract WebAuthValidator is VerifierCaller, IModuleValidator {
-  address constant P256_VERIFIER = address(0x100);
-  bytes1 constant AUTH_DATA_MASK = 0x05;
-  bytes32 constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
-  bytes32 constant HIGH_R_MAX = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
+  address private constant P256_VERIFIER = address(0x100);
+  bytes1 private constant AUTH_DATA_MASK = 0x05;
+  bytes32 private constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
+  bytes32 private constant HIGH_R_MAX = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
 
   // The layout is weird due to EIP-7562 storage read restrictions for validation phase.
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
@@ -37,7 +36,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   // so there's no way to just delete all the keys
   // We can only disconnect the module from the account,
   // re-linking it will allow any previous keys
-  function disable() external {
+  function disable() external pure {
     revert("Cannot disable module without removing it from account");
   }
 
@@ -61,7 +60,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   function validateTransaction(
     bytes32 signedHash,
     bytes memory signature,
-    Transaction calldata _transaction
+    Transaction calldata
   ) external view returns (bool) {
     return webAuthVerify(signedHash, signature);
   }
@@ -165,21 +164,21 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     return callVerifier(P256_VERIFIER, message, rs, pubKey);
   }
 
-  function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
     return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
   }
 
   function _createMessage(
     bytes memory authenticatorData,
     bytes memory clientData
-  ) internal pure returns (bytes32 message) {
+  ) private pure returns (bytes32 message) {
     bytes32 clientDataHash = sha256(clientData);
     message = sha256(bytes.concat(authenticatorData, clientDataHash));
   }
 
   function _decodeFatSignature(
     bytes memory fatSignature
-  ) internal pure returns (bytes memory authenticatorData, string memory clientDataSuffix, bytes32[2] memory rs) {
+  ) private pure returns (bytes memory authenticatorData, string memory clientDataSuffix, bytes32[2] memory rs) {
     (authenticatorData, clientDataSuffix, rs) = abi.decode(fatSignature, (bytes, string, bytes32[2]));
   }
 

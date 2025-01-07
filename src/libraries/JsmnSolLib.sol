@@ -31,10 +31,10 @@ library JsmnSolLib {
     PRIMITIVE
   }
 
-  uint256 constant RETURN_SUCCESS = 0;
-  uint256 constant RETURN_ERROR_INVALID_JSON = 1;
-  uint256 constant RETURN_ERROR_PART = 2;
-  uint256 constant RETURN_ERROR_NO_MEM = 3;
+  uint256 public constant RETURN_SUCCESS = 0;
+  uint256 public constant RETURN_ERROR_INVALID_JSON = 1;
+  uint256 public constant RETURN_ERROR_PART = 2;
+  uint256 public constant RETURN_ERROR_NO_MEM = 3;
 
   struct Token {
     JsmnType jsmnType;
@@ -57,7 +57,7 @@ library JsmnSolLib {
     return (p, t);
   }
 
-  function allocateToken(Parser memory parser, Token[] memory tokens) internal pure returns (bool, Token memory) {
+  function allocateToken(Parser memory parser, Token[] memory tokens) private pure returns (bool, Token memory) {
     if (parser.toknext >= tokens.length) {
       // no more space in tokens
       return (false, tokens[tokens.length - 1]);
@@ -68,7 +68,7 @@ library JsmnSolLib {
     return (true, token);
   }
 
-  function fillToken(Token memory token, JsmnType jsmnType, uint256 start, uint256 end) internal pure {
+  function fillToken(Token memory token, JsmnType jsmnType, uint256 start, uint256 end) private pure {
     token.jsmnType = jsmnType;
     token.start = start;
     token.startSet = true;
@@ -77,7 +77,7 @@ library JsmnSolLib {
     token.size = 0;
   }
 
-  function parseString(Parser memory parser, Token[] memory tokens, bytes memory s) internal pure returns (uint) {
+  function parseString(Parser memory parser, Token[] memory tokens, bytes memory s) private pure returns (uint) {
     uint256 start = parser.pos;
     bool success;
     Token memory token;
@@ -122,19 +122,23 @@ library JsmnSolLib {
     return RETURN_ERROR_PART;
   }
 
-  function parsePrimitive(Parser memory parser, Token[] memory tokens, bytes memory s) internal pure returns (uint) {
+  function parsePrimitive(Parser memory parser, Token[] memory tokens, bytes memory s) private pure returns (uint) {
     bool found = false;
     uint256 start = parser.pos;
     bool success;
     bytes1 c;
     Token memory token;
+
+    // skip the first character because we assume we've already identified it as a primitive from parse
+    parser.pos++;
+
     for (; parser.pos < s.length; parser.pos++) {
       c = s[parser.pos];
       if (c == " " || c == "\t" || c == "\n" || c == "\r" || c == "," || c == 0x7d || c == 0x5d) {
         found = true;
         break;
       }
-      if (uint8(c) < 32 || uint8(c) > 127) {
+      if (uint8(c) < 32 || uint8(c) >= 127) {
         parser.pos = start;
         return RETURN_ERROR_INVALID_JSON;
       }
@@ -161,18 +165,15 @@ library JsmnSolLib {
     Parser memory parser;
     (parser, tokens) = init(numberElements);
 
-    // Token memory token;
-    uint256 r;
-    uint256 count = parser.toknext;
+    uint256 returnFlag;
     uint256 i;
     Token memory token;
 
     for (; parser.pos < s.length; parser.pos++) {
       bytes1 c = s[parser.pos];
 
-      // 0x7b, 0x5b opening curly parentheses or brackets
+      // 0x7b, 0x5b opening curly braces or square brackets
       if (c == 0x7b || c == 0x5b) {
-        count++;
         (success, token) = allocateToken(parser, tokens);
         if (!success) {
           return (RETURN_ERROR_NO_MEM, tokens, 0);
@@ -225,15 +226,13 @@ library JsmnSolLib {
         continue;
       }
 
-      // 0x42
+      // 0x22
       if (c == '"') {
-        r = parseString(parser, tokens, s);
+        returnFlag = parseString(parser, tokens, s);
 
-        if (r != RETURN_SUCCESS) {
-          return (r, tokens, 0);
+        if (returnFlag != RETURN_SUCCESS) {
+          return (returnFlag, tokens, 0);
         }
-        //JsmnError.INVALID;
-        count++;
         if (parser.toksuper != -1) tokens[uint(parser.toksuper)].size++;
         continue;
       }
@@ -276,11 +275,10 @@ library JsmnSolLib {
           }
         }
 
-        r = parsePrimitive(parser, tokens, s);
-        if (r != RETURN_SUCCESS) {
-          return (r, tokens, 0);
+        returnFlag = parsePrimitive(parser, tokens, s);
+        if (returnFlag != RETURN_SUCCESS) {
+          return (returnFlag, tokens, 0);
         }
-        count++;
         if (parser.toksuper != -1) {
           tokens[uint(parser.toksuper)].size++;
         }
@@ -311,9 +309,8 @@ library JsmnSolLib {
   }
 
   // parseInt(parseFloat*10^_b)
-  function parseInt(string memory _a, uint256 _b) internal pure returns (int) {
+  function parseInt(string memory _a, uint256 _b) internal pure returns (int256 result) {
     bytes memory bresult = bytes(_a);
-    int256 mint = 0;
     bool decimals = false;
     bool negative = false;
     for (uint256 i = 0; i < bresult.length; i++) {
@@ -325,13 +322,13 @@ library JsmnSolLib {
           if (_b == 0) break;
           else _b--;
         }
-        mint *= 10;
-        mint += int(int8(uint8(bresult[i]))) - 48;
+        result *= 10;
+        result += int(int8(uint8(bresult[i]))) - 48;
       } else if (uint8(bresult[i]) == 46) decimals = true;
     }
-    if (_b > 0) mint *= int(10 ** _b);
-    if (negative) mint *= -1;
-    return mint;
+    if (_b > 0) result *= int(10 ** _b);
+    if (negative) result *= -1;
+    return result;
   }
 
   function parseBool(string memory _a) internal pure returns (bool) {

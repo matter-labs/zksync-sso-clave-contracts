@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
@@ -15,12 +14,9 @@ import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 
 contract SessionKeyValidator is IModuleValidator {
   using SessionLib for SessionLib.SessionStorage;
-  using EnumerableSet for EnumerableSet.Bytes32Set;
 
   event SessionCreated(address indexed account, bytes32 indexed sessionHash, SessionLib.SessionSpec sessionSpec);
   event SessionRevoked(address indexed account, bytes32 indexed sessionHash);
-
-  bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
 
   // account => number of open sessions
   // NOTE: expired sessions are still counted if not explicitly revoked
@@ -40,12 +36,12 @@ contract SessionKeyValidator is IModuleValidator {
   }
 
   // This module should not be used to validate signatures
-  function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+  function validateSignature(bytes32, bytes memory) external pure returns (bool) {
     return false;
   }
 
-  function addValidationKey(bytes memory sessionData) external returns (bool) {
-    return _addValidationKey(sessionData);
+  function addValidationKey(bytes memory key) external returns (bool) {
+    return _addValidationKey(key);
   }
 
   function createSession(SessionLib.SessionSpec memory sessionSpec) public {
@@ -82,10 +78,8 @@ contract SessionKeyValidator is IModuleValidator {
     }
   }
 
-  function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
-    return
-      interfaceId != 0xffffffff &&
-      (interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId);
+  function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
+    return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
   }
 
   // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?
@@ -113,10 +107,10 @@ contract SessionKeyValidator is IModuleValidator {
 
   function validateTransaction(
     bytes32 signedHash,
-    bytes memory _signature,
+    bytes memory,
     Transaction calldata transaction
   ) external returns (bool) {
-    (bytes memory transactionSignature, address validator, bytes memory validatorData) = SignatureDecoder
+    (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SignatureDecoder
       .decodeSignature(transaction.signature);
     (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
       validatorData, // this is passed by the signature builder
