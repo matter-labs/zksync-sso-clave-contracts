@@ -36,7 +36,7 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
     bytes32,
     bytes32,
     Transaction calldata _transaction
-  ) external payable onlyBootloader returns (bytes4 magic, bytes memory context) {
+  ) external payable onlyBootloader returns (bytes4 magic, bytes memory) {
     // By default we consider the transaction as accepted.
     magic = PAYMASTER_VALIDATION_SUCCESS_MAGIC;
     require(_transaction.paymasterInput.length >= 4, "The standard paymaster input must be at least 4 bytes long");

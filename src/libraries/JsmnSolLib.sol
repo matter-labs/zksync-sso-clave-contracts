@@ -165,9 +165,7 @@ library JsmnSolLib {
     Parser memory parser;
     (parser, tokens) = init(numberElements);
 
-    // Token memory token;
     uint256 returnFlag;
-    uint256 count = parser.toknext;
     uint256 i;
     Token memory token;
 
@@ -176,7 +174,6 @@ library JsmnSolLib {
 
       // 0x7b, 0x5b opening curly braces or square brackets
       if (c == 0x7b || c == 0x5b) {
-        count++;
         (success, token) = allocateToken(parser, tokens);
         if (!success) {
           return (RETURN_ERROR_NO_MEM, tokens, 0);
@@ -236,7 +233,6 @@ library JsmnSolLib {
         if (returnFlag != RETURN_SUCCESS) {
           return (returnFlag, tokens, 0);
         }
-        count++;
         if (parser.toksuper != -1) tokens[uint(parser.toksuper)].size++;
         continue;
       }
@@ -283,7 +279,6 @@ library JsmnSolLib {
         if (returnFlag != RETURN_SUCCESS) {
           return (returnFlag, tokens, 0);
         }
-        count++;
         if (parser.toksuper != -1) {
           tokens[uint(parser.toksuper)].size++;
         }
