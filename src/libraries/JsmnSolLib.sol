@@ -36,14 +36,6 @@ library JsmnSolLib {
   uint256 constant RETURN_ERROR_PART = 2;
   uint256 constant RETURN_ERROR_NO_MEM = 3;
 
-  bytes1 constant CARRIAGE_RETURN = 0x0D;
-  bytes1 constant HORIZONTAL_TAB = 0x09;
-  bytes1 constant LINE_FEED = 0x0A;
-  bytes1 constant OPEN_CURLY_BRACE = 0x7b;
-  bytes1 constant CLOSE_CURLY_BRACE = 0x7d;
-  bytes1 constant OPEN_SQUARE_BRACE = 0x5b;
-  bytes1 constant CLOSE_SQUARE_BRACE = 0x5d;
-
   struct Token {
     JsmnType jsmnType;
     uint256 start;
@@ -138,9 +130,7 @@ library JsmnSolLib {
     Token memory token;
     for (; parser.pos < s.length; parser.pos++) {
       c = s[parser.pos];
-      if (
-        c == " " || c == "\t" || c == "\n" || c == "\r" || c == "," || c == CLOSE_CURLY_BRACE || c == CLOSE_SQUARE_BRACE
-      ) {
+      if (c == " " || c == "\t" || c == "\n" || c == "\r" || c == "," || c == "}" || c == "]") {
         found = true;
         break;
       }
@@ -180,7 +170,7 @@ library JsmnSolLib {
     for (; parser.pos < s.length; parser.pos++) {
       bytes1 c = s[parser.pos];
 
-      if (c == OPEN_CURLY_BRACE || c == OPEN_SQUARE_BRACE) {
+      if (c == "{" || c == "[") {
         count++;
         (success, token) = allocateToken(parser, tokens);
         if (!success) {
@@ -189,7 +179,7 @@ library JsmnSolLib {
         if (parser.toksuper != -1) {
           tokens[uint(parser.toksuper)].size++;
         }
-        token.jsmnType = (c == OPEN_CURLY_BRACE ? JsmnType.OBJECT : JsmnType.ARRAY);
+        token.jsmnType = (c == "{" ? JsmnType.OBJECT : JsmnType.ARRAY);
         token.start = parser.pos;
         token.startSet = true;
         parser.toksuper = int(parser.toknext - 1);
@@ -197,8 +187,8 @@ library JsmnSolLib {
       }
 
       // closing curly parentheses or brackets
-      if (c == CLOSE_CURLY_BRACE || c == CLOSE_SQUARE_BRACE) {
-        JsmnType tokenType = (c == CLOSE_CURLY_BRACE ? JsmnType.OBJECT : JsmnType.ARRAY);
+      if (c == "}" || c == "]") {
+        JsmnType tokenType = (c == "}" ? JsmnType.OBJECT : JsmnType.ARRAY);
         bool isUpdated = false;
         for (i = parser.toknext - 1; i >= 0; i--) {
           token = tokens[i];
@@ -247,8 +237,7 @@ library JsmnSolLib {
         continue;
       }
 
-      // ' ', \r, \t, \n
-      if (c == " " || c == CARRIAGE_RETURN || c == HORIZONTAL_TAB || c == LINE_FEED) {
+      if (c == " " || c == "\r" || c == "\t" || c == "\n") {
         continue;
       }
 
