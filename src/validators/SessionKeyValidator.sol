@@ -44,7 +44,7 @@ contract SessionKeyValidator is IModuleValidator {
     return false;
   }
 
-  function addValidationKey(bytes memory key) external returns (bool) {
+  function addValidationKey(bytes calldata key) external returns (bool) {
     return _addValidationKey(key);
   }
 
@@ -65,7 +65,7 @@ contract SessionKeyValidator is IModuleValidator {
     }
   }
 
-  function _addValidationKey(bytes memory sessionData) internal returns (bool) {
+  function _addValidationKey(bytes calldata sessionData) internal returns (bool) {
     SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
     createSession(sessionSpec);
     return true;

@@ -43,8 +43,10 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
   /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey))`.
   /// @param initialK1Owners An array of addresses with full control over the account.
   function initialize(bytes[] calldata initialValidators, address[] calldata initialK1Owners) external initializer {
+    address validatorAddr;
+    bytes memory validationKey;
     for (uint256 i = 0; i < initialValidators.length; ++i) {
-      (address validatorAddr, bytes memory validationKey) = abi.decode(initialValidators[i], (address, bytes));
+      (validatorAddr, validationKey) = abi.decode(initialValidators[i], (address, bytes));
       _addModuleValidator(validatorAddr, validationKey);
     }
     for (uint256 i = 0; i < initialK1Owners.length; ++i) {
