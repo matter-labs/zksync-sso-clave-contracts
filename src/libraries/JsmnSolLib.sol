@@ -305,7 +305,7 @@ library JsmnSolLib {
   }
 
   // parseInt
-  function parseInt(string memory _a) internal pure returns (int) {
+  function parseInt(string memory _a) internal pure returns (int256) {
     return parseInt(_a, 0);
   }
 
@@ -342,7 +342,7 @@ library JsmnSolLib {
     }
   }
 
-  function strCompare(string memory _a, string memory _b) internal pure returns (int) {
+  function strCompare(string memory _a, string memory _b) internal pure returns (int256) {
     bytes memory a = bytes(_a);
     bytes memory b = bytes(_b);
     uint256 minLength = a.length;

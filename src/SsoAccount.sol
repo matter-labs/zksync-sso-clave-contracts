@@ -140,8 +140,7 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
   /// to have and entry point for escaping funds when L2 transactions are censored by the chain, and only
   /// forced transactions are accepted by the network.
   /// @dev It is not implemented yet.
-  /// @param _transaction The transaction data.
-  function executeTransactionFromOutside(Transaction calldata _transaction) external payable override {
+  function executeTransactionFromOutside(Transaction calldata) external payable override {
     revert Errors.METHOD_NOT_IMPLEMENTED();
   }
 
@@ -199,7 +198,11 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     (bytes memory signature, address validator, ) = SignatureDecoder.decodeSignature(_transaction.signature);
 
     bool validationSuccess = _handleValidation(validator, _signedHash, signature, _transaction);
-    return validationSuccess ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
+    if (!validationSuccess) {
+      return bytes4(0);
+    }
+
+    return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
   }
 
   /// @dev Increments the nonce value in Nonce Holder system contract to ensure replay attack protection.
