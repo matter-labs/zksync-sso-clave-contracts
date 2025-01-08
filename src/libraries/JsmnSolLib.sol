@@ -83,7 +83,8 @@ library JsmnSolLib {
     Token memory token;
     parser.pos++;
 
-    for (; parser.pos < s.length; parser.pos++) {
+    uint256 length = s.length;
+    for (; parser.pos < length; parser.pos++) {
       bytes1 c = s[parser.pos];
 
       // Quote -> end of string
@@ -132,9 +133,10 @@ library JsmnSolLib {
     // skip the first character because we assume we've already identified it as a primitive from parse
     parser.pos++;
 
-    for (; parser.pos < s.length; parser.pos++) {
+    uint256 length = s.length;
+    for (; parser.pos < length; parser.pos++) {
       c = s[parser.pos];
-      if (c == " " || c == "\t" || c == "\n" || c == "\r" || c == "," || c == 0x7d || c == 0x5d) {
+      if (c == " " || c == "\t" || c == "\n" || c == "\r" || c == "," || c == "}" || c == "]") {
         found = true;
         break;
       }
@@ -165,18 +167,15 @@ library JsmnSolLib {
     Parser memory parser;
     (parser, tokens) = init(numberElements);
 
-    // Token memory token;
     uint256 returnFlag;
-    uint256 count = parser.toknext;
     uint256 i;
     Token memory token;
 
-    for (; parser.pos < s.length; parser.pos++) {
+    uint256 length = s.length;
+    for (; parser.pos < length; parser.pos++) {
       bytes1 c = s[parser.pos];
 
-      // 0x7b, 0x5b opening curly braces or square brackets
-      if (c == 0x7b || c == 0x5b) {
-        count++;
+      if (c == "{" || c == "[") {
         (success, token) = allocateToken(parser, tokens);
         if (!success) {
           return (RETURN_ERROR_NO_MEM, tokens, 0);
@@ -184,7 +183,7 @@ library JsmnSolLib {
         if (parser.toksuper != -1) {
           tokens[uint(parser.toksuper)].size++;
         }
-        token.jsmnType = (c == 0x7b ? JsmnType.OBJECT : JsmnType.ARRAY);
+        token.jsmnType = (c == "{" ? JsmnType.OBJECT : JsmnType.ARRAY);
         token.start = parser.pos;
         token.startSet = true;
         parser.toksuper = int(parser.toknext - 1);
@@ -192,8 +191,8 @@ library JsmnSolLib {
       }
 
       // closing curly parentheses or brackets
-      if (c == 0x7d || c == 0x5d) {
-        JsmnType tokenType = (c == 0x7d ? JsmnType.OBJECT : JsmnType.ARRAY);
+      if (c == "}" || c == "]") {
+        JsmnType tokenType = (c == "}" ? JsmnType.OBJECT : JsmnType.ARRAY);
         bool isUpdated = false;
         for (i = parser.toknext - 1; i >= 0; i--) {
           token = tokens[i];
@@ -236,13 +235,11 @@ library JsmnSolLib {
         if (returnFlag != RETURN_SUCCESS) {
           return (returnFlag, tokens, 0);
         }
-        count++;
         if (parser.toksuper != -1) tokens[uint(parser.toksuper)].size++;
         continue;
       }
 
-      // ' ', \r, \t, \n
-      if (c == " " || c == 0x11 || c == 0x12 || c == 0x14) {
+      if (c == " " || c == "\r" || c == "\t" || c == "\n") {
         continue;
       }
 
@@ -283,7 +280,6 @@ library JsmnSolLib {
         if (returnFlag != RETURN_SUCCESS) {
           return (returnFlag, tokens, 0);
         }
-        count++;
         if (parser.toksuper != -1) {
           tokens[uint(parser.toksuper)].size++;
         }
@@ -318,7 +314,9 @@ library JsmnSolLib {
     bytes memory bresult = bytes(_a);
     bool decimals = false;
     bool negative = false;
-    for (uint256 i = 0; i < bresult.length; i++) {
+
+    uint256 length = bresult.length;
+    for (uint256 i = 0; i < length; i++) {
       if ((i == 0) && (bresult[i] == "-")) {
         negative = true;
       }

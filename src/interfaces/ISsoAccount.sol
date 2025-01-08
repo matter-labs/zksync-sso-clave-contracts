@@ -26,7 +26,5 @@ interface ISsoAccount is
   IValidatorManager,
   IAccount
 {
-  event FeePaid();
-
   function initialize(bytes[] calldata initialValidators, address[] calldata k1Owners) external;
 }

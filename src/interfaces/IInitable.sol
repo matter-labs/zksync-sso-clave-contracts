@@ -2,9 +2,6 @@
 pragma solidity ^0.8.24;
 
 interface IInitable {
-  event Inited(address indexed account);
-  event Disabled(address indexed account);
-
   function init(bytes calldata initData) external;
 
   function disable() external;

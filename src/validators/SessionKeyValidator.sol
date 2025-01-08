@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
@@ -12,10 +11,14 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
+import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 
+/// @title SessionKeyValidator
+/// @author Matter Labs
+/// @custom:security-contact security@matterlabs.dev
+/// @dev This contract is used to manage sessions for a smart account.
 contract SessionKeyValidator is IModuleValidator {
   using SessionLib for SessionLib.SessionStorage;
-  using EnumerableSet for EnumerableSet.Bytes32Set;
 
   event SessionCreated(address indexed account, bytes32 indexed sessionHash, SessionLib.SessionSpec sessionSpec);
   event SessionRevoked(address indexed account, bytes32 indexed sessionHash);
@@ -38,11 +41,11 @@ contract SessionKeyValidator is IModuleValidator {
   }
 
   // This module should not be used to validate signatures
-  function validateSignature(bytes32 signedHash, bytes memory signature) external pure returns (bool) {
+  function validateSignature(bytes32, bytes memory) external pure returns (bool) {
     return false;
   }
 
-  function addValidationKey(bytes memory key) external returns (bool) {
+  function addValidationKey(bytes calldata key) external returns (bool) {
     return _addValidationKey(key);
   }
 
@@ -52,6 +55,10 @@ contract SessionKeyValidator is IModuleValidator {
     require(sessionSpec.signer != address(0), "Invalid signer (create)");
     require(sessions[sessionHash].status[msg.sender] == SessionLib.Status.NotInitialized, "Session already exists");
     require(sessionSpec.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
+    // Sessions should expire in no less than 60 seconds.
+    uint256 minuteBeforeExpiration = sessionSpec.expiresAt <= 60 ? 0 : sessionSpec.expiresAt - 60;
+    TimestampAsserterLocator.locate().assertTimestampInRange(0, minuteBeforeExpiration);
+
     sessionCounter[msg.sender]++;
     sessions[sessionHash].status[msg.sender] = SessionLib.Status.Active;
     emit SessionCreated(msg.sender, sessionHash, sessionSpec);
@@ -63,7 +70,7 @@ contract SessionKeyValidator is IModuleValidator {
     }
   }
 
-  function _addValidationKey(bytes memory sessionData) internal returns (bool) {
+  function _addValidationKey(bytes calldata sessionData) internal returns (bool) {
     SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
     createSession(sessionSpec);
     return true;
@@ -80,10 +87,8 @@ contract SessionKeyValidator is IModuleValidator {
     }
   }
 
-  function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
-    return
-      interfaceId != 0xffffffff &&
-      (interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId);
+  function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
+    return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
   }
 
   // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?
@@ -111,10 +116,10 @@ contract SessionKeyValidator is IModuleValidator {
 
   function validateTransaction(
     bytes32 signedHash,
-    bytes memory _signature,
+    bytes memory,
     Transaction calldata transaction
   ) external returns (bool) {
-    (bytes memory transactionSignature, address validator, bytes memory validatorData) = SignatureDecoder
+    (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SignatureDecoder
       .decodeSignature(transaction.signature);
     (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
       validatorData, // this is passed by the signature builder
@@ -132,21 +137,5 @@ contract SessionKeyValidator is IModuleValidator {
     // This check is separate and performed last to prevent gas estimation failures
     sessions[sessionHash].validateFeeLimit(transaction, spec, periodIds[0]);
     return true;
-  }
-
-  /**
-   * The name of the module
-   * @return name The name of the module
-   */
-  function name() external pure returns (string memory) {
-    return "SessionKeyValidator";
-  }
-
-  /**
-   * Currently in dev
-   * @return version The version of the module
-   */
-  function version() external pure returns (string memory) {
-    return "0.0.0";
   }
 }
