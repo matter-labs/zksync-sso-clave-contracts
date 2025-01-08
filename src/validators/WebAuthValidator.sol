@@ -180,7 +180,10 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator, IModule {
   }
 
   function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
-    return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
+    return
+      interfaceId == type(IERC165).interfaceId ||
+      interfaceId == type(IModuleValidator).interfaceId ||
+      interfaceId == type(IModule).interfaceId;
   }
 
   function _createMessage(

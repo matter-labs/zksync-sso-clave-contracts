@@ -90,7 +90,10 @@ contract SessionKeyValidator is IModuleValidator, IModule {
   }
 
   function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
-    return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
+    return
+      interfaceId == type(IERC165).interfaceId ||
+      interfaceId == type(IModuleValidator).interfaceId ||
+      interfaceId == type(IModule).interfaceId;
   }
 
   // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?
