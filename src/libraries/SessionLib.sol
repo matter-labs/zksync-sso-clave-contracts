@@ -128,7 +128,7 @@ library SessionLib {
       tracker.lifetimeUsage[msg.sender] += value;
     }
     if (limit.limitType == LimitType.Allowance) {
-      TimestampAsserterLocator.locate().assertTimestampInRange(period * limit.period, (period + 1) * limit.period);
+      TimestampAsserterLocator.locate().assertTimestampInRange(period * limit.period, (period + 1) * limit.period - 1);
       require(tracker.allowanceUsage[period][msg.sender] + value <= limit.limit, "Allowance limit exceeded");
       tracker.allowanceUsage[period][msg.sender] += value;
     }
