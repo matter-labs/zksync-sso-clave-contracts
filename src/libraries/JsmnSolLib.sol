@@ -307,7 +307,7 @@ library JsmnSolLib {
   }
 
   // parseInt(parseFloat*10^_b)
-  function parseInt(string memory _a, uint256 _b) internal pure returns (int256) {
+  function parseInt(string memory _a, uint256 _b) internal pure returns (int256 result) {
     bytes memory bresult = bytes(_a);
     bool decimals = false;
     bool negative = false;
