@@ -26,7 +26,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   // Low level calls helper library
   using ExcessivelySafeCall for address;
 
-  function addModuleValidator(address validator, bytes memory accountValidationKey) external onlySelf {
+  function addModuleValidator(address validator, bytes calldata accountValidationKey) external onlySelf {
     _addModuleValidator(validator, accountValidationKey);
   }
 
