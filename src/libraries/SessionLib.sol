@@ -202,6 +202,7 @@ library SessionLib {
     require(state.status[msg.sender] == Status.Active, "Session is not active");
     TimestampAsserterLocator.locate().assertTimestampInRange(0, spec.expiresAt);
 
+    require(transaction.to <= type(uint160).max, "Overflow");
     address target = address(uint160(transaction.to));
 
     if (transaction.paymasterInput.length >= 4) {

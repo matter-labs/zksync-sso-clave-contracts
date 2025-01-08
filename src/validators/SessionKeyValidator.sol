@@ -11,6 +11,7 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
+import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 
 /// @title SessionKeyValidator
 /// @author Matter Labs
@@ -54,6 +55,10 @@ contract SessionKeyValidator is IModuleValidator {
     require(sessionSpec.signer != address(0), "Invalid signer (create)");
     require(sessions[sessionHash].status[msg.sender] == SessionLib.Status.NotInitialized, "Session already exists");
     require(sessionSpec.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
+    // Sessions should expire in no less than 60 seconds.
+    uint256 minuteBeforeExpiration = sessionSpec.expiresAt <= 60 ? 0 : sessionSpec.expiresAt - 60;
+    TimestampAsserterLocator.locate().assertTimestampInRange(0, minuteBeforeExpiration);
+
     sessionCounter[msg.sender]++;
     sessions[sessionHash].status[msg.sender] = SessionLib.Status.Active;
     emit SessionCreated(msg.sender, sessionHash, sessionSpec);
