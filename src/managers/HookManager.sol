@@ -43,20 +43,6 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   /// @inheritdoc IHookManager
-  function setHookData(bytes32 key, bytes calldata data) external override onlyHook {
-    if (key == CONTEXT_KEY) {
-      revert Errors.INVALID_KEY(key);
-    }
-
-    _hookDataStore()[msg.sender][key] = data;
-  }
-
-  /// @inheritdoc IHookManager
-  function getHookData(address hook, bytes32 key) external view override returns (bytes memory) {
-    return _hookDataStore()[hook][key];
-  }
-
-  /// @inheritdoc IHookManager
   function isHook(address addr) external view override returns (bool) {
     return _isHook(addr);
   }
@@ -72,18 +58,15 @@ abstract contract HookManager is IHookManager, Auth {
 
   // Runs the validation hooks that are enabled by the account and returns true if none reverts
   function runValidationHooks(bytes32 signedHash, Transaction calldata transaction) internal returns (bool) {
-    mapping(address => address) storage validationHooks = _validationHooksLinkedList();
+    address[] memory hookList = _validationHooksLinkedList().list();
+    uint256 totalHooks = hookList.length;
 
-    address cursor = validationHooks[AddressLinkedList.SENTINEL_ADDRESS];
-    // Iterate through hooks
-    while (cursor > AddressLinkedList.SENTINEL_ADDRESS) {
-      bool success = _call(cursor, abi.encodeCall(IValidationHook.validationHook, (signedHash, transaction)));
+    for (uint256 i = 0; i < totalHooks; i++) {
+      bool success = _call(hookList[i], abi.encodeCall(IValidationHook.validationHook, (signedHash, transaction)));
 
       if (!success) {
         return false;
       }
-
-      cursor = validationHooks[cursor];
     }
 
     return true;
@@ -91,33 +74,17 @@ abstract contract HookManager is IHookManager, Auth {
 
   // Runs the execution hooks that are enabled by the account before and after _executeTransaction
   modifier runExecutionHooks(Transaction calldata transaction) {
-    mapping(address => address) storage executionHooks = _executionHooksLinkedList();
+    address[] memory hookList = _executionHooksLinkedList().list();
+    uint256 totalHooks = hookList.length;
 
-    address cursor = executionHooks[AddressLinkedList.SENTINEL_ADDRESS];
-    // Iterate through hooks
-    while (cursor > AddressLinkedList.SENTINEL_ADDRESS) {
-      // Call the preExecutionHook function with transaction struct
-      bytes memory context = IExecutionHook(cursor).preExecutionHook(transaction);
-      // Store returned data as context
-      _setContext(cursor, context);
-
-      cursor = executionHooks[cursor];
+    for (uint256 i = 0; i < totalHooks; i++) {
+      IExecutionHook(hookList[i]).preExecutionHook(transaction);
     }
 
     _;
 
-    cursor = executionHooks[AddressLinkedList.SENTINEL_ADDRESS];
-    // Iterate through hooks
-    while (cursor > AddressLinkedList.SENTINEL_ADDRESS) {
-      bytes memory context = _getContext(cursor);
-      if (context.length > 0) {
-        // Call the postExecutionHook function with stored context
-        IExecutionHook(cursor).postExecutionHook(context);
-        // Delete context
-        _deleteContext(cursor);
-      }
-
-      cursor = executionHooks[cursor];
+    for (uint256 i = 0; i < totalHooks; i++) {
+      IExecutionHook(hookList[i]).postExecutionHook();
     }
   }
 
@@ -165,18 +132,6 @@ abstract contract HookManager is IHookManager, Auth {
     return _validationHooksLinkedList().exists(addr) || _executionHooksLinkedList().exists(addr);
   }
 
-  function _setContext(address hook, bytes memory context) private {
-    _hookDataStore()[hook][CONTEXT_KEY] = context;
-  }
-
-  function _deleteContext(address hook) private {
-    delete _hookDataStore()[hook][CONTEXT_KEY];
-  }
-
-  function _getContext(address hook) private view returns (bytes memory context) {
-    context = _hookDataStore()[hook][CONTEXT_KEY];
-  }
-
   function _call(address target, bytes memory data) private returns (bool success) {
     assembly ("memory-safe") {
       success := call(gas(), target, 0, add(data, 0x20), mload(data), 0, 0)
@@ -189,10 +144,6 @@ abstract contract HookManager is IHookManager, Auth {
 
   function _executionHooksLinkedList() private view returns (mapping(address => address) storage executionHooks) {
     executionHooks = SsoStorage.layout().executionHooks;
-  }
-
-  function _hookDataStore() private view returns (mapping(address => mapping(bytes32 => bytes)) storage hookDataStore) {
-    hookDataStore = SsoStorage.layout().hookDataStore;
   }
 
   function _supportsHook(address hook, bool isValidation) private view returns (bool) {

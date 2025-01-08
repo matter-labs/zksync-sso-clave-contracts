@@ -15,5 +15,5 @@ interface IValidationHook is IInitable, IERC165 {
 interface IExecutionHook is IInitable, IERC165 {
   function preExecutionHook(Transaction calldata transaction) external returns (bytes memory context);
 
-  function postExecutionHook(bytes memory context) external;
+  function postExecutionHook() external;
 }
