@@ -140,8 +140,6 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     if (!success) {
       revert Errors.FEE_PAYMENT_FAILED();
     }
-
-    emit FeePaid();
   }
   /// @notice This function is called by the system if the transaction has a paymaster
   /// and prepares the interaction with the paymaster.
