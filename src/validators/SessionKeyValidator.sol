@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
+import { IModule } from "../interfaces/IModule.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
@@ -12,7 +13,7 @@ import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 
-contract SessionKeyValidator is IModuleValidator {
+contract SessionKeyValidator is IModuleValidator, IModule {
   using SessionLib for SessionLib.SessionStorage;
 
   event SessionCreated(address indexed account, bytes32 indexed sessionHash, SessionLib.SessionSpec sessionSpec);
@@ -33,6 +34,24 @@ contract SessionKeyValidator is IModuleValidator {
 
   function sessionStatus(address account, bytes32 sessionHash) external view returns (SessionLib.Status) {
     return sessions[sessionHash].status[account];
+  }
+
+  function onInstall(bytes calldata data) external override {
+    require(_addValidationKey(data), "SessionKeyValidator: failed to add key");
+  }
+
+  function onUninstall(bytes calldata data) external override {
+    bytes32[] memory sessionHashes = abi.decode(data, (bytes32[]));
+    for (uint256 i = 0; i < sessionHashes.length; i++) {
+      revokeKey(sessionHashes[i]);
+    }
+  }
+
+  function isModuleType(uint256 moduleTypeId) external view override returns (bool) {
+    if (moduleTypeId == 1) {
+      return true;
+    }
+    return false;
   }
 
   // This module should not be used to validate signatures

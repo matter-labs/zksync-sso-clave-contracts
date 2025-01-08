@@ -10,6 +10,7 @@ import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
+import { IModule } from "../interfaces/IModule.sol";
 
 /**
  * @title Manager contract for validators
@@ -51,13 +52,13 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
 
     _moduleValidatorsLinkedList().add(validator);
     if (accountValidationKey.length > 0) {
-      require(IModuleValidator(validator).addValidationKey(accountValidationKey), "failed to add initial key");
+      IModule(validator).onInstall(accountValidationKey);
     }
 
     emit AddModuleValidator(validator);
   }
 
-  function _removeModuleValidator(address validator) private {
+  function _removeModuleValidator(address validator) internal {
     _moduleValidatorsLinkedList().remove(validator);
 
     emit RemoveModuleValidator(validator);
@@ -68,7 +69,9 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   }
 
   function _supportsModuleValidator(address validator) private view returns (bool) {
-    return validator.supportsInterface(type(IModuleValidator).interfaceId);
+    return
+      validator.supportsInterface(type(IModuleValidator).interfaceId) &&
+      validator.supportsInterface(type(IModule).interfaceId);
   }
 
   function _moduleValidatorsLinkedList() private view returns (mapping(address => address) storage moduleValidators) {

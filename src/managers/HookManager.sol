@@ -11,6 +11,7 @@ import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { IExecutionHook, IValidationHook } from "../interfaces/IHook.sol";
 import { IHookManager } from "../interfaces/IHookManager.sol";
+import { IModule } from "../interfaces/IModule.sol";
 
 /**
  * @title Manager contract for hooks
@@ -139,16 +140,16 @@ abstract contract HookManager is IHookManager, Auth {
 
     if (isValidation) {
       _validationHooksLinkedList().add(hookAddress);
-      IValidationHook(hookAddress).addHook(initData);
     } else {
       _executionHooksLinkedList().add(hookAddress);
-      IExecutionHook(hookAddress).addHook(initData);
     }
+
+    IModule(hookAddress).onInstall(initData);
 
     emit AddHook(hookAddress);
   }
 
-  function _removeHook(address hook, bool isValidation) private {
+  function _removeHook(address hook, bool isValidation) internal {
     if (isValidation) {
       _validationHooksLinkedList().remove(hook);
     } else {
@@ -194,7 +195,7 @@ abstract contract HookManager is IHookManager, Auth {
 
   function _supportsHook(address hook, bool isValidation) private view returns (bool) {
     return
-      isValidation
+      hook.supportsInterface(type(IModule).interfaceId) && isValidation
         ? hook.supportsInterface(type(IValidationHook).interfaceId)
         : hook.supportsInterface(type(IExecutionHook).interfaceId);
   }

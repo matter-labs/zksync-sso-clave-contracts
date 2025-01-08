@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
+import { IModule } from "../interfaces/IModule.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
@@ -14,7 +15,7 @@ import { Base64 } from "solady/src/utils/Base64.sol";
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract allows secure user authentication using WebAuthn public keys.
-contract WebAuthValidator is VerifierCaller, IModuleValidator {
+contract WebAuthValidator is VerifierCaller, IModuleValidator, IModule {
   address private constant P256_VERIFIER = address(0x100);
   bytes1 private constant AUTH_DATA_MASK = 0x05;
   bytes32 private constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
@@ -25,6 +26,26 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   // The layout is weird due to EIP-7562 storage read restrictions for validation phase.
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public upperKeyHalf;
+
+  function onInstall(bytes calldata data) external override {
+    require(_addValidationKey(data), "WebAuthValidator: key already exists");
+  }
+
+  function onUninstall(bytes calldata data) external override {
+    string[] memory domains = abi.decode(data, (string[]));
+    for (uint256 i = 0; i < domains.length; i++) {
+      string memory domain = domains[i];
+      lowerKeyHalf[domain][msg.sender] = 0x0;
+      upperKeyHalf[domain][msg.sender] = 0x0;
+    }
+  }
+
+  function isModuleType(uint256 moduleTypeId) external view override returns (bool) {
+    if (moduleTypeId == 1) {
+      return true;
+    }
+    return false;
+  }
 
   function addValidationKey(bytes memory key) external returns (bool) {
     return _addValidationKey(key);

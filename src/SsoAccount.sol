@@ -21,6 +21,7 @@ import { ERC1271Handler } from "./handlers/ERC1271Handler.sol";
 import { BatchCaller } from "./batch/BatchCaller.sol";
 
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
+import { IModule } from "./interfaces/IModule.sol";
 
 /// @title SSO Account
 /// @author Matter Labs
@@ -49,6 +50,30 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     }
     for (uint256 i = 0; i < initialK1Owners.length; ++i) {
       _k1AddOwner(initialK1Owners[i]);
+    }
+  }
+
+  /**
+   * @dev Uninstalls a Module of a certain type on the smart account
+   * @param moduleTypeId the module type ID according the ERC-7579 spec
+   * @param module the module address
+   * @param deInitData arbitrary data that may be required on the module during `onInstall`
+   * initialization.
+   *
+   * MUST implement authorization control
+   * MUST call `onUninstall` on the module with the `deInitData` parameter if provided
+   * MUST emit ModuleUninstalled event
+   * MUST revert if the module is not installed or the deInitialization on the module failed
+   */
+  function uninstallModule(uint256 moduleTypeId, address module, bytes calldata deInitData) external onlySelf {
+    if (moduleTypeId == 1) {
+      _removeModuleValidator(module);
+      IModule(module).onUninstall(deInitData);
+    } else if (moduleTypeId == 4) {
+      _removeHook(module, true);
+      IModule(module).onUninstall(deInitData);
+    } else {
+      revert("no module of type");
     }
   }
 
