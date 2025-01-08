@@ -44,8 +44,10 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
   /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey))`.
   /// @param initialK1Owners An array of addresses with full control over the account.
   function initialize(bytes[] calldata initialValidators, address[] calldata initialK1Owners) external initializer {
+    address validatorAddr;
+    bytes memory validationKey;
     for (uint256 i = 0; i < initialValidators.length; ++i) {
-      (address validatorAddr, bytes memory validationKey) = abi.decode(initialValidators[i], (address, bytes));
+      (validatorAddr, validationKey) = abi.decode(initialValidators[i], (address, bytes));
       _addModuleValidator(validatorAddr, validationKey);
     }
     for (uint256 i = 0; i < initialK1Owners.length; ++i) {
@@ -131,15 +133,31 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
   /// @param _data The calldata to pass along with the call.
   function _executeCall(address _to, uint128 _value, bytes calldata _data) internal {
     uint32 gas = Utils.safeCastToU32(gasleft());
+    bool success;
 
     if (_to == address(DEPLOYER_SYSTEM_CONTRACT)) {
-      // Note, that the deployer contract can only be called with a "systemCall" flag.
-      SystemContractsCaller.systemCallWithPropagatedRevert(gas, _to, _value, _data);
+      bytes4 selector = bytes4(_data[:4]);
+      // Check that called function is the deployment method,
+      // the other deployer methods are not supposed to be called from the account.
+      // NOTE: DefaultAccount has the same behavior.
+      bool isSystemCall = selector == DEPLOYER_SYSTEM_CONTRACT.create.selector ||
+        selector == DEPLOYER_SYSTEM_CONTRACT.create2.selector ||
+        selector == DEPLOYER_SYSTEM_CONTRACT.createAccount.selector ||
+        selector == DEPLOYER_SYSTEM_CONTRACT.create2Account.selector;
+      // Note, that the deployer contract can only be called with a "isSystemCall" flag.
+      success = EfficientCall.rawCall({
+        _gas: gas,
+        _address: _to,
+        _value: _value,
+        _data: _data,
+        _isSystem: isSystemCall
+      });
     } else {
-      bool success = EfficientCall.rawCall(gas, _to, _value, _data, false);
-      if (!success) {
-        EfficientCall.propagateRevert();
-      }
+      success = EfficientCall.rawCall(gas, _to, _value, _data, false);
+    }
+
+    if (!success) {
+      EfficientCall.propagateRevert();
     }
   }
 
@@ -147,8 +165,7 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
   /// to have and entry point for escaping funds when L2 transactions are censored by the chain, and only
   /// forced transactions are accepted by the network.
   /// @dev It is not implemented yet.
-  /// @param _transaction The transaction data.
-  function executeTransactionFromOutside(Transaction calldata _transaction) external payable override {
+  function executeTransactionFromOutside(Transaction calldata) external payable override {
     revert Errors.METHOD_NOT_IMPLEMENTED();
   }
 
@@ -165,8 +182,6 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     if (!success) {
       revert Errors.FEE_PAYMENT_FAILED();
     }
-
-    emit FeePaid();
   }
   /// @notice This function is called by the system if the transaction has a paymaster
   /// and prepares the interaction with the paymaster.
@@ -208,7 +223,11 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     (bytes memory signature, address validator, ) = SignatureDecoder.decodeSignature(_transaction.signature);
 
     bool validationSuccess = _handleValidation(validator, _signedHash, signature, _transaction);
-    return validationSuccess ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
+    if (!validationSuccess) {
+      return bytes4(0);
+    }
+
+    return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
   }
 
   /// @dev Increments the nonce value in Nonce Holder system contract to ensure replay attack protection.
@@ -226,7 +245,7 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
   /// @dev Safely casts a uint256 to an address.
   /// @dev Revert if the value exceeds the maximum size for an address (160 bits).
   function _safeCastToAddress(uint256 _value) internal pure returns (address) {
-    if (_value > type(uint160).max) revert();
+    require(_value <= type(uint160).max, "Overflow");
     return address(uint160(_value));
   }
 }

@@ -21,7 +21,7 @@ library SsoStorage {
     // │       Hooks       │
     mapping(address => address) validationHooks;
     mapping(address => address) executionHooks;
-    mapping(address => mapping(bytes32 => bytes)) hookDataStore;
+    mapping(address => mapping(bytes32 => bytes)) __DEPRECATED_hookDataStore;
     uint256[50] __gap_4;
     // └───────────────────┘
   }

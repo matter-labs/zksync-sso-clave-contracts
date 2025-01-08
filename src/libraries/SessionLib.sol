@@ -126,9 +126,8 @@ library SessionLib {
     if (limit.limitType == LimitType.Lifetime) {
       require(tracker.lifetimeUsage[msg.sender] + value <= limit.limit, "Lifetime limit exceeded");
       tracker.lifetimeUsage[msg.sender] += value;
-    }
-    if (limit.limitType == LimitType.Allowance) {
-      TimestampAsserterLocator.locate().assertTimestampInRange(period * limit.period, (period + 1) * limit.period);
+    } else if (limit.limitType == LimitType.Allowance) {
+      TimestampAsserterLocator.locate().assertTimestampInRange(period * limit.period, (period + 1) * limit.period - 1);
       require(tracker.allowanceUsage[period][msg.sender] + value <= limit.limit, "Allowance limit exceeded");
       tracker.allowanceUsage[period][msg.sender] += value;
     }
@@ -203,6 +202,7 @@ library SessionLib {
     require(state.status[msg.sender] == Status.Active, "Session is not active");
     TimestampAsserterLocator.locate().assertTimestampInRange(0, spec.expiresAt);
 
+    require(transaction.to <= type(uint160).max, "Overflow");
     address target = address(uint160(transaction.to));
 
     if (transaction.paymasterInput.length >= 4) {
@@ -289,7 +289,7 @@ library SessionLib {
       TransferSpec memory transferSpec = spec.transferPolicies[i];
       transferValue[i] = LimitState({
         remaining: remainingLimit(transferSpec.valueLimit, session.transferValue[transferSpec.target], account),
-        target: spec.transferPolicies[i].target,
+        target: transferSpec.target,
         selector: bytes4(0),
         index: 0
       });

@@ -11,7 +11,7 @@ import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Base64 } from "solady/src/utils/Base64.sol";
 
-/// @title AAFactory
+/// @title WebAuthValidator
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract allows secure user authentication using WebAuthn public keys.
@@ -47,11 +47,11 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator, IModule {
     return false;
   }
 
-  function addValidationKey(bytes memory key) external returns (bool) {
+  function addValidationKey(bytes calldata key) external returns (bool) {
     return _addValidationKey(key);
   }
 
-  function _addValidationKey(bytes memory key) internal returns (bool) {
+  function _addValidationKey(bytes calldata key) internal returns (bool) {
     (bytes32[2] memory key32, string memory originDomain) = abi.decode(key, (bytes32[2], string));
     bytes32 initialLowerHalf = lowerKeyHalf[originDomain][msg.sender];
     bytes32 initialUpperHalf = upperKeyHalf[originDomain][msg.sender];
@@ -74,7 +74,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator, IModule {
 
   function validateTransaction(
     bytes32 signedHash,
-    bytes memory signature,
+    bytes calldata signature,
     Transaction calldata
   ) external view returns (bool) {
     return webAuthVerify(signedHash, signature);
