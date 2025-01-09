@@ -8,11 +8,12 @@ import { assert, expect } from "chai";
 import * as hre from "hardhat";
 import { Wallet } from "zksync-ethers";
 
-import { WebAuthValidator, WebAuthValidator__factory } from "../typechain-types";
-import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
+import { SsoAccount__factory, WebAuthValidator, WebAuthValidator__factory } from "../typechain-types";
+import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 import { encodeAbiParameters, Hex, toHex } from "viem";
 import { randomBytes } from "crypto";
+import { parseEther, ZeroAddress } from "ethers";
 
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
@@ -441,6 +442,53 @@ describe("Passkey validation", function () {
     24, 71, 28, 210, 116, 124, 90, 115, 166, 213, 190, 89, 4, 216, 128, 34, 88, 32, 193, 67, 151, 85, 245, 24, 139, 246,
     220, 204, 228, 76, 247, 65, 179, 235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73, 37, 195, 20, 194, 9,
   ]);
+
+  describe("account integration", () => {
+    const fixtures = new ContractFixtures();
+    const provider = getProvider();
+
+    it("should deploy proxy account via factory", async () => {
+      const factoryContract = await fixtures.getAaFactory();
+      const passKeyModuleAddress = await fixtures.getPasskeyModuleAddress();
+      const passKeyModuleContract = await fixtures.getWebAuthnVerifierContract();
+
+      const randomSalt = randomBytes(32);
+      const sampleDomain = "http://example.com";
+      const publicKeys = await getPublicKey(publicKeyEs256Bytes);
+      const initPasskeyData = encodeKeyFromHex(publicKeys, sampleDomain);
+
+      const passKeyPayload = encodeAbiParameters(
+        [{ name: "moduleAddress", type: "address"}, {name: "moduleData", type: "bytes"}],
+        [passKeyModuleAddress, initPasskeyData]);
+      logInfo(`\`deployProxySsoAccount\` args: ${initPasskeyData}`);
+      const deployTx = await factoryContract.deployProxySsoAccount(
+        randomSalt,
+        "pass-key-test-id" + randomBytes(32).toString(),
+        [passKeyPayload],
+        [wallet.address],
+      );
+
+      const deployTxReceipt = await deployTx.wait();
+      logInfo(`\`deployProxySsoAccount\` gas used: ${deployTxReceipt?.gasUsed.toString()}`);
+
+      const proxyAccountAddress = deployTxReceipt!.contractAddress!;
+      expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
+
+      const fundTx = await wallet.sendTransaction({ value: parseEther("1"), to: proxyAccountAddress });
+      const receipt = await fundTx.wait();
+      expect(receipt.status).to.eq(1, "send funds to proxy account");
+
+      const initLowerKey = await passKeyModuleContract.lowerKeyHalf(sampleDomain, proxyAccountAddress);
+      expect(initLowerKey).to.equal(publicKeys[0], "initial lower key should exist");
+      const initUpperKey = await passKeyModuleContract.upperKeyHalf(sampleDomain, proxyAccountAddress);
+      expect(initUpperKey).to.equal(publicKeys[1], "initial upper key should exist");
+
+      const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
+      assert(await account.k1IsOwner(fixtures.wallet.address));
+      assert(!await account.isHook(passKeyModuleAddress), "passkey module should not be an execution hook");
+      assert(await account.isModuleValidator(passKeyModuleAddress), "passkey module should be a validator");
+    });
+  });
 
   it("should support ERC165 and IModuleValidator", async () => {
     const passkeyValidator = await deployValidator(wallet);

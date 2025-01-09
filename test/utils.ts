@@ -11,6 +11,7 @@ import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2
 
 import { AAFactory, ERC20, ExampleAuthServerPaymaster, SessionKeyValidator, SsoAccount, WebAuthValidator, SsoBeacon, AccountProxy__factory, AccountProxy } from "../typechain-types";
 import { AAFactory__factory, ERC20__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, SsoAccount__factory, WebAuthValidator__factory, SsoBeacon__factory } from "../typechain-types";
+import { Address, isHex, toHex } from "viem";
 
 export const ethersStaticSalt = new Uint8Array([
   205, 241, 161, 186, 101, 105, 79,
@@ -73,8 +74,10 @@ export class ContractFixtures {
     return this._webauthnValidatorModule;
   }
 
-  async getPasskeyModuleAddress() {
-    return (await this.getWebAuthnVerifierContract()).getAddress();
+  async getPasskeyModuleAddress(): Promise<Address> {
+    const webAuthnVerifierContract = await this.getWebAuthnVerifierContract();
+    const contractAddress = await webAuthnVerifierContract.getAddress()
+    return isHex(contractAddress) ? contractAddress : toHex(contractAddress);
   }
 
   private _accountImplContract: SsoAccount;
