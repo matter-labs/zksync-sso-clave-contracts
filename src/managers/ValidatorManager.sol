@@ -2,13 +2,13 @@
 pragma solidity ^0.8.24;
 
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/ExcessivelySafeCall.sol";
 
 import { Auth } from "../auth/Auth.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { IInitable } from "../interfaces/IInitable.sol";
-import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
@@ -19,8 +19,7 @@ import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
  * @author https://getclave.io
  */
 abstract contract ValidatorManager is IValidatorManager, Auth {
-  // Helper library for address to address mappings
-  using AddressLinkedList for mapping(address => address);
+  using EnumerableSet for EnumerableSet.AddressSet;
   // Interface helper library
   using ERC165Checker for address;
   // Low level calls helper library
@@ -42,7 +41,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
 
   /// @inheritdoc IValidatorManager
   function listModuleValidators() external view override returns (address[] memory validatorList) {
-    validatorList = _moduleValidatorsLinkedList().list();
+    validatorList = _moduleValidators().values();
   }
 
   function _addModuleValidator(address validator, bytes memory accountValidationKey) internal {
@@ -50,14 +49,14 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
       revert Errors.VALIDATOR_ERC165_FAIL(validator);
     }
 
-    _moduleValidatorsLinkedList().add(validator);
+    _moduleValidators().add(validator);
     IModuleValidator(validator).init(accountValidationKey);
 
     emit AddModuleValidator(validator);
   }
 
   function _removeModuleValidator(address validator) private {
-    _moduleValidatorsLinkedList().remove(validator);
+    _moduleValidators().remove(validator);
 
     validator.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
 
@@ -65,14 +64,14 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   }
 
   function _isModuleValidator(address validator) internal view returns (bool) {
-    return _moduleValidatorsLinkedList().exists(validator);
+    return _moduleValidators().contains(validator);
   }
 
   function _supportsModuleValidator(address validator) private view returns (bool) {
     return validator.supportsInterface(type(IModuleValidator).interfaceId);
   }
 
-  function _moduleValidatorsLinkedList() private view returns (mapping(address => address) storage moduleValidators) {
+  function _moduleValidators() private view returns (EnumerableSet.AddressSet storage moduleValidators) {
     moduleValidators = SsoStorage.layout().moduleValidators;
   }
 }

@@ -2,12 +2,12 @@
 pragma solidity ^0.8.24;
 
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/ExcessivelySafeCall.sol";
 
 import { Auth } from "../auth/Auth.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
-import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { IExecutionHook, IValidationHook } from "../interfaces/IHook.sol";
 import { IInitable } from "../interfaces/IInitable.sol";
@@ -20,8 +20,7 @@ import { IHookManager } from "../interfaces/IHookManager.sol";
  * @author https://getclave.io
  */
 abstract contract HookManager is IHookManager, Auth {
-  // Helper library for address to address mappings
-  using AddressLinkedList for mapping(address => address);
+  using EnumerableSet for EnumerableSet.AddressSet;
   // Interface helper library
   using ERC165Checker for address;
   // Low level calls helper library
@@ -50,19 +49,19 @@ abstract contract HookManager is IHookManager, Auth {
   /// @inheritdoc IHookManager
   function listHooks(bool isValidation) external view override returns (address[] memory hookList) {
     if (isValidation) {
-      hookList = _validationHooksLinkedList().list();
+      hookList = _validationHooks().values();
     } else {
-      hookList = _executionHooksLinkedList().list();
+      hookList = _executionHooks().values();
     }
   }
 
   // Runs the validation hooks that are enabled by the account and returns true if none reverts
   function runValidationHooks(bytes32 signedHash, Transaction calldata transaction) internal returns (bool) {
-    address[] memory hookList = _validationHooksLinkedList().list();
-    uint256 totalHooks = hookList.length;
+    EnumerableSet.AddressSet storage hookList = _validationHooks();
+    uint256 totalHooks = hookList.length();
 
     for (uint256 i = 0; i < totalHooks; i++) {
-      bool success = _call(hookList[i], abi.encodeCall(IValidationHook.validationHook, (signedHash, transaction)));
+      bool success = _call(hookList.at(i), abi.encodeCall(IValidationHook.validationHook, (signedHash, transaction)));
 
       if (!success) {
         return false;
@@ -74,17 +73,17 @@ abstract contract HookManager is IHookManager, Auth {
 
   // Runs the execution hooks that are enabled by the account before and after _executeTransaction
   modifier runExecutionHooks(Transaction calldata transaction) {
-    address[] memory hookList = _executionHooksLinkedList().list();
-    uint256 totalHooks = hookList.length;
+    EnumerableSet.AddressSet storage hookList = _executionHooks();
+    uint256 totalHooks = hookList.length();
 
     for (uint256 i = 0; i < totalHooks; i++) {
-      IExecutionHook(hookList[i]).preExecutionHook(transaction);
+      IExecutionHook(hookList.at(i)).preExecutionHook(transaction);
     }
 
     _;
 
     for (uint256 i = 0; i < totalHooks; i++) {
-      IExecutionHook(hookList[i]).postExecutionHook();
+      IExecutionHook(hookList.at(i)).postExecutionHook();
     }
   }
 
@@ -106,9 +105,9 @@ abstract contract HookManager is IHookManager, Auth {
     }
 
     if (isValidation) {
-      _validationHooksLinkedList().add(hookAddress);
+      _validationHooks().add(hookAddress);
     } else {
-      _executionHooksLinkedList().add(hookAddress);
+      _executionHooks().add(hookAddress);
     }
 
     IInitable(hookAddress).init(initData);
@@ -118,9 +117,9 @@ abstract contract HookManager is IHookManager, Auth {
 
   function _removeHook(address hook, bool isValidation) private {
     if (isValidation) {
-      _validationHooksLinkedList().remove(hook);
+      _validationHooks().remove(hook);
     } else {
-      _executionHooksLinkedList().remove(hook);
+      _executionHooks().remove(hook);
     }
 
     hook.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
@@ -129,7 +128,7 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   function _isHook(address addr) internal view override returns (bool) {
-    return _validationHooksLinkedList().exists(addr) || _executionHooksLinkedList().exists(addr);
+    return _validationHooks().contains(addr) || _executionHooks().contains(addr);
   }
 
   function _call(address target, bytes memory data) private returns (bool success) {
@@ -138,11 +137,11 @@ abstract contract HookManager is IHookManager, Auth {
     }
   }
 
-  function _validationHooksLinkedList() private view returns (mapping(address => address) storage validationHooks) {
+  function _validationHooks() private view returns (EnumerableSet.AddressSet storage validationHooks) {
     validationHooks = SsoStorage.layout().validationHooks;
   }
 
-  function _executionHooksLinkedList() private view returns (mapping(address => address) storage executionHooks) {
+  function _executionHooks() private view returns (EnumerableSet.AddressSet storage executionHooks) {
     executionHooks = SsoStorage.layout().executionHooks;
   }
 

@@ -1,27 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
 library SsoStorage {
   bytes32 private constant SSO_STORAGE_SLOT = 0x3248da1aeae8bd923cbf26901dc4bfc6bb48bb0fbc5b6102f1151fe7012884f4;
 
   struct Layout {
     // ┌───────────────────┐
     // │   Ownership Data  │
-    mapping(address => address) k1Owners;
+    EnumerableSet.AddressSet k1Owners;
     uint256[50] __gap_0;
     // └───────────────────┘
 
     // ┌───────────────────┐
     // │     Validation    │
-    mapping(address => address) moduleValidators;
+    EnumerableSet.AddressSet moduleValidators;
     uint256[50] __gap_2;
     // └───────────────────┘
 
     // ┌───────────────────┐
     // │       Hooks       │
-    mapping(address => address) validationHooks;
-    mapping(address => address) executionHooks;
-    mapping(address => mapping(bytes32 => bytes)) __DEPRECATED_hookDataStore;
+    EnumerableSet.AddressSet validationHooks;
+    EnumerableSet.AddressSet executionHooks;
     uint256[50] __gap_4;
     // └───────────────────┘
   }
