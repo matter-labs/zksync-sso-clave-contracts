@@ -3,7 +3,6 @@ pragma solidity ^0.8.24;
 
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
-import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/ExcessivelySafeCall.sol";
 
 import { Auth } from "../auth/Auth.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
@@ -24,8 +23,6 @@ abstract contract HookManager is IHookManager, Auth {
   using AddressLinkedList for mapping(address => address);
   // Interface helper library
   using ERC165Checker for address;
-  // Low level calls helper library
-  using ExcessivelySafeCall for address;
 
   // Slot for execution hooks to store context
   bytes32 private constant CONTEXT_KEY = keccak256("HookManager.context");

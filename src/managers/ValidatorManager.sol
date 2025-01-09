@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/ExcessivelySafeCall.sol";
 
 import { Auth } from "../auth/Auth.sol";
 import { Errors } from "../libraries/Errors.sol";
@@ -23,8 +22,6 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   using AddressLinkedList for mapping(address => address);
   // Interface helper library
   using ERC165Checker for address;
-  // Low level calls helper library
-  using ExcessivelySafeCall for address;
 
   function addModuleValidator(address validator, bytes calldata accountValidationKey) external onlySelf {
     _addModuleValidator(validator, accountValidationKey);
