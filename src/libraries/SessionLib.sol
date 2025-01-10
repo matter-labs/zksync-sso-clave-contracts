@@ -5,10 +5,12 @@ import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/li
 import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { LibBytes } from "solady/src/utils/LibBytes.sol";
 
 library SessionLib {
   using SessionLib for SessionLib.Constraint;
   using SessionLib for SessionLib.UsageLimit;
+  using LibBytes for bytes;
 
   // We do not permit session keys to be reused to open multiple sessions
   // (after one expires or is closed, e.g.).
@@ -137,11 +139,11 @@ library SessionLib {
   function checkAndUpdate(
     Constraint memory constraint,
     UsageTracker storage tracker,
-    bytes calldata data,
+    bytes memory data,
     uint64 period
   ) internal {
     uint256 index = 4 + constraint.index * 32;
-    bytes32 param = bytes32(data[index:index + 32]);
+    bytes32 param = bytes32(data.slice(index, index + 32));
     Condition condition = constraint.condition;
     bytes32 refValue = constraint.refValue;
 
