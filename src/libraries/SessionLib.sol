@@ -142,8 +142,8 @@ library SessionLib {
     bytes memory data,
     uint64 period
   ) internal {
-    uint256 index = 4 + constraint.index * 32;
-    bytes32 param = bytes32(data.slice(index, index + 32));
+    require(data.length >= 4 + constraint.index * 32 + 32, "Invalid data length");
+    bytes32 param = data.load(4 + constraint.index * 32);
     Condition condition = constraint.condition;
     bytes32 refValue = constraint.refValue;
 
