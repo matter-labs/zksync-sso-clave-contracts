@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 library SessionLib {
   using SessionLib for SessionLib.Constraint;
@@ -205,12 +206,36 @@ library SessionLib {
     require(transaction.to <= type(uint160).max, "Overflow");
     address target = address(uint160(transaction.to));
 
+    // Validate paymaster input
     if (transaction.paymasterInput.length >= 4) {
-      bytes4 paymasterInputSelector = bytes4(transaction.paymasterInput[0:4]);
-      require(
-        paymasterInputSelector != IPaymasterFlow.approvalBased.selector,
-        "Approval based paymaster flow not allowed"
-      );
+      bytes4 paymasterInputSelector = bytes4(transaction.paymasterInput[:4]);
+      // SsoAccount will automatically `approve()` a token for an approval-based paymaster in `prepareForPaymaster()` call.
+      // We need to make sure that the session spec allows this.
+      if (paymasterInputSelector == IPaymasterFlow.approvalBased.selector) {
+        require(transaction.paymasterInput.length >= 68, "Invalid paymaster input length");
+        (address token, uint256 amount) = abi.decode(transaction.paymasterInput[4:], (address, uint256));
+
+        // check that session allows .approve() for this token
+        bool allowed = false;
+        CallSpec memory callPolicy;
+        for (uint256 i = 0; i < spec.callPolicies.length; i++) {
+          if (spec.callPolicies[i].target == token && spec.callPolicies[i].selector == IERC20.approve.selector) {
+            allowed = true;
+            callPolicy = spec.callPolicies[i];
+            break;
+          }
+        }
+
+        require(allowed, "Paying fees with this token is not allowed");
+        bytes memory data = abi.encodeWithSelector(IERC20.approve.selector, transaction.paymaster, amount);
+        for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
+          callPolicy.constraints[i].checkAndUpdate(
+            state.params[token][IERC20.approve.selector][i],
+            data,
+            periodIds[i + 2]
+          );
+        }
+      }
     }
 
     if (transaction.data.length >= 4) {
