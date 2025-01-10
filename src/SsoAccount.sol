@@ -22,6 +22,7 @@ import { BatchCaller } from "./batch/BatchCaller.sol";
 
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 import { IModule } from "./interfaces/IModule.sol";
+import { IModuleValidator } from "./interfaces/IModuleValidator.sol";
 
 /// @title SSO Account
 /// @author Matter Labs
@@ -222,7 +223,8 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     // Extract the signature, validator address and hook data from the _transaction.signature
     (bytes memory signature, address validator, ) = SignatureDecoder.decodeSignature(_transaction.signature);
 
-    bool validationSuccess = _handleValidation(validator, _signedHash, signature, _transaction);
+    bool validationSuccess = _isModuleValidator(validator) &&
+      IModuleValidator(validator).validateTransaction(_signedHash, signature, _transaction);
     if (!validationSuccess) {
       return bytes4(0);
     }

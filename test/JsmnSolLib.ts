@@ -22,10 +22,11 @@ import { describe } from "mocha";
 import { JsmnSolLib } from "../typechain-types/src/test/JsmnSolLibTest";
 
 describe("JsmnSolLib", function () {
+    let jsmnSolLib: JsmnSolLibTest;
     const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
+
     async function deployParser(wallet: Wallet): Promise<JsmnSolLibTest> {
         const jsonLib = await create2("JsmnSolLibTest", wallet, ethersStaticSalt, []);
-
         return JsmnSolLibTest__factory.connect(await jsonLib.getAddress(), wallet);
     }
 
@@ -48,9 +49,12 @@ describe("JsmnSolLib", function () {
     const RETURN_ERROR_PART = 2;
     const RETURN_ERROR_NO_MEM = 3;
 
+    before(async () => {
+        jsmnSolLib = await deployParser(wallet);
+    });
+
     describe("arrays", function () {
         it("should parse a simple array", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"outerKey": [{"innerKey1": "value"}, {"innerKey2": "value"}]}';
 
             const [returnValue, tokens, _actualNum] = await jsmnSolLib.parse(json, 20);
@@ -62,7 +66,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse a float array", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = "[16500.4, 16450.5]";
             const expectedInt1 = 1650040;
             const expectedInt2 = 1645050;
@@ -89,7 +92,6 @@ describe("JsmnSolLib", function () {
 
     describe("errors", function () {
         it("should return for too few tokens", async () => {
-            const jsmnSolLib = await deployParser(wallet);
 
             const json = "[16500.4, 16450.5]";
             const [returnValue, _tokens, _actualNum] = await jsmnSolLib.parse(json, 2);
@@ -100,7 +102,6 @@ describe("JsmnSolLib", function () {
 
     describe("parse int", () => {
         it("should cast double", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const testValue = "236.6";
             const expected = 23660;
             const result = await jsmnSolLib.parseIntSize(testValue, 2);
@@ -108,7 +109,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should check on decimal", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const testValue = "23.4";
             const expected = 234;
             const result = await jsmnSolLib.parseIntSize(testValue, 1);
@@ -116,7 +116,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse two decimals", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const testValue = "23.4";
             const expected = 2340;
             const result = await jsmnSolLib.parseIntSize(testValue, 2);
@@ -124,7 +123,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse two decimals", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const testValue = "-45.2";
             const expected = -452;
             const result = await jsmnSolLib.parseIntSize(testValue, 1);
@@ -134,7 +132,6 @@ describe("JsmnSolLib", function () {
 
     describe("parse object", () => {
         it("should parse an object", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"outerKey": {"innerKey": "value"}}';
 
             const [returnValue, tokens, _actualNum] = await jsmnSolLib.parse(json, 20);
@@ -146,7 +143,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should error on duplicate keys", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"importantKey": "goodValue", "importantKey": "badValue"}';
 
             const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, 20);
@@ -161,7 +157,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should error if tokens more than parsed", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"importantKey": "goodValue", "importantKey": "badValue"}';
 
             const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, 3);
@@ -174,7 +169,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse long character strings", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const testObj = {
                 base64: "+/0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz",
                 base64url: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=",
@@ -192,7 +186,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse escaped characters", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const testObj = {
                 tab: "\t",
                 quote: "\"",
@@ -223,7 +216,6 @@ describe("JsmnSolLib", function () {
 
     describe("parse primitives", () => {
         it("should parse a string key", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"key": "value"}';
 
             const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, 5);
@@ -234,7 +226,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse a longer json", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{ "key1": { "key1.1": "value", "key1.2": 3, "key1.3": true, "key1.4": "val2"} }';
 
             const [returnValue, tokens, _actualNum] = await jsmnSolLib.parse(json, 20);
@@ -286,7 +277,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse an integer key value", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"key": 23}';
 
             const [returnValue, tokens, _actualNum] = await jsmnSolLib.parse(json, 5);
@@ -300,7 +290,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse a negative integer key value", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"key": -4523}';
 
             const [returnValue, tokens, _actualNum] = await jsmnSolLib.parse(json, 5);
@@ -314,7 +303,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse a boolean key value", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"key": true}';
 
             const [returnValue, tokens, _actualNum] = await jsmnSolLib.parse(json, 5);
@@ -325,7 +313,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse float key value", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"key": 23.45, "key2": 5, "key3": "23.66", "key4": "236.6"}';
 
             const [returnValue, tokens, _actualNum] = await jsmnSolLib.parse(json, 10);
@@ -341,7 +328,6 @@ describe("JsmnSolLib", function () {
 
     describe("return values", () => {
         it("should return error not enough memory", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{ "key": "value", "key_2": 23, "key_3": true }';
 
             const [returnValue, _tokens, _actualNum] = await jsmnSolLib.parse(json, 5);
@@ -350,7 +336,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should unescape quote in string", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{ "key1": { "key1.1": "value", "key1"2": 3, "key1.3": true } }';
 
             const [returnValue, _tokens, _actualNum] = await jsmnSolLib.parse(json, 20);
@@ -362,7 +347,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse escaped quote in string", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{ "k": "a\\"b" }';
 
             const [_returnValue, tokens, _actualNum] = await jsmnSolLib.parse(json, 20);
@@ -374,7 +358,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse the correct number of elements", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{ "key": "value", "key_2": 23, "key_3": true }';
 
             const [returnValue, _tokens, actualNum] = await jsmnSolLib.parse(json, 10);
@@ -386,7 +369,6 @@ describe("JsmnSolLib", function () {
 
     describe("unicode", () => {
         it("should parse umlaut", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"key": "Möhrenbrot"}';
 
             const [returnValue, tokens, _actualNum] = await jsmnSolLib.parse(json, 5);
@@ -398,7 +380,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse diacritcs", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"key": "svenskå", "key2": "smørgasbröd", "key3": "Fußball"}';
 
             const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, 10);
@@ -422,7 +403,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse in the 0x80-0x7ff range", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"\xc2\x80": "\xc2\x81", "\xdf\xbe": "\xdf\xbf"}';
 
             const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, 10);
@@ -436,7 +416,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse in 0x800-0xffff range", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"\xe0\xa0\x80": "\xe0\xa0\x81", "\xef\xbf\xbe": "\xef\xbf\xbf"}';
             const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, 10);
 
@@ -449,7 +428,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should parse in 0x10000-0x10ffff range", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"\xf0\x90\x80\x80": "\xf0\x90\x80\x81", "\xf4\x8f\xbf\xbe": "\xf4\x8f\xbf\xbf"}';
             const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, 10);
 
@@ -462,7 +440,6 @@ describe("JsmnSolLib", function () {
         });
 
         it("should accept unicode encoding", async () => {
-            const jsmnSolLib = await deployParser(wallet);
             const json = '{"\uD834\uDD1E": "👁️"}';
             const [returnValue, tokens, actualNum] = await jsmnSolLib.parse(json, 10);
 
@@ -478,7 +455,6 @@ describe("JsmnSolLib", function () {
 
         function generateTestCase(filename: string) {
             return async () => {
-                const jsmnSolLib = await deployParser(wallet);
                 const testFile = readFileSync(join(jsonDir, filename), "utf-8");
 
                 const tryParse = async (): Promise<[bigint, JsmnSolLib.TokenStructOutput[], bigint]> => {

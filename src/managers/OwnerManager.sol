@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
-import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { Auth } from "../auth/Auth.sol";
 import { IOwnerManager } from "../interfaces/IOwnerManager.sol";
@@ -15,8 +15,7 @@ import { IOwnerManager } from "../interfaces/IOwnerManager.sol";
  * @author https://getclave.io
  */
 abstract contract OwnerManager is IOwnerManager, Auth {
-  // Helper library for address to address mappings
-  using AddressLinkedList for mapping(address => address);
+  using EnumerableSet for EnumerableSet.AddressSet;
 
   /// @inheritdoc IOwnerManager
   function k1AddOwner(address addr) external override onlySelf {
@@ -35,30 +34,26 @@ abstract contract OwnerManager is IOwnerManager, Auth {
 
   /// @inheritdoc IOwnerManager
   function k1ListOwners() external view override returns (address[] memory k1OwnerList) {
-    k1OwnerList = _k1OwnersLinkedList().list();
+    k1OwnerList = _k1Owners().values();
   }
 
   function _k1AddOwner(address addr) internal {
-    _k1OwnersLinkedList().add(addr);
+    _k1Owners().add(addr);
 
     emit K1AddOwner(addr);
   }
 
   function _k1RemoveOwner(address addr) internal {
-    _k1OwnersLinkedList().remove(addr);
+    _k1Owners().remove(addr);
 
     emit K1RemoveOwner(addr);
   }
 
   function _k1IsOwner(address addr) internal view returns (bool) {
-    return _k1OwnersLinkedList().exists(addr);
+    return _k1Owners().contains(addr);
   }
 
-  function _k1OwnersLinkedList() private view returns (mapping(address => address) storage k1Owners) {
+  function _k1Owners() private view returns (EnumerableSet.AddressSet storage k1Owners) {
     k1Owners = SsoStorage.layout().k1Owners;
-  }
-
-  function _k1ClearOwners() private {
-    _k1OwnersLinkedList().clear();
   }
 }

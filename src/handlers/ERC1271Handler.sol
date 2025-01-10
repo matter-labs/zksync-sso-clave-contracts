@@ -4,17 +4,18 @@ pragma solidity ^0.8.24;
 import { IERC1271Upgradeable } from "@openzeppelin/contracts-upgradeable/interfaces/IERC1271Upgradeable.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
+import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
-import { ValidationHandler } from "./ValidationHandler.sol";
-import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import { OwnerManager } from "../managers/OwnerManager.sol";
+import { ValidatorManager } from "../managers/ValidatorManager.sol";
 
 /// @title ERC1271Handler
 /// @author Matter Labs
 /// @notice Contract which provides ERC1271 signature validation
 /// @notice The implementation is inspired by Clave wallet.
-abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.0"), ValidationHandler {
+abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.0"), OwnerManager, ValidatorManager {
   struct SsoMessage {
     bytes32 signedHash;
   }

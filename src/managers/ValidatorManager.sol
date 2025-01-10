@@ -2,11 +2,11 @@
 pragma solidity ^0.8.24;
 
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { Auth } from "../auth/Auth.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
-import { AddressLinkedList } from "../libraries/LinkedList.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
@@ -18,8 +18,7 @@ import { IModule } from "../interfaces/IModule.sol";
  * @author https://getclave.io
  */
 abstract contract ValidatorManager is IValidatorManager, Auth {
-  // Helper library for address to address mappings
-  using AddressLinkedList for mapping(address => address);
+  using EnumerableSet for EnumerableSet.AddressSet;
   // Interface helper library
   using ERC165Checker for address;
 
@@ -39,7 +38,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
 
   /// @inheritdoc IValidatorManager
   function listModuleValidators() external view override returns (address[] memory validatorList) {
-    validatorList = _moduleValidatorsLinkedList().list();
+    validatorList = _moduleValidators().values();
   }
 
   function _addModuleValidator(address validator, bytes memory accountValidationKey) internal {
@@ -47,7 +46,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
       revert Errors.VALIDATOR_ERC165_FAIL(validator);
     }
 
-    _moduleValidatorsLinkedList().add(validator);
+    _moduleValidators().add(validator);
     if (accountValidationKey.length > 0) {
       IModule(validator).onInstall(accountValidationKey);
     }
@@ -56,13 +55,13 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   }
 
   function _removeModuleValidator(address validator) internal {
-    _moduleValidatorsLinkedList().remove(validator);
+    _moduleValidators().remove(validator);
 
     emit RemoveModuleValidator(validator);
   }
 
   function _isModuleValidator(address validator) internal view returns (bool) {
-    return _moduleValidatorsLinkedList().exists(validator);
+    return _moduleValidators().contains(validator);
   }
 
   function _supportsModuleValidator(address validator) private view returns (bool) {
@@ -71,7 +70,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
       validator.supportsInterface(type(IModule).interfaceId);
   }
 
-  function _moduleValidatorsLinkedList() private view returns (mapping(address => address) storage moduleValidators) {
+  function _moduleValidators() private view returns (EnumerableSet.AddressSet storage moduleValidators) {
     moduleValidators = SsoStorage.layout().moduleValidators;
   }
 }
