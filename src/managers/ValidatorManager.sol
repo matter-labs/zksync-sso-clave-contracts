@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/ExcessivelySafeCall.sol";
 
 import { Auth } from "../auth/Auth.sol";
 import { Errors } from "../libraries/Errors.sol";
@@ -21,14 +22,23 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   using EnumerableSet for EnumerableSet.AddressSet;
   // Interface helper library
   using ERC165Checker for address;
+  // Low level calls helper library
+  using ExcessivelySafeCall for address;
 
-  function addModuleValidator(address validator, bytes calldata accountValidationKey) external onlySelf {
-    _addModuleValidator(validator, accountValidationKey);
+  function addModuleValidator(address validator, bytes calldata initData) external onlySelf {
+    _addModuleValidator(validator, initData);
   }
 
   ///@inheritdoc IValidatorManager
-  function removeModuleValidator(address validator) external onlySelf {
+  function removeModuleValidator(address validator, bytes calldata deinitData) external onlySelf {
     _removeModuleValidator(validator);
+    IModule(validator).onUninstall(deinitData);
+  }
+
+  ///@inheritdoc IValidatorManager
+  function unlinkModuleValidator(address validator, bytes calldata deinitData) external onlySelf {
+    _removeModuleValidator(validator);
+    validator.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IModule.onUninstall.selector, deinitData));
   }
 
   /// @inheritdoc IValidatorManager
@@ -41,23 +51,21 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     validatorList = _moduleValidators().values();
   }
 
-  function _addModuleValidator(address validator, bytes memory accountValidationKey) internal {
+  function _addModuleValidator(address validator, bytes memory initData) internal {
     if (!_supportsModuleValidator(validator)) {
       revert Errors.VALIDATOR_ERC165_FAIL(validator);
     }
 
     _moduleValidators().add(validator);
-    if (accountValidationKey.length > 0) {
-      IModule(validator).onInstall(accountValidationKey);
-    }
+    IModule(validator).onInstall(initData);
 
-    emit AddModuleValidator(validator);
+    emit ValidatorAdded(validator);
   }
 
   function _removeModuleValidator(address validator) internal {
     _moduleValidators().remove(validator);
 
-    emit RemoveModuleValidator(validator);
+    emit ValidatorRemoved(validator);
   }
 
   function _isModuleValidator(address validator) internal view returns (bool) {

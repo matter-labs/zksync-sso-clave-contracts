@@ -38,6 +38,9 @@ importers:
       '@matterlabs/zksync-contracts':
         specifier: ^0.6.1
         version: 0.6.1(@openzeppelin/contracts-upgradeable@4.9.6)(@openzeppelin/contracts@4.9.6)
+      '@nomad-xyz/excessively-safe-call':
+        specifier: 0.0.1-rc.1
+        version: 0.0.1-rc.1
       '@nomicfoundation/hardhat-chai-matchers':
         specifier: 2.0.8
         version: 2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.15))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)))(chai@4.5.0)(ethers@6.13.2)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.15))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2))
@@ -1386,6 +1389,9 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+
+  '@nomad-xyz/excessively-safe-call@0.0.1-rc.1':
+    resolution: {integrity: sha512-Q5GVakBy8J1kWjydH6W5LNbkYY+Cw2doBiLodOfbFGujeng6zM+EtMLb/V+vkWbskbM81y2r+LG5NmxsxyElPA==}
 
   '@nomicfoundation/edr-darwin-arm64@0.6.5':
     resolution: {integrity: sha512-A9zCCbbNxBpLgjS1kEJSpqxIvGGAX4cYbpDYCU2f3jVqOwaZ/NU761y1SvuCRVpOwhoCXqByN9b7HPpHi0L4hw==}
@@ -8255,6 +8261,8 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
+
+  '@nomad-xyz/excessively-safe-call@0.0.1-rc.1': {}
 
   '@nomicfoundation/edr-darwin-arm64@0.6.5': {}
 

@@ -2,13 +2,11 @@
 pragma solidity ^0.8.24;
 
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-
-import { IModule } from "../interfaces/IModule.sol";
-import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
-
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
+import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
+import { IModule } from "../interfaces/IModule.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
@@ -18,7 +16,7 @@ import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.so
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract is used to manage sessions for a smart account.
-contract SessionKeyValidator is IModuleValidator, IModule {
+contract SessionKeyValidator is IModuleValidator {
   using SessionLib for SessionLib.SessionStorage;
 
   event SessionCreated(address indexed account, bytes32 indexed sessionHash, SessionLib.SessionSpec sessionSpec);
@@ -42,21 +40,20 @@ contract SessionKeyValidator is IModuleValidator, IModule {
   }
 
   function onInstall(bytes calldata data) external override {
-    require(_addValidationKey(data), "SessionKeyValidator: failed to add key");
+    if (data.length > 0) {
+      require(_addValidationKey(data), "SessionKeyValidator: failed to add key");
+    }
   }
 
   function onUninstall(bytes calldata data) external override {
+    // Revoke keys before uninstalling
     bytes32[] memory sessionHashes = abi.decode(data, (bytes32[]));
     for (uint256 i = 0; i < sessionHashes.length; i++) {
       revokeKey(sessionHashes[i]);
     }
-  }
-
-  function isModuleType(uint256 moduleTypeId) external view override returns (bool) {
-    if (moduleTypeId == 1) {
-      return true;
-    }
-    return false;
+    // Here we have make sure that all keys are revoked, so that if the module
+    // is installed again later, there will be no active sessions from the past.
+    require(sessionCounter[msg.sender] == 0, "Revoke all keys first");
   }
 
   // This module should not be used to validate signatures

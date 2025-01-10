@@ -3,12 +3,13 @@ pragma solidity ^0.8.24;
 
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
+import { IModule } from "./IModule.sol";
 
 /**
  * @title Modular validator interface for native AA
  * @dev Add signature to module or validate existing signatures for acccount
  */
-interface IModuleValidator is IERC165 {
+interface IModuleValidator is IModule, IERC165 {
   function validateTransaction(
     bytes32 signedHash,
     bytes memory signature,

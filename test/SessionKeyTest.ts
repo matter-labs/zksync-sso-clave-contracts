@@ -570,12 +570,21 @@ describe("SessionKeyModule tests", function () {
 
     it("should uninstall the module", async () => {
       const sessionModuleAddress = await fixtures.getSessionKeyModuleAddress();
-      await tester.sendAaTx(proxyAccountAddress, ssoAbi.encodeFunctionData("removeModuleValidator", [sessionModuleAddress]));
+      await tester.sendAaTx(proxyAccountAddress, ssoAbi.encodeFunctionData("removeModuleValidator", [
+        sessionModuleAddress,
+        abiCoder.encode(["bytes32[]"], [[]])
+      ]));
     });
 
     it("should reinstall the module", async () => {
       const sessionModuleAddress = await fixtures.getSessionKeyModuleAddress();
       await tester.sendAaTx(proxyAccountAddress, ssoAbi.encodeFunctionData("addModuleValidator", [sessionModuleAddress, "0x"]));
+    });
+
+    it("should unlink the module ignoring reverts", async () => {
+      const sessionModuleAddress = await fixtures.getSessionKeyModuleAddress();
+      // passing "0x" as the second argument would revert normally
+      await tester.sendAaTx(proxyAccountAddress, ssoAbi.encodeFunctionData("unlinkModuleValidator", [sessionModuleAddress, "0x"]));
     });
   });
 
