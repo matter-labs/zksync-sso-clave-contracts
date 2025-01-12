@@ -686,6 +686,7 @@ describe("SessionKeyModule tests", function () {
       expect(newPaymasterBalance).to.equal(oldPaymasterBalance + 1000n, "paymaster should have received the approved amount");
       state = await sessionKeyModuleContract.sessionState(proxyAccountAddress, tester.session);
       expect(state.callParams[0].remaining).to.equal(0, "should have deducted the approved amount");
+      expect(await provider.getBalance(sessionTarget)).to.equal(parseEther("0.03"), "session target should have received the funds");
     });
   });
 
