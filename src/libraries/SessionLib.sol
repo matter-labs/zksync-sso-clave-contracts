@@ -164,6 +164,35 @@ library SessionLib {
     constraint.limit.checkAndUpdate(tracker, uint256(param), period);
   }
 
+  function checkCallPolicy(
+    SessionStorage storage state,
+    bytes memory data,
+    address target,
+    bytes4 selector,
+    CallSpec[] memory callPolicies,
+    uint64[] memory periodIds,
+    uint256 periodIdsOffset
+  ) internal returns (CallSpec memory) {
+    CallSpec memory callPolicy;
+    bool found = false;
+
+    for (uint256 i = 0; i < callPolicies.length; i++) {
+      if (callPolicies[i].target == target && callPolicies[i].selector == selector) {
+        callPolicy = callPolicies[i];
+        found = true;
+        break;
+      }
+    }
+
+    require(found, "Call to this contract is not allowed");
+
+    for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
+      callPolicy.constraints[i].checkAndUpdate(state.params[target][selector][i], data, periodIds[periodIdsOffset + i]);
+    }
+
+    return callPolicy;
+  }
+
   function validateFeeLimit(
     SessionStorage storage state,
     Transaction calldata transaction,
@@ -211,7 +240,7 @@ library SessionLib {
     address target = address(uint160(transaction.to));
 
     // Validate paymaster input
-    uint256 usedPeriodIds = 0;
+    uint256 periodIdsOffset = 2;
     if (transaction.paymasterInput.length >= 4) {
       bytes4 paymasterInputSelector = bytes4(transaction.paymasterInput[:4]);
       // SsoAccount will automatically `approve()` a token for an approval-based paymaster in `prepareForPaymaster()` call.
@@ -219,55 +248,35 @@ library SessionLib {
       if (paymasterInputSelector == IPaymasterFlow.approvalBased.selector) {
         require(transaction.paymasterInput.length >= 68, "Invalid paymaster input length");
         (address token, uint256 amount, ) = abi.decode(transaction.paymasterInput[4:], (address, uint256, bytes));
+        bytes memory data = abi.encodeWithSelector(IERC20.approve.selector, transaction.paymaster, amount);
 
         // check that session allows .approve() for this token
-        bool allowed = false;
-        CallSpec memory callPolicy;
-        for (uint256 i = 0; i < spec.callPolicies.length; i++) {
-          if (spec.callPolicies[i].target == token && spec.callPolicies[i].selector == IERC20.approve.selector) {
-            allowed = true;
-            callPolicy = spec.callPolicies[i];
-            break;
-          }
-        }
-
-        require(allowed, "Paying fees with this token is not allowed");
-        bytes memory data = abi.encodeWithSelector(IERC20.approve.selector, transaction.paymaster, amount);
-        usedPeriodIds = callPolicy.constraints.length;
-        for (uint256 i = 0; i < usedPeriodIds; i++) {
-          callPolicy.constraints[i].checkAndUpdate(
-            state.params[token][IERC20.approve.selector][i],
-            data,
-            periodIds[i + 2]
-          );
-        }
+        CallSpec memory approvePolicy = checkCallPolicy(
+          state,
+          data,
+          token,
+          IERC20.approve.selector,
+          spec.callPolicies,
+          periodIds,
+          periodIdsOffset
+        );
+        periodIdsOffset += approvePolicy.constraints.length;
       }
     }
 
     if (transaction.data.length >= 4) {
       bytes4 selector = bytes4(transaction.data[:4]);
-      CallSpec memory callPolicy;
-      bool found = false;
-
-      for (uint256 i = 0; i < spec.callPolicies.length; i++) {
-        if (spec.callPolicies[i].target == target && spec.callPolicies[i].selector == selector) {
-          callPolicy = spec.callPolicies[i];
-          found = true;
-          break;
-        }
-      }
-
-      require(found, "Call to this contract is not allowed");
+      CallSpec memory callPolicy = checkCallPolicy(
+        state,
+        transaction.data,
+        target,
+        selector,
+        spec.callPolicies,
+        periodIds,
+        periodIdsOffset
+      );
       require(transaction.value <= callPolicy.maxValuePerUse, "Value exceeds limit");
       callPolicy.valueLimit.checkAndUpdate(state.callValue[target][selector], transaction.value, periodIds[1]);
-
-      for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
-        callPolicy.constraints[i].checkAndUpdate(
-          state.params[target][selector][i],
-          transaction.data,
-          periodIds[usedPeriodIds + i + 2]
-        );
-      }
     } else {
       TransferSpec memory transferPolicy;
       bool found = false;
