@@ -2,12 +2,11 @@
 pragma solidity ^0.8.24;
 
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-
-import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
-
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
+import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
+import { IModule } from "../interfaces/IModule.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
@@ -40,6 +39,23 @@ contract SessionKeyValidator is IModuleValidator {
     return sessions[sessionHash].status[account];
   }
 
+  function onInstall(bytes calldata data) external override {
+    if (data.length > 0) {
+      require(_addValidationKey(data), "SessionKeyValidator: failed to add key");
+    }
+  }
+
+  function onUninstall(bytes calldata data) external override {
+    // Revoke keys before uninstalling
+    bytes32[] memory sessionHashes = abi.decode(data, (bytes32[]));
+    for (uint256 i = 0; i < sessionHashes.length; i++) {
+      revokeKey(sessionHashes[i]);
+    }
+    // Here we have make sure that all keys are revoked, so that if the module
+    // is installed again later, there will be no active sessions from the past.
+    require(sessionCounter[msg.sender] == 0, "Revoke all keys first");
+  }
+
   // This module should not be used to validate signatures
   function validateSignature(bytes32, bytes memory) external pure returns (bool) {
     return false;
@@ -64,31 +80,17 @@ contract SessionKeyValidator is IModuleValidator {
     emit SessionCreated(msg.sender, sessionHash, sessionSpec);
   }
 
-  function init(bytes calldata data) external {
-    if (data.length != 0) {
-      require(_addValidationKey(data), "Init failed");
-    }
-  }
-
   function _addValidationKey(bytes calldata sessionData) internal returns (bool) {
     SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
     createSession(sessionSpec);
     return true;
   }
 
-  function disable() external {
-    if (isInitialized(msg.sender)) {
-      // Here we have to revoke all keys, so that if the module
-      // is installed again later, there will be no active sessions from the past.
-      // Problem: if there are too many keys, this will run out of gas.
-      // Solution: before uninstalling, require that all keys are revoked manually.
-      require(sessionCounter[msg.sender] == 0, "Revoke all keys first");
-      IValidatorManager(msg.sender).removeModuleValidator(address(this));
-    }
-  }
-
   function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
-    return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
+    return
+      interfaceId == type(IERC165).interfaceId ||
+      interfaceId == type(IModuleValidator).interfaceId ||
+      interfaceId == type(IModule).interfaceId;
   }
 
   // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?

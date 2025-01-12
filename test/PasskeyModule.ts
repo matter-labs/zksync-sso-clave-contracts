@@ -8,11 +8,12 @@ import { assert, expect } from "chai";
 import * as hre from "hardhat";
 import { Wallet } from "zksync-ethers";
 
-import { WebAuthValidator, WebAuthValidator__factory } from "../typechain-types";
-import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
+import { SsoAccount__factory, WebAuthValidator, WebAuthValidator__factory } from "../typechain-types";
+import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 import { encodeAbiParameters, Hex, toHex } from "viem";
 import { randomBytes } from "crypto";
+import { parseEther, ZeroAddress } from "ethers";
 
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
@@ -442,6 +443,53 @@ describe("Passkey validation", function () {
     220, 204, 228, 76, 247, 65, 179, 235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73, 37, 195, 20, 194, 9,
   ]);
 
+  describe("account integration", () => {
+    const fixtures = new ContractFixtures();
+    const provider = getProvider();
+
+    it("should deploy proxy account via factory", async () => {
+      const factoryContract = await fixtures.getAaFactory();
+      const passKeyModuleAddress = await fixtures.getPasskeyModuleAddress();
+      const passKeyModuleContract = await fixtures.getWebAuthnVerifierContract();
+
+      const randomSalt = randomBytes(32);
+      const sampleDomain = "http://example.com";
+      const publicKeys = await getPublicKey(publicKeyEs256Bytes);
+      const initPasskeyData = encodeKeyFromHex(publicKeys, sampleDomain);
+
+      const passKeyPayload = encodeAbiParameters(
+        [{ name: "moduleAddress", type: "address"}, {name: "moduleData", type: "bytes"}],
+        [passKeyModuleAddress, initPasskeyData]);
+      logInfo(`\`deployProxySsoAccount\` args: ${initPasskeyData}`);
+      const deployTx = await factoryContract.deployProxySsoAccount(
+        randomSalt,
+        "pass-key-test-id" + randomBytes(32).toString(),
+        [passKeyPayload],
+        [wallet.address],
+      );
+
+      const deployTxReceipt = await deployTx.wait();
+      logInfo(`\`deployProxySsoAccount\` gas used: ${deployTxReceipt?.gasUsed.toString()}`);
+
+      const proxyAccountAddress = deployTxReceipt!.contractAddress!;
+      expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
+
+      const fundTx = await wallet.sendTransaction({ value: parseEther("1"), to: proxyAccountAddress });
+      const receipt = await fundTx.wait();
+      expect(receipt.status).to.eq(1, "send funds to proxy account");
+
+      const initLowerKey = await passKeyModuleContract.lowerKeyHalf(sampleDomain, proxyAccountAddress);
+      expect(initLowerKey).to.equal(publicKeys[0], "initial lower key should exist");
+      const initUpperKey = await passKeyModuleContract.upperKeyHalf(sampleDomain, proxyAccountAddress);
+      expect(initUpperKey).to.equal(publicKeys[1], "initial upper key should exist");
+
+      const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
+      assert(await account.k1IsOwner(fixtures.wallet.address));
+      assert(!await account.isHook(passKeyModuleAddress), "passkey module should not be an execution hook");
+      assert(await account.isModuleValidator(passKeyModuleAddress), "passkey module should be a validator");
+    });
+  });
+
   it("should support ERC165 and IModuleValidator", async () => {
     const passkeyValidator = await deployValidator(wallet);
     const erc165Supported = await passkeyValidator.supportsInterface("0x01ffc9a7");
@@ -450,51 +498,24 @@ describe("Passkey validation", function () {
     assert(iModuleValidatorSupported, "should support IModuleValidator");
   });
 
-  it("should revert if disabled directly", async () => {
-    const passkeyValidator = await deployValidator(wallet);
-
-    const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-    const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
-    const createdKey = await passkeyValidator.init(initData);
-    const keyRecipt = await createdKey.wait();
-    assert(keyRecipt?.status == 1, "initial key was saved");
-    await expect(passkeyValidator.init(initData), "fail to init").to.be.reverted;
-
-    await expect(passkeyValidator.disable(), "disable not supported").to.be.reverted;
-  });
-
-  describe("init", () => {
+  describe("addValidationKey", () => {
     it("should save a passkey", async function () {
       const passkeyValidator = await deployValidator(wallet);
 
       const publicKeys = await getPublicKey(publicKeyEs256Bytes);
       const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
-      const createdKey = await passkeyValidator.init(initData);
+      const createdKey = await passkeyValidator.addValidationKey(initData);
       const keyRecipt = await createdKey.wait();
       assert(keyRecipt?.status == 1, "key was saved");
     });
 
-    it("should fail to init twice with the same domain", async function () {
-      const passkeyValidator = await deployValidator(wallet);
-
-      const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-      const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
-      const createdKey = await passkeyValidator.init(initData);
-      const keyRecipt = await createdKey.wait();
-      assert(keyRecipt?.status == 1, "initial key was saved");
-
-      await expect(passkeyValidator.init(initData), "fail to init").to.be.reverted;
-    });
-  });
-
-  describe("addValidationKey", () => {
     it("should add a second validation key", async function () {
       const passkeyValidator = await deployValidator(wallet);
       const firstDomain = randomBytes(32).toString("hex");
 
       const publicKeys = await getPublicKey(publicKeyEs256Bytes);
       const initData = encodeKeyFromHex(publicKeys, firstDomain);
-      const initTransaction = await passkeyValidator.init(initData);
+      const initTransaction = await passkeyValidator.addValidationKey(initData);
       const initReceipt = await initTransaction.wait();
       assert(initReceipt?.status == 1, "first domain key was saved");
 
@@ -569,7 +590,7 @@ describe("Passkey validation", function () {
       );
 
       const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
-      await passkeyValidator.init(initData);
+      await passkeyValidator.addValidationKey(initData);
 
       // get the signature from the same place the checker gets it
       const clientDataJson = JSON.parse(new TextDecoder().decode(ethersResponse.clientDataBuffer));

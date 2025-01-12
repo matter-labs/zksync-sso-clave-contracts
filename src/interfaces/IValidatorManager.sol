@@ -10,28 +10,37 @@ interface IValidatorManager {
    * @notice Event emitted when a modular validator is added
    * @param validator address - Address of the added modular validator
    */
-  event AddModuleValidator(address indexed validator);
+  event ValidatorAdded(address indexed validator);
 
   /**
    * @notice Event emitted when a modular validator is removed
    * @param validator address - Address of the removed modular validator
    */
-  event RemoveModuleValidator(address indexed validator);
+  event ValidatorRemoved(address indexed validator);
 
   /**
    * @notice Adds a validator to the list of modular validators
-   * @dev Can only be called by self or a whitelisted module
+   * @dev Can only be called by self
    * @param validator address - Address of the generic validator to add
-   * @param accountValidationKey bytes - data for the validator to use to validate the account
+   * @param initData - Data to pass to the validator's `onInstall` function
    */
-  function addModuleValidator(address validator, bytes memory accountValidationKey) external;
+  function addModuleValidator(address validator, bytes memory initData) external;
 
   /**
    * @notice Removes a validator from the list of modular validators
-   * @dev Can only be called by self or a whitelisted module
+   * @dev Can only be called by self
    * @param validator address - Address of the validator to remove
+   * @param deinitData - Data to pass to the validator's `onUninstall` function
    */
-  function removeModuleValidator(address validator) external;
+  function removeModuleValidator(address validator, bytes calldata deinitData) external;
+
+  /**
+   * @notice Removes a validator from the list of modular validators while ignoring reverts from its `onUninstall` teardown function.
+   * @dev Can only be called by self
+   * @param validator address - Address of the validator to remove
+   * @param deinitData - Data to pass to the validator's `onUninstall` function
+   */
+  function unlinkModuleValidator(address validator, bytes calldata deinitData) external;
 
   /**
    * @notice Checks if an address is in the modular validator list

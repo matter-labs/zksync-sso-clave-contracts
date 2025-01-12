@@ -8,9 +8,9 @@ import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/Excess
 import { Auth } from "../auth/Auth.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
-import { IInitable } from "../interfaces/IInitable.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
+import { IModule } from "../interfaces/IModule.sol";
 
 /**
  * @title Manager contract for validators
@@ -25,13 +25,20 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   // Low level calls helper library
   using ExcessivelySafeCall for address;
 
-  function addModuleValidator(address validator, bytes calldata accountValidationKey) external onlySelf {
-    _addModuleValidator(validator, accountValidationKey);
+  function addModuleValidator(address validator, bytes calldata initData) external onlySelf {
+    _addModuleValidator(validator, initData);
   }
 
   ///@inheritdoc IValidatorManager
-  function removeModuleValidator(address validator) external onlySelf {
+  function removeModuleValidator(address validator, bytes calldata deinitData) external onlySelf {
     _removeModuleValidator(validator);
+    IModule(validator).onUninstall(deinitData);
+  }
+
+  ///@inheritdoc IValidatorManager
+  function unlinkModuleValidator(address validator, bytes calldata deinitData) external onlySelf {
+    _removeModuleValidator(validator);
+    validator.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IModule.onUninstall.selector, deinitData));
   }
 
   /// @inheritdoc IValidatorManager
@@ -44,23 +51,21 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     validatorList = _moduleValidators().values();
   }
 
-  function _addModuleValidator(address validator, bytes memory accountValidationKey) internal {
+  function _addModuleValidator(address validator, bytes memory initData) internal {
     if (!_supportsModuleValidator(validator)) {
       revert Errors.VALIDATOR_ERC165_FAIL(validator);
     }
 
     _moduleValidators().add(validator);
-    IModuleValidator(validator).init(accountValidationKey);
+    IModule(validator).onInstall(initData);
 
-    emit AddModuleValidator(validator);
+    emit ValidatorAdded(validator);
   }
 
-  function _removeModuleValidator(address validator) private {
+  function _removeModuleValidator(address validator) internal {
     _moduleValidators().remove(validator);
 
-    validator.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
-
-    emit RemoveModuleValidator(validator);
+    emit ValidatorRemoved(validator);
   }
 
   function _isModuleValidator(address validator) internal view returns (bool) {
@@ -68,7 +73,9 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   }
 
   function _supportsModuleValidator(address validator) private view returns (bool) {
-    return validator.supportsInterface(type(IModuleValidator).interfaceId);
+    return
+      validator.supportsInterface(type(IModuleValidator).interfaceId) &&
+      validator.supportsInterface(type(IModule).interfaceId);
   }
 
   function _moduleValidators() private view returns (EnumerableSet.AddressSet storage moduleValidators) {

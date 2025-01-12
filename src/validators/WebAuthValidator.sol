@@ -5,6 +5,7 @@ import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/li
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
+import { IModule } from "../interfaces/IModule.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
@@ -20,24 +21,29 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   bytes32 private constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
   bytes32 private constant HIGH_R_MAX = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
 
+  event PasskeyCreated(address indexed keyOwner, string originDomain);
+
   // The layout is weird due to EIP-7562 storage read restrictions for validation phase.
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public upperKeyHalf;
 
-  function init(bytes calldata key) external {
-    require(_addValidationKey(key), "failed to init");
+  function onInstall(bytes calldata data) external override {
+    if (data.length > 0) {
+      require(_addValidationKey(data), "WebAuthValidator: key already exists");
+    }
+  }
+
+  function onUninstall(bytes calldata data) external override {
+    string[] memory domains = abi.decode(data, (string[]));
+    for (uint256 i = 0; i < domains.length; i++) {
+      string memory domain = domains[i];
+      lowerKeyHalf[domain][msg.sender] = 0x0;
+      upperKeyHalf[domain][msg.sender] = 0x0;
+    }
   }
 
   function addValidationKey(bytes calldata key) external returns (bool) {
     return _addValidationKey(key);
-  }
-
-  // There's no mapping from account address to domains,
-  // so there's no way to just delete all the keys
-  // We can only disconnect the module from the account,
-  // re-linking it will allow any previous keys
-  function disable() external pure {
-    revert("Cannot disable module without removing it from account");
   }
 
   function _addValidationKey(bytes calldata key) internal returns (bool) {
@@ -50,7 +56,11 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     upperKeyHalf[originDomain][msg.sender] = key32[1];
 
     // we're returning true if this was a new key, false for update
-    return initialLowerHalf == 0 && initialUpperHalf == 0;
+    bool keyExists = initialLowerHalf == 0 && initialUpperHalf == 0;
+
+    emit PasskeyCreated(msg.sender, originDomain);
+
+    return keyExists;
   }
 
   function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
@@ -165,7 +175,10 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   }
 
   function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
-    return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
+    return
+      interfaceId == type(IERC165).interfaceId ||
+      interfaceId == type(IModuleValidator).interfaceId ||
+      interfaceId == type(IModule).interfaceId;
   }
 
   function _createMessage(

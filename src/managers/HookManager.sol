@@ -10,8 +10,8 @@ import { Auth } from "../auth/Auth.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { IExecutionHook, IValidationHook } from "../interfaces/IHook.sol";
-import { IInitable } from "../interfaces/IInitable.sol";
 import { IHookManager } from "../interfaces/IHookManager.sol";
+import { IModule } from "../interfaces/IModule.sol";
 
 /**
  * @title Manager contract for hooks
@@ -26,19 +26,21 @@ abstract contract HookManager is IHookManager, Auth {
   // Low level calls helper library
   using ExcessivelySafeCall for address;
 
-  // Slot for execution hooks to store context
-  bytes32 private constant CONTEXT_KEY = keccak256("HookManager.context");
-  error HookPostCheckFailed();
-  error HookAlreadyInstalled(address currentHook);
-
   /// @inheritdoc IHookManager
-  function addHook(bytes calldata hookAndData, bool isValidation) external override onlySelf {
-    _addHook(hookAndData, isValidation);
+  function addHook(address hook, bool isValidation, bytes calldata initData) external override onlySelf {
+    _addHook(hook, isValidation, initData);
   }
 
   /// @inheritdoc IHookManager
-  function removeHook(address hook, bool isValidation) external override onlySelf {
+  function removeHook(address hook, bool isValidation, bytes calldata deinitData) external override onlySelf {
     _removeHook(hook, isValidation);
+    IModule(hook).onUninstall(deinitData);
+  }
+
+  /// @inheritdoc IHookManager
+  function unlinkHook(address hook, bool isValidation, bytes calldata deinitData) external onlySelf {
+    _removeHook(hook, isValidation);
+    hook.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IModule.onUninstall.selector, deinitData));
   }
 
   /// @inheritdoc IHookManager
@@ -87,44 +89,30 @@ abstract contract HookManager is IHookManager, Auth {
     }
   }
 
-  function _addHook(bytes calldata hookAndData, bool isValidation) private {
-    if (hookAndData.length < 20) {
-      revert Errors.EMPTY_HOOK_ADDRESS(hookAndData.length);
-    }
-
-    address hookAddress = address(bytes20(hookAndData[0:20]));
-
-    bytes calldata initData = hookAndData[20:];
-
-    _installHook(hookAddress, initData, isValidation);
-  }
-
-  function _installHook(address hookAddress, bytes memory initData, bool isValidation) internal {
-    if (!_supportsHook(hookAddress, isValidation)) {
-      revert Errors.HOOK_ERC165_FAIL(hookAddress, isValidation);
+  function _addHook(address hook, bool isValidation, bytes calldata initData) internal {
+    if (!_supportsHook(hook, isValidation)) {
+      revert Errors.HOOK_ERC165_FAIL(hook, isValidation);
     }
 
     if (isValidation) {
-      _validationHooks().add(hookAddress);
+      _validationHooks().add(hook);
     } else {
-      _executionHooks().add(hookAddress);
+      _executionHooks().add(hook);
     }
 
-    IInitable(hookAddress).init(initData);
+    IModule(hook).onInstall(initData);
 
-    emit AddHook(hookAddress);
+    emit HookAdded(hook);
   }
 
-  function _removeHook(address hook, bool isValidation) private {
+  function _removeHook(address hook, bool isValidation) internal {
     if (isValidation) {
       _validationHooks().remove(hook);
     } else {
       _executionHooks().remove(hook);
     }
 
-    hook.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IInitable.disable.selector));
-
-    emit RemoveHook(hook);
+    emit HookRemoved(hook);
   }
 
   function _isHook(address addr) internal view override returns (bool) {
@@ -147,8 +135,11 @@ abstract contract HookManager is IHookManager, Auth {
 
   function _supportsHook(address hook, bool isValidation) private view returns (bool) {
     return
-      isValidation
-        ? hook.supportsInterface(type(IValidationHook).interfaceId)
-        : hook.supportsInterface(type(IExecutionHook).interfaceId);
+      hook.supportsInterface(type(IModule).interfaceId) &&
+      (
+        isValidation
+          ? hook.supportsInterface(type(IValidationHook).interfaceId)
+          : hook.supportsInterface(type(IExecutionHook).interfaceId)
+      );
   }
 }
