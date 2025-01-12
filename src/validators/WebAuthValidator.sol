@@ -70,7 +70,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   function validateTransaction(
     bytes32 signedHash,
     bytes calldata signature,
-    Transaction calldata
+    Transaction calldata transaction
   ) external view returns (bool) {
     return webAuthVerify(signedHash, signature);
   }
