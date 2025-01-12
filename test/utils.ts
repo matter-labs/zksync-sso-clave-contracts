@@ -8,10 +8,29 @@ import { promises } from "fs";
 import * as hre from "hardhat";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
-
-import { AAFactory, ERC20, ExampleAuthServerPaymaster, SessionKeyValidator, SsoAccount, WebAuthValidator, SsoBeacon, AccountProxy__factory, AccountProxy } from "../typechain-types";
-import { AAFactory__factory, ERC20__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, SsoAccount__factory, WebAuthValidator__factory, SsoBeacon__factory } from "../typechain-types";
 import { Address, isHex, toHex } from "viem";
+
+import type {
+  AAFactory,
+  ERC20,
+  ExampleAuthServerPaymaster,
+  SessionKeyValidator,
+  SsoAccount,
+  WebAuthValidator,
+  SsoBeacon,
+  AccountProxy
+} from "../typechain-types";
+import {
+  AAFactory__factory,
+  AccountProxy__factory,
+  ERC20__factory,
+  ExampleAuthServerPaymaster__factory,
+  SessionKeyValidator__factory,
+  SsoAccount__factory,
+  WebAuthValidator__factory,
+  SsoBeacon__factory,
+  TestPaymaster__factory
+} from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
   205, 241, 161, 186, 101, 105, 79,
@@ -105,6 +124,11 @@ export class ContractFixtures {
   async deployERC20(mintTo: string): Promise<ERC20> {
     const contract = await create2("TestERC20", this.wallet, ethersStaticSalt, [mintTo]);
     return ERC20__factory.connect(await contract.getAddress(), this.wallet);
+  }
+
+  async deployTestPaymaster() {
+    const contract = await create2("TestPaymaster", this.wallet, ethersStaticSalt);
+    return TestPaymaster__factory.connect(await contract.getAddress(), this.wallet);
   }
 
   async deployExampleAuthServerPaymaster(

@@ -93,7 +93,6 @@ contract SessionKeyValidator is IModuleValidator {
       interfaceId == type(IModule).interfaceId;
   }
 
-  // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?
   function revokeKey(bytes32 sessionHash) public {
     require(sessions[sessionHash].status[msg.sender] == SessionLib.Status.Active, "Nothing to revoke");
     sessions[sessionHash].status[msg.sender] = SessionLib.Status.Closed;

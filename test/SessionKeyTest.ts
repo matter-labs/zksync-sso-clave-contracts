@@ -6,8 +6,8 @@ import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
 
 import type { ERC20 } from "../typechain-types";
-import { SsoBeacon__factory, SsoAccount__factory, SessionKeyValidator__factory } from "../typechain-types";
-import type { SsoBeacon } from "../typechain-types/src/SsoBeacon";
+import { SsoBeacon__factory, SsoAccount__factory, SessionKeyValidator__factory, TestPaymaster__factory } from "../typechain-types";
+import type { IPaymasterFlow, SsoBeacon, TestPaymaster } from "../typechain-types"
 import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
 import { ContractFixtures, getProvider, logInfo } from "./utils";
 
@@ -59,6 +59,21 @@ type PartialSession = {
   }[];
 };
 
+type PaymasterParams = {
+  paymaster: string;
+  paymasterInput: string;
+};
+
+interface TransactionLike extends ethers.TransactionLike {
+  periodIds?: number[];
+  paymasterParams?: PaymasterParams;
+  customData?: {
+    gasPerPubdata: number;
+    customSignature?: string;
+    paymasterParams?: PaymasterParams;
+  };
+}
+
 async function getTimestamp() {
   if (hre.network.name == "inMemoryNode") {
     return Math.floor(await provider.send("config_getCurrentTimestamp", []));
@@ -92,7 +107,7 @@ class SessionTester {
   public session: SessionLib.SessionSpecStruct;
   public sessionAccount: SmartAccount;
   // having this is a bit hacky, but it's so we can provide correct period ids in the signature
-  aaTransaction: ethers.TransactionLike;
+  aaTransaction: TransactionLike;
 
   constructor(public proxyAccountAddress: string, sessionKeyModuleAddress: string) {
     this.sessionOwner = new Wallet(Wallet.createRandom().privateKey, provider);
@@ -104,7 +119,12 @@ class SessionTester {
           sessionKeyModuleAddress,
           abiCoder.encode(
             [sessionSpecAbi, "uint64[]"],
-            [this.session, await this.periodIds(this.aaTransaction.to!, this.aaTransaction.data?.slice(0, 10))],
+            [
+              this.session,
+              this.aaTransaction.periodIds
+                ? this.aaTransaction.periodIds
+                : await this.periodIds(this.aaTransaction.to!, this.aaTransaction.data?.slice(0, 10))
+            ],
           ),
         ],
       ),
@@ -185,26 +205,30 @@ class SessionTester {
     logInfo(`transaction gas used: ${receipt.gasUsed.toString()}`);
   }
 
-  async sessionTxSuccess(txRequest: ethers.TransactionLike = {}) {
+  async sessionTxSuccess(tx: TransactionLike = {}) {
+    const periodIds = tx.periodIds ?? await this.periodIds(tx.to!, tx.data?.slice(0, 10));
     this.aaTransaction = {
-      ...await this.aaTxTemplate(await this.periodIds(txRequest.to!, txRequest.data?.slice(0, 10))),
-      ...txRequest,
+      ...await this.aaTxTemplate(periodIds),
+      ...tx,
     };
+    this.aaTransaction.customData!.paymasterParams ??= tx.paymasterParams;
     this.aaTransaction.gasLimit = await provider.estimateGas(this.aaTransaction);
     logInfo(`\`sessionTx\` gas estimated: ${this.aaTransaction.gasLimit}`);
 
     const signedTransaction = await this.sessionAccount.signTransaction(this.aaTransaction);
-    const tx = await provider.broadcastTransaction(signedTransaction);
-    const receipt = await tx.wait();
+    const sentTx = await provider.broadcastTransaction(signedTransaction);
+    const receipt = await sentTx.wait();
     logInfo(`\`sessionTx\` gas used: ${receipt.gasUsed}`);
   }
 
-  async sessionTxFail(tx: ethers.TransactionLike = {}) {
+  async sessionTxFail(tx: TransactionLike = {}) {
+    const periodIds = tx.periodIds ?? await this.periodIds(tx.to!, tx.data?.slice(0, 10));
     this.aaTransaction = {
-      ...await this.aaTxTemplate(await this.periodIds(tx.to!, tx.data?.slice(0, 10))),
+      ...await this.aaTxTemplate(periodIds),
       gasLimit: 100_000_000n,
       ...tx,
     };
+    this.aaTransaction.customData!.paymasterParams ??= tx.paymasterParams;
 
     const signedTransaction = await this.sessionAccount.signTransaction(this.aaTransaction);
     await expect(provider.broadcastTransaction(signedTransaction)).to.be.reverted;
@@ -384,13 +408,13 @@ describe("SessionKeyModule tests", function () {
     let erc20: ERC20;
     const sessionTarget = Wallet.createRandom().address;
 
-    it("should deploy and mint an ERC20 token", async () => {
+    before("should deploy and mint an ERC20 token", async () => {
       erc20 = await fixtures.deployERC20(proxyAccountAddress);
       expect(await erc20.balanceOf(proxyAccountAddress)).to.equal(10n ** 18n, "should have some tokens");
+      tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
     });
 
     it("should create a session", async () => {
-      tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
       await tester.createSession({
         callPolicies: [{
           target: await erc20.getAddress(),
@@ -546,12 +570,132 @@ describe("SessionKeyModule tests", function () {
     });
   });
 
+  describe("Fee limit & Paymaster tests", function () {
+    let tester: SessionTester;
+    let erc20: ERC20;
+    let paymaster: TestPaymaster;
+    const sessionTarget = Wallet.createRandom().address;
+    let paymasterFlow: IPaymasterFlow;
+
+    before("should deploy ERC20 token and test paymaster", async () => {
+      erc20 = await fixtures.deployERC20(proxyAccountAddress);
+      expect(await erc20.balanceOf(proxyAccountAddress)).to.gt(10n ** 15n, "should have some tokens");
+      paymaster = await fixtures.deployTestPaymaster();
+      paymasterFlow = await hre.ethers.getContractAt("IPaymasterFlow", ethers.ZeroAddress);
+      tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
+      // fund paymaster
+      const tx = await fixtures.wallet.sendTransaction({ to: await paymaster.getAddress(), value: parseEther("1") });
+      await tx.wait();
+    });
+
+    it("should create a session with a fee limit", async () => {
+      await tester.createSession({
+        feeLimit: {
+          limit: parseEther("0.01"),
+        },
+        transferPolicies: [{
+          target: sessionTarget,
+          maxValuePerUse: parseEther("0.01"),
+        }],
+      });
+    });
+
+    it("should update fee limit after sending a transaction", async () => {
+      await tester.sessionTxSuccess({
+        to: sessionTarget,
+        value: parseEther("0.01"),
+      });
+      // @ts-ignore
+      const gas = tester.aaTransaction.gasLimit * tester.aaTransaction.gasPrice;
+      const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
+      const state = await sessionKeyModuleContract.sessionState(proxyAccountAddress, tester.session);
+      expect(state.feesRemaining).to.equal(parseEther("0.01") - gas, "should have deducted gas fees");
+      expect(await provider.getBalance(sessionTarget)).to.equal(parseEther("0.01"), "session target should have received the funds");
+    });
+
+    it("should send a transaction using general paymaster and ignore fee limit", async () => {
+      const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
+      const oldState = await sessionKeyModuleContract.sessionState(proxyAccountAddress, tester.session);
+      await tester.sessionTxSuccess({
+        to: sessionTarget,
+        value: parseEther("0.01"),
+        paymasterParams: {
+          paymaster: await paymaster.getAddress(),
+          paymasterInput: paymasterFlow.interface.encodeFunctionData("general", ["0x"]),
+        },
+      });
+      const newState = await sessionKeyModuleContract.sessionState(proxyAccountAddress, tester.session);
+      expect(newState.feesRemaining).to.equal(oldState.feesRemaining, "should not have deducted fees");
+      expect(await provider.getBalance(sessionTarget)).to.equal(parseEther("0.02"), "session target should have received the funds");
+    });
+
+    it("should fail sending a transaction using approval-based paymaster", async () => {
+      await tester.sessionTxFail({
+        to: sessionTarget,
+        value: parseEther("0.01"),
+        paymasterParams: {
+          paymaster: await paymaster.getAddress(),
+          paymasterInput: paymasterFlow.interface.encodeFunctionData("approvalBased", [await erc20.getAddress(), 1000, "0x"]),
+        },
+        periodIds: [0, 0]
+      });
+    });
+
+    it("should create a different session that allows paying fees with ERC20", async () => {
+      await tester.createSession({
+        feeLimit: { limit: 0, },
+        transferPolicies: [{
+          target: sessionTarget,
+          maxValuePerUse: parseEther("0.01"),
+        }],
+        callPolicies: [{
+          target: await erc20.getAddress(),
+          selector: erc20.interface.getFunction("approve").selector,
+          constraints: [
+            // // spender is paymaster
+            {
+              index: 0,
+              refValue: ethers.zeroPadValue(await paymaster.getAddress(), 32),
+              condition: Condition.Equal,
+            },
+            // // amount is 1000 tokens (lifetime limit)
+            {
+              index: 1,
+              limit: { limit: 1000 },
+            },
+          ]
+        }],
+      });
+    });
+
+    it("should send a transaction using approval-based paymaster", async () => {
+      const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
+      let state = await sessionKeyModuleContract.sessionState(proxyAccountAddress, tester.session);
+      expect(state.callParams[0].remaining).to.equal(1000, "should have 1000 tokens remaining to approve");
+      const oldPaymasterBalance = await erc20.balanceOf(await paymaster.getAddress());
+      await tester.sessionTxSuccess({
+        to: sessionTarget,
+        value: parseEther("0.01"),
+        paymasterParams: {
+          paymaster: await paymaster.getAddress(),
+          paymasterInput: paymasterFlow.interface.encodeFunctionData("approvalBased", [await erc20.getAddress(), 1000, "0x"]),
+        },
+        periodIds: [0, 0, 0, 0]
+      });
+      const newPaymasterBalance = await erc20.balanceOf(await paymaster.getAddress());
+      expect(newPaymasterBalance).to.equal(oldPaymasterBalance + 1000n, "paymaster should have received the approved amount");
+      state = await sessionKeyModuleContract.sessionState(proxyAccountAddress, tester.session);
+      expect(state.callParams[0].remaining).to.equal(0, "should have deducted the approved amount");
+    });
+  });
+
   describe("Module install/uninstall tests", function () {
     const ssoAbi = SsoAccount__factory.createInterface();
+    let sessionModuleAddress: string;
     let tester: SessionTester;
 
     before(async () => {
-      const sessionModuleAddress = await fixtures.getSessionKeyModuleAddress();
+      sessionModuleAddress = await fixtures.getSessionKeyModuleAddress();
       tester = new SessionTester(proxyAccountAddress, sessionModuleAddress);
     });
 
@@ -569,7 +713,6 @@ describe("SessionKeyModule tests", function () {
     });
 
     it("should uninstall the module", async () => {
-      const sessionModuleAddress = await fixtures.getSessionKeyModuleAddress();
       await tester.sendAaTx(proxyAccountAddress, ssoAbi.encodeFunctionData("removeModuleValidator", [
         sessionModuleAddress,
         abiCoder.encode(["bytes32[]"], [[]])
@@ -577,16 +720,13 @@ describe("SessionKeyModule tests", function () {
     });
 
     it("should reinstall the module", async () => {
-      const sessionModuleAddress = await fixtures.getSessionKeyModuleAddress();
       await tester.sendAaTx(proxyAccountAddress, ssoAbi.encodeFunctionData("addModuleValidator", [sessionModuleAddress, "0x"]));
     });
 
     it("should unlink the module ignoring reverts", async () => {
-      const sessionModuleAddress = await fixtures.getSessionKeyModuleAddress();
       // passing "0x" as the second argument would revert normally
       await tester.sendAaTx(proxyAccountAddress, ssoAbi.encodeFunctionData("unlinkModuleValidator", [sessionModuleAddress, "0x"]));
     });
   });
 
-  // TODO: session fee limit tests
 });

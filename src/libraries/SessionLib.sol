@@ -196,9 +196,11 @@ library SessionLib {
   ) internal {
     // Here we additionally pass uint64[] periodId to check allowance limits
     // periodId is defined as block.timestamp / limit.period if limitType == Allowance, and 0 otherwise (which will be ignored).
-    // periodIds[0] is for fee limit,
+    // periodIds[0] is for fee limit (not used in this function),
     // periodIds[1] is for value limit,
-    // periodIds[2:] are for call constraints, if there are any.
+    // peroidIds[2:2+n] are for `ERC20.approve()` constraints, if an approval-based paymaster is used
+    //   where `n` is the number of constraints in the `ERC20.approve()` policy if an approval-based paymaster is used, 0 otherwise.
+    // periodIds[2+n:] are for call constraints, if there are any.
     // It is required to pass them in (instead of computing via block.timestamp) since during validation
     // we can only assert the range of the timestamp, but not access its value.
 
@@ -209,13 +211,14 @@ library SessionLib {
     address target = address(uint160(transaction.to));
 
     // Validate paymaster input
+    uint256 usedPeriodIds = 0;
     if (transaction.paymasterInput.length >= 4) {
       bytes4 paymasterInputSelector = bytes4(transaction.paymasterInput[:4]);
       // SsoAccount will automatically `approve()` a token for an approval-based paymaster in `prepareForPaymaster()` call.
       // We need to make sure that the session spec allows this.
       if (paymasterInputSelector == IPaymasterFlow.approvalBased.selector) {
         require(transaction.paymasterInput.length >= 68, "Invalid paymaster input length");
-        (address token, uint256 amount) = abi.decode(transaction.paymasterInput[4:], (address, uint256));
+        (address token, uint256 amount, ) = abi.decode(transaction.paymasterInput[4:], (address, uint256, bytes));
 
         // check that session allows .approve() for this token
         bool allowed = false;
@@ -230,7 +233,8 @@ library SessionLib {
 
         require(allowed, "Paying fees with this token is not allowed");
         bytes memory data = abi.encodeWithSelector(IERC20.approve.selector, transaction.paymaster, amount);
-        for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
+        usedPeriodIds = callPolicy.constraints.length;
+        for (uint256 i = 0; i < usedPeriodIds; i++) {
           callPolicy.constraints[i].checkAndUpdate(
             state.params[token][IERC20.approve.selector][i],
             data,
@@ -258,7 +262,11 @@ library SessionLib {
       callPolicy.valueLimit.checkAndUpdate(state.callValue[target][selector], transaction.value, periodIds[1]);
 
       for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
-        callPolicy.constraints[i].checkAndUpdate(state.params[target][selector][i], transaction.data, periodIds[i + 2]);
+        callPolicy.constraints[i].checkAndUpdate(
+          state.params[target][selector][i],
+          transaction.data,
+          periodIds[usedPeriodIds + i + 2]
+        );
       }
     } else {
       TransferSpec memory transferPolicy;
