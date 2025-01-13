@@ -7,15 +7,18 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
-import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Base64 } from "solady/src/utils/Base64.sol";
+import { JSONParserLib } from "solady/src/utils/JSONParserLib.sol";
 
 /// @title WebAuthValidator
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract allows secure user authentication using WebAuthn public keys.
 contract WebAuthValidator is VerifierCaller, IModuleValidator {
+  using JSONParserLib for JSONParserLib.Item;
+  using JSONParserLib for string;
+
   address private constant P256_VERIFIER = address(0x100);
   bytes1 private constant AUTH_DATA_MASK = 0x05;
   bytes32 private constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
@@ -89,89 +92,41 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       return false;
     }
 
-    // parse out the important fields (type, challenge, and origin): https://goo.gl/yabPex
-    (uint256 returnValue, JsmnSolLib.Token[] memory tokens, uint256 actualNum) = JsmnSolLib.parse(clientDataJSON, 20);
-    if (returnValue != 0 || actualNum < 3) {
+    // parse out the important fields (type, challenge, origin, crossOrigin): https://goo.gl/yabPex
+    JSONParserLib.Item memory root = JSONParserLib.parse(clientDataJSON);
+    string memory challenge = root.at('"challenge"').value().decodeString();
+    bytes memory challengeData = Base64.decode(challenge);
+    if (challengeData.length != 32) {
+      return false; // wrong hash size
+    }
+    if (bytes32(challengeData) != transactionHash) {
       return false;
     }
 
-    bytes32[2] memory pubKey;
+    string memory type_ = root.at('"type"').value().decodeString();
+    if (!Strings.equal("webauthn.get", type_)) {
+      return false;
+    }
 
-    // look for fields by name, then compare to expected values
-    bool validChallenge = false;
-    bool validType = false;
-    bool validOrigin = false;
-    bool validCrossOrigin = true;
-    for (uint256 index = 1; index < actualNum; index++) {
-      JsmnSolLib.Token memory t = tokens[index];
-      if (t.jsmnType == JsmnSolLib.JsmnType.STRING) {
-        string memory keyOrValue = JsmnSolLib.getBytes(clientDataJSON, t.start, t.end);
-        if (Strings.equal(keyOrValue, "challenge")) {
-          JsmnSolLib.Token memory nextT = tokens[index + 1];
-          string memory challengeValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
-          // this should only be set once, otherwise this is an error
-          if (validChallenge) {
-            return false;
-          }
-          // this is the key part to ensure the signature is for the provided transaction
-          bytes memory challengeDataArray = Base64.decode(challengeValue);
-          if (challengeDataArray.length != 32) {
-            // wrong hash size
-            return false;
-          }
-          bytes32 challengeData = abi.decode(challengeDataArray, (bytes32));
+    string memory origin = root.at('"origin"').value().decodeString();
+    bytes32[2] memory pubkey;
+    pubkey[0] = lowerKeyHalf[origin][msg.sender];
+    pubkey[1] = upperKeyHalf[origin][msg.sender];
+    // This really only validates the origin is set
+    if (pubkey[0] == 0 || pubkey[1] == 0) {
+      return false;
+    }
 
-          validChallenge = challengeData == transactionHash;
-          if (!validChallenge) {
-            return false;
-          }
-        } else if (Strings.equal(keyOrValue, "type")) {
-          JsmnSolLib.Token memory nextT = tokens[index + 1];
-          string memory typeValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
-          // this should only be set once, otherwise this is an error
-          if (validType) {
-            return false;
-          }
-          validType = Strings.equal("webauthn.get", typeValue);
-          if (!validType) {
-            return false;
-          }
-        } else if (Strings.equal(keyOrValue, "origin")) {
-          JsmnSolLib.Token memory nextT = tokens[index + 1];
-          string memory originValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
-          // this should only be set once, otherwise this is an error
-          if (validOrigin) {
-            return false;
-          }
-          pubKey[0] = lowerKeyHalf[originValue][msg.sender];
-          pubKey[1] = upperKeyHalf[originValue][msg.sender];
-
-          // This really only validates the origin is set
-          validOrigin = pubKey[0] != 0 && pubKey[1] != 0;
-          if (!validOrigin) {
-            return false;
-          }
-        } else if (Strings.equal(keyOrValue, "crossOrigin")) {
-          JsmnSolLib.Token memory nextT = tokens[index + 1];
-          string memory crossOriginValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
-          // this should only be set once, otherwise this is an error
-          if (!validCrossOrigin) {
-            return false;
-          }
-          validCrossOrigin = Strings.equal("false", crossOriginValue);
-          if (!validCrossOrigin) {
-            return false;
-          }
-        }
+    JSONParserLib.Item memory crossOriginItem = root.at('"crossOrigin"');
+    if (!crossOriginItem.isUndefined()) {
+      string memory crossOrigin = crossOriginItem.value();
+      if (!Strings.equal("false", crossOrigin)) {
+        return false;
       }
     }
 
-    if (!validChallenge || !validType || !validOrigin || !validCrossOrigin) {
-      return false;
-    }
-
     bytes32 message = _createMessage(authenticatorData, bytes(clientDataJSON));
-    return callVerifier(P256_VERIFIER, message, rs, pubKey);
+    return callVerifier(P256_VERIFIER, message, rs, pubkey);
   }
 
   function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
