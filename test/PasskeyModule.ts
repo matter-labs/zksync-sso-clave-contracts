@@ -6,14 +6,14 @@ import { AsnParser } from "@peculiar/asn1-schema";
 import { bigintToBuf, bufToBigint } from "bigint-conversion";
 import { assert, expect } from "chai";
 import * as hre from "hardhat";
-import { SmartAccount, utils, Wallet } from "zksync-ethers";
+import { SmartAccount, Wallet } from "zksync-ethers";
 
 import { SsoAccount__factory, WebAuthValidator, WebAuthValidator__factory } from "../typechain-types";
 import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
-import { encodeAbiParameters, Hex, hexToBytes, toBytes, toHex } from "viem";
+import { encodeAbiParameters, Hex, hexToBytes, toHex } from "viem";
 import { randomBytes } from "crypto";
-import { AbiCoder, parseEther, ZeroAddress } from "ethers";
+import { parseEther, ZeroAddress } from "ethers";
 
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
@@ -504,7 +504,7 @@ describe("Passkey validation", function () {
       const { sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress } = await deployAccount();
 
       const sessionAccount = new SmartAccount({
-        payloadSigner: async (hash) => {
+        payloadSigner: async (hash: Hex) => {
           const sampleClientObject = {
             type: "webauthn.get",
             challenge: fromBuffer(hexToBytes(hash)),
