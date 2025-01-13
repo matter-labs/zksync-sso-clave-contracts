@@ -95,12 +95,11 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     // parse out the important fields (type, challenge, origin, crossOrigin): https://goo.gl/yabPex
     JSONParserLib.Item memory root = JSONParserLib.parse(clientDataJSON);
     string memory challenge = root.at('"challenge"').value().decodeString();
-    bytes memory challengeDataArray = Base64.decode(challenge);
-    if (challengeDataArray.length != 32) {
+    bytes memory challengeData = Base64.decode(challenge);
+    if (challengeData.length != 32) {
       return false; // wrong hash size
     }
-    bytes32 challengeData = abi.decode(challengeDataArray, (bytes32));
-    if (challengeData != transactionHash) {
+    if (bytes32(challengeData) != transactionHash) {
       return false;
     }
 

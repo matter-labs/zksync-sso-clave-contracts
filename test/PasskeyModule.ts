@@ -820,56 +820,24 @@ describe("Passkey validation", function () {
       assert(!isValidSignature, "invalid signature for auth data");
     });
 
-    // should this be a failure?
-    it.skip("should fail to verify a signature with too long json", async () => {
+    it("should fail to verify a signature with duplicate json keys", async () => {
       const keyDomain = randomBytes(32).toString("hex");
-      const longClientObject = {
-        type: "webauthn.get",
-        challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
-        origin: keyDomain,
-        crossOrigin: false,
-        tokenBinding: {
-          status: "supported",
-          id: "lsdkjflsvnlsdk"
-        },
-        topOrigin: "http://localhost:5173",
-        unexpectedField0: "this should not be here",
-        unexpectedField1: "this should not be here",
-        unexpectedField2: "this is what causes it to fail",
-      };
-      const longClientString = JSON.stringify(longClientObject)
-      const authData = toBuffer(ethersResponse.authenticatorData);
-      const transactionHash = Buffer.from(longClientObject.challenge, "base64url");
-      const isValidSignature = await validateSignatureTest(
-        wallet,
-        keyDomain,
-        authData,
-        normalizeS,
-        normalizeR,
-        longClientString,
-        transactionHash,
-      );
-      assert(!isValidSignature, "invalid signature for client data json");
-    });
-
-    // should this be a failure?
-    it.skip("should fail to verify a signature with duplicate json keys", async () => {
-      const keyDomain = randomBytes(32).toString("hex");
-      const badClientObject = {
+      const sampleClientObject = {
         type: "webauthn.get",
         challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
         origin: keyDomain,
         crossOrigin: false,
       };
+      // only the last of the duplicate keys is checked, and it is invalid
       const partialClientObject = {
         challenge: "jBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
       };
       const duplicatedClientString =
-        JSON.stringify(partialClientObject).slice(0, -1) +
+        JSON.stringify(sampleClientObject).slice(0, -1) +
         "," +
-        JSON.stringify(badClientObject).slice(1);
+        JSON.stringify(partialClientObject).slice(1);
       const authData = toBuffer(ethersResponse.authenticatorData);
-      const transactionHash = Buffer.from(badClientObject.challenge, "base64url");
+      const transactionHash = Buffer.from(sampleClientObject.challenge, "base64url");
       const isValidSignature = await validateSignatureTest(
         wallet,
         keyDomain,
