@@ -11,6 +11,7 @@ testid
 vueuse
 dockerized
 ethereum
+sepolia
 
 // examples/bank-demo
 ctap
