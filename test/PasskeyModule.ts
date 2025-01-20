@@ -393,7 +393,7 @@ function encodeKeyFromHex(hexStrings: [Hex, Hex], domain: string) {
       { name: 'publicKeys', type: 'bytes32[2]' },
       { name: 'domain', type: 'string' },
     ],
-    [[hexStrings[0], hexStrings[1]], domain]
+    [hexStrings, domain]
   )
 }
 

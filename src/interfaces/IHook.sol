@@ -15,5 +15,5 @@ interface IValidationHook is IModule, IERC165 {
 interface IExecutionHook is IModule, IERC165 {
   function preExecutionHook(Transaction calldata transaction) external returns (bytes memory context);
 
-  function postExecutionHook() external;
+  function postExecutionHook(bytes calldata context) external;
 }

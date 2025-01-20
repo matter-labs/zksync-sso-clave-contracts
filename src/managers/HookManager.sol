@@ -77,15 +77,16 @@ abstract contract HookManager is IHookManager, Auth {
   modifier runExecutionHooks(Transaction calldata transaction) {
     EnumerableSet.AddressSet storage hookList = _executionHooks();
     uint256 totalHooks = hookList.length();
+    bytes[] memory context = new bytes[](totalHooks);
 
     for (uint256 i = 0; i < totalHooks; i++) {
-      IExecutionHook(hookList.at(i)).preExecutionHook(transaction);
+      context[i] = IExecutionHook(hookList.at(i)).preExecutionHook(transaction);
     }
 
     _;
 
     for (uint256 i = 0; i < totalHooks; i++) {
-      IExecutionHook(hookList.at(i)).postExecutionHook();
+      IExecutionHook(hookList.at(i)).postExecutionHook(context[i]);
     }
   }
 
