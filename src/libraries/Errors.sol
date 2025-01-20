@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
+/// @title Errors
+/// @notice Errors used by ZKsync SSO and its components
+/// @author getclave.io
 library Errors {
   // Account errors
   error INSUFFICIENT_FUNDS(uint256 required, uint256 available);
   error FEE_PAYMENT_FAILED();
   error METHOD_NOT_IMPLEMENTED();
 
-  // Validator manager errors
+  // ERC165 module errors
   error VALIDATOR_ERC165_FAIL(address validator);
-
-  // Hook manager errors
-  error EMPTY_HOOK_ADDRESS(uint256 hookAndDataLength);
   error HOOK_ERC165_FAIL(address hookAddress, bool isValidation);
-  error INVALID_KEY(bytes32 key);
 
   // Auth errors
   error NOT_FROM_BOOTLOADER(address notBootloader);
