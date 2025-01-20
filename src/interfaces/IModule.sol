@@ -1,3 +1,7 @@
+/**
+ * @title Module interface
+ * @dev Interface for a module that can be added to SSO account (e.g. hook or validator).
+ */
 interface IModule {
   /**
    * @dev This function is called by the smart account during installation of the module
