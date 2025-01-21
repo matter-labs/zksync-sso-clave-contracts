@@ -78,6 +78,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   }
 
   /// @notice Validates a transaction signed with a passkey
+  /// @dev Does not validate the transaction signature field, which is expected to be different due to the modular format
   /// @param signedHash The hash of the signed transaction
   /// @param signature The signature to validate
   /// @return true if the signature is valid
@@ -90,8 +91,12 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   }
 
   /// @notice Validates a WebAuthn signature
+  /// @dev Performs r & s range validation to prevent signature malleability
+  /// @dev Checks passkey authenticator data flags (valid number of credentials)
+  /// @dev Requires that the transaction signature hash was the signed challenge
+  /// @dev Verifies that the signature was performed by a 'get' request
   /// @param transactionHash The hash of the signed message
-  /// @param fatSignature The signature to validate
+  /// @param fatSignature The signature to validate (authenticator data, client data, [r, s])
   /// @return true if the signature is valid
   function webAuthVerify(bytes32 transactionHash, bytes memory fatSignature) internal view returns (bool) {
     (bytes memory authenticatorData, string memory clientDataJSON, bytes32[2] memory rs) = _decodeFatSignature(
@@ -166,6 +171,12 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     (authenticatorData, clientDataSuffix, rs) = abi.decode(fatSignature, (bytes, string, bytes32[2]));
   }
 
+  /// @notice Verifies a message using the P256 curve.
+  /// @dev Useful for testing the P256 precompile
+  /// @param message The sha256 hash of the authenticator hash and hashed client data
+  /// @param rs The signature to validate (r, s) from the signed message
+  /// @param pubKey The public key to validate the signature against (x, y)
+  /// @return valid true if the signature is valid
   function rawVerify(
     bytes32 message,
     bytes32[2] calldata rs,
