@@ -28,7 +28,7 @@ library SessionLib {
   /// @notice This struct is used to track usage information for each session.
   /// Along with `status`, this is considered the session state.
   /// While everything else is considered the session spec, and is stored offchain.
-  /// @dev Storage layout of this struct is weird to conform to ERC-7562 storage access restrictions during validation.
+  /// @dev Storage layout of this struct is unusual to conform to ERC-7562 storage access restrictions during validation.
   /// Each innermost mapping is always mapping(address account => ...).
   struct SessionStorage {
     mapping(address => Status) status;

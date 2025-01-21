@@ -26,7 +26,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
 
   event PasskeyCreated(address indexed keyOwner, string originDomain);
 
-  // The layout is weird due to EIP-7562 storage read restrictions for validation phase.
+  // The layout is unusual due to EIP-7562 storage read restrictions for validation phase.
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public upperKeyHalf;
 
