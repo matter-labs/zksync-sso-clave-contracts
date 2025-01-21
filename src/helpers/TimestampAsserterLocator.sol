@@ -12,7 +12,7 @@ library TimestampAsserterLocator {
   function locate() internal view returns (ITimestampAsserter) {
     // anvil-zksync (era-test-node)
     if (block.chainid == 260) {
-      return ITimestampAsserter(address(0x00000000000000000000000000000000808012));
+      return ITimestampAsserter(address(0x0000000000000000000000000000000000808012));
     }
     // era sepolia testnet
     if (block.chainid == 300) {
@@ -20,7 +20,7 @@ library TimestampAsserterLocator {
     }
     // era mainnet
     if (block.chainid == 324) {
-      revert("Timestamp asserter is not deployed on ZKsync mainnet yet");
+      return ITimestampAsserter(address(0x958F70e4Fd676c9CeAaFe5c48cB78CDD08b4880d));
     }
     revert("Timestamp asserter is not deployed on this network");
   }
