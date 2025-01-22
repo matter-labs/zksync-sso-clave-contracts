@@ -1,0 +1,12 @@
+{
+    "filter_paths": "(test|scripts|node_modules)",
+    "detectors_to_exclude": "uninitialized-local,unused-returns",
+    "exclude_dependencies": true,
+    "compile_force_framework": "foundry",
+    "exclude_high": false,
+    "exclude_medium": false,
+    "exclude_low": true,
+    "exclude_informational": true,
+    "exclude_optimization": true
+  }
+  
