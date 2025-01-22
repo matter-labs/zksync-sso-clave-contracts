@@ -30,7 +30,7 @@ contract AAFactory {
     beaconProxyBytecodeHash = _beaconProxyBytecodeHash;
     beacon = _beacon;
   }
-
+//
   function getEncodedBeacon() external view returns (bytes memory) {
     return abi.encode(beacon);
   }
