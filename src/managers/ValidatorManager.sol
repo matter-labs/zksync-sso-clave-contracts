@@ -15,7 +15,7 @@ import { IModule } from "../interfaces/IModule.sol";
 /**
  * @title Manager contract for validators
  * @notice Abstract contract for managing the validators of the account
- * @dev Validators are stored in a linked list
+ * @dev Validators are stored in an enumerable set
  * @author https://getclave.io
  */
 abstract contract ValidatorManager is IValidatorManager, Auth {
@@ -25,6 +25,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   // Low level calls helper library
   using ExcessivelySafeCall for address;
 
+  ///@inheritdoc IValidatorManager
   function addModuleValidator(address validator, bytes calldata initData) external onlySelf {
     _addModuleValidator(validator, initData);
   }

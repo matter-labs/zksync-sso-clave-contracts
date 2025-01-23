@@ -6,8 +6,9 @@ import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Rec
 import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
 /**
- * Token callback handler.
- *   Handles supported tokens' callbacks, allowing account receiving these tokens.
+ * @title Token callback handler
+ * @notice Contract to handle ERC721 and ERC1155 token callbacks
+ * @author https://getclave.io
  */
 contract TokenCallbackHandler is IERC721Receiver, IERC1155Receiver {
   function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {

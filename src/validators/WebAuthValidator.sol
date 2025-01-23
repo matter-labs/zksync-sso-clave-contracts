@@ -26,16 +26,20 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
 
   event PasskeyCreated(address indexed keyOwner, string originDomain);
 
-  // The layout is weird due to EIP-7562 storage read restrictions for validation phase.
+  // The layout is unusual due to EIP-7562 storage read restrictions for validation phase.
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public upperKeyHalf;
 
+  /// @notice Runs on module install
+  /// @param data ABI-encoded WebAuthn passkey to add immediately, or empty if not needed
   function onInstall(bytes calldata data) external override {
     if (data.length > 0) {
-      require(_addValidationKey(data), "WebAuthValidator: key already exists");
+      require(addValidationKey(data), "WebAuthValidator: key already exists");
     }
   }
 
+  /// @notice Runs on module uninstall
+  /// @param data ABI-encoded array of origin domains to remove keys for
   function onUninstall(bytes calldata data) external override {
     string[] memory domains = abi.decode(data, (string[]));
     for (uint256 i = 0; i < domains.length; i++) {
@@ -45,11 +49,10 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     }
   }
 
-  function addValidationKey(bytes calldata key) external returns (bool) {
-    return _addValidationKey(key);
-  }
-
-  function _addValidationKey(bytes calldata key) internal returns (bool) {
+  /// @notice Adds a WebAuthn passkey for the caller
+  /// @param key ABI-encoded WebAuthn public key to add
+  /// @return true if the key was added, false if it was updated
+  function addValidationKey(bytes calldata key) public returns (bool) {
     (bytes32[2] memory key32, string memory originDomain) = abi.decode(key, (bytes32[2], string));
     bytes32 initialLowerHalf = lowerKeyHalf[originDomain][msg.sender];
     bytes32 initialUpperHalf = upperKeyHalf[originDomain][msg.sender];
@@ -66,10 +69,19 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     return keyExists;
   }
 
+  /// @notice Validates a WebAuthn signature
+  /// @param signedHash The hash of the signed message
+  /// @param signature The signature to validate
+  /// @return true if the signature is valid
   function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
     return webAuthVerify(signedHash, signature);
   }
 
+  /// @notice Validates a transaction signed with a passkey
+  /// @dev Does not validate the transaction signature field, which is expected to be different due to the modular format
+  /// @param signedHash The hash of the signed transaction
+  /// @param signature The signature to validate
+  /// @return true if the signature is valid
   function validateTransaction(
     bytes32 signedHash,
     bytes calldata signature,
@@ -78,6 +90,14 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     return webAuthVerify(signedHash, signature);
   }
 
+  /// @notice Validates a WebAuthn signature
+  /// @dev Performs r & s range validation to prevent signature malleability
+  /// @dev Checks passkey authenticator data flags (valid number of credentials)
+  /// @dev Requires that the transaction signature hash was the signed challenge
+  /// @dev Verifies that the signature was performed by a 'get' request
+  /// @param transactionHash The hash of the signed message
+  /// @param fatSignature The signature to validate (authenticator data, client data, [r, s])
+  /// @return true if the signature is valid
   function webAuthVerify(bytes32 transactionHash, bytes memory fatSignature) internal view returns (bool) {
     (bytes memory authenticatorData, string memory clientDataJSON, bytes32[2] memory rs) = _decodeFatSignature(
       fatSignature
@@ -129,6 +149,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     return callVerifier(P256_VERIFIER, message, rs, pubkey);
   }
 
+  /// @inheritdoc IERC165
   function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
     return
       interfaceId == type(IERC165).interfaceId ||
@@ -150,6 +171,12 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     (authenticatorData, clientDataSuffix, rs) = abi.decode(fatSignature, (bytes, string, bytes32[2]));
   }
 
+  /// @notice Verifies a message using the P256 curve.
+  /// @dev Useful for testing the P256 precompile
+  /// @param message The sha256 hash of the authenticator hash and hashed client data
+  /// @param rs The signature to validate (r, s) from the signed message
+  /// @param pubKey The public key to validate the signature against (x, y)
+  /// @return valid true if the signature is valid
   function rawVerify(
     bytes32 message,
     bytes32[2] calldata rs,

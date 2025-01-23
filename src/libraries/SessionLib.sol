@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
@@ -7,26 +7,29 @@ import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.so
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { LibBytes } from "solady/src/utils/LibBytes.sol";
 
+/// @title Session Library
+/// @author Matter Labs
+/// @notice Library for session management, used by SessionKeyValidator
+/// @custom:security-contact security@matterlabs.dev
 library SessionLib {
   using SessionLib for SessionLib.Constraint;
   using SessionLib for SessionLib.UsageLimit;
   using LibBytes for bytes;
 
-  // We do not permit session keys to be reused to open multiple sessions
-  // (after one expires or is closed, e.g.).
-  // For each session key, its session status can only be changed
-  // from NotInitialized to Active, and from Active to Closed.
+  /// @notice We do not permit opening multiple identical sessions (even after one is closed, e.g.).
+  /// For each session key, its session status can only be changed
+  /// from NotInitialized to Active, and from Active to Closed.
   enum Status {
     NotInitialized,
     Active,
     Closed
   }
 
-  // This struct is used to track usage information for each session.
-  // Along with `status`, this is considered the session state.
-  // While everything else is considered the session spec, and is stored offchain.
-  // Storage layout of this struct is weird to conform to ERC-7562 storage access restrictions during validation.
-  // Each innermost mapping is always mapping(address account => ...).
+  /// @notice This struct is used to track usage information for each session.
+  /// Along with `status`, this is considered the session state.
+  /// While everything else is considered the session spec, and is stored offchain.
+  /// @dev Storage layout of this struct is unusual to conform to ERC-7562 storage access restrictions during validation.
+  /// Each innermost mapping is always mapping(address account => ...).
   struct SessionStorage {
     mapping(address => Status) status;
     UsageTracker fee;
@@ -76,6 +79,10 @@ library SessionLib {
     NotEqual
   }
 
+  /// @notice This struct is provided by the account to create a session.
+  /// It is used to define the session's policies, limits and constraints.
+  /// Only its hash is stored onchain, and the full struct is provided with
+  /// each transaction in calldata via `validatorData`, encoded in the signature.
   struct SessionSpec {
     address signer;
     uint256 expiresAt;
@@ -120,6 +127,12 @@ library SessionLib {
     LimitState[] callParams;
   }
 
+  /// @notice Checks if the limit is exceeded and updates the usage tracker.
+  /// @param limit The limit to check.
+  /// @param tracker The usage tracker to update.
+  /// @param value The tracked value to check the limit against.
+  /// @param period The period ID to check the limit against. Ignored if the limit is not of type Allowance.
+  /// @dev Reverts if the limit is exceeded or the period is invalid.
   function checkAndUpdate(
     UsageLimit memory limit,
     UsageTracker storage tracker,
@@ -136,6 +149,13 @@ library SessionLib {
     }
   }
 
+  /// @notice Checks if the constraint is met and update the usage tracker.
+  /// @param constraint The constraint to check.
+  /// @param tracker The usage tracker to update.
+  /// @param data The transaction data to check the constraint against.
+  /// @param period The period ID to check the allowances against.
+  /// @dev Reverts if the constraint is not met.
+  /// @dev Forwards the call to `checkAndUpdate(limit, ...)` on the limit of the constraint.
   function checkAndUpdate(
     Constraint memory constraint,
     UsageTracker storage tracker,
@@ -164,6 +184,15 @@ library SessionLib {
     constraint.limit.checkAndUpdate(tracker, uint256(param), period);
   }
 
+  /// @notice Finds the call policy, checks if it is violated and updates the usage trackers.
+  /// @param state The session storage to update.
+  /// @param data The transaction data to check the call policy against.
+  /// @param target The target address of the call.
+  /// @param selector The 4-byte selector of the call.
+  /// @param callPolicies The call policies to search through.
+  /// @param periodIds The period IDs to check the allowances against. The length has to be at least `periodIdsOffset + callPolicies.length`.
+  /// @param periodIdsOffset The offset in the `periodIds` array to start checking the constraints.
+  /// @return The call policy that was found, reverts if not found or if the call is not allowed.
   function checkCallPolicy(
     SessionStorage storage state,
     bytes memory data,
@@ -193,22 +222,28 @@ library SessionLib {
     return callPolicy;
   }
 
+  /// @notice Validates the fee limit of the session and updates the tracker.
+  /// Only performs the checks if the transaction is not using a paymaster.
+  /// @param state The session storage to update.
+  /// @param transaction The transaction to check the fee of.
+  /// @param spec The session spec to check the fee limit against.
+  /// @param periodId The period ID to check the fee limit against. Ignored if the limit is not of type Allowance.
+  /// @dev Reverts if the fee limit is exceeded.
+  /// @dev This is split from `validate` to prevent gas estimation failures.
+  /// When this check was part of `validate`, gas estimation could fail due to
+  /// fee limit being smaller than the upper bound of the gas estimation binary search.
+  /// By splitting this check, we can now have this order of operations in `validateTransaction`:
+  /// 1. session.validate()
+  /// 2. ECDSA.tryRecover()
+  /// 3. session.validateFeeLimit()
+  /// This way, gas estimation will exit on step 2 instead of failing, but will still run through
+  /// most of the computation needed to validate the session.
   function validateFeeLimit(
     SessionStorage storage state,
     Transaction calldata transaction,
     SessionSpec memory spec,
     uint64 periodId
   ) internal {
-    // This is split from `validate` to prevent gas estimation failures.
-    // When this check was part of `validate`, gas estimation could fail due to
-    // fee limit being smaller than the upper bound of the gas estimation binary search.
-    // By splitting this check, we can now have this order of operations in `validateTransaction`:
-    // 1. session.validate()
-    // 2. ECDSA.tryRecover()
-    // 3. session.validateFeeLimit()
-    // This way, gas estimation will exit on step 2 instead of failing, but will still run through
-    // most of the computation needed to validate the session.
-
     // TODO: update fee allowance with the gasleft/refund at the end of execution
     // If a paymaster is paying the fee, we don't need to check the fee limit
     if (transaction.paymaster == 0) {
@@ -217,22 +252,25 @@ library SessionLib {
     }
   }
 
+  /// @notice Validates the transaction against the session spec and updates the usage trackers.
+  /// @param state The session storage to update.
+  /// @param transaction The transaction to validate.
+  /// @param spec The session spec to validate against.
+  /// @param periodIds The period IDs to check the allowances against.
+  /// @dev periodId is defined as block.timestamp / limit.period if limitType == Allowance, and 0 otherwise (which will be ignored).
+  /// periodIds[0] is for fee limit (not used in this function),
+  /// periodIds[1] is for value limit,
+  /// peroidIds[2:2+n] are for `ERC20.approve()` constraints, where `n` is the number of constraints in the `ERC20.approve()` policy
+  ///   if an approval-based paymaster is used, 0 otherwise.
+  /// periodIds[2+n:] are for call constraints, if there are any.
+  /// It is required to pass them in (instead of computing via block.timestamp) since during validation
+  /// we can only assert the range of the timestamp, but not access its value.
   function validate(
     SessionStorage storage state,
     Transaction calldata transaction,
     SessionSpec memory spec,
     uint64[] memory periodIds
   ) internal {
-    // Here we additionally pass uint64[] periodId to check allowance limits
-    // periodId is defined as block.timestamp / limit.period if limitType == Allowance, and 0 otherwise (which will be ignored).
-    // periodIds[0] is for fee limit (not used in this function),
-    // periodIds[1] is for value limit,
-    // peroidIds[2:2+n] are for `ERC20.approve()` constraints, if an approval-based paymaster is used
-    //   where `n` is the number of constraints in the `ERC20.approve()` policy if an approval-based paymaster is used, 0 otherwise.
-    // periodIds[2+n:] are for call constraints, if there are any.
-    // It is required to pass them in (instead of computing via block.timestamp) since during validation
-    // we can only assert the range of the timestamp, but not access its value.
-
     require(state.status[msg.sender] == Status.Active, "Session is not active");
     TimestampAsserterLocator.locate().assertTimestampInRange(0, spec.expiresAt);
 
@@ -295,6 +333,11 @@ library SessionLib {
     }
   }
 
+  /// @notice Getter for the remainder of a usage limit.
+  /// @param limit The limit to check.
+  /// @param tracker The corresponding usage tracker to get the usage from.
+  /// @param account The account to get the usage for.
+  /// @return The remaining limit. If unlimited, returns `type(uint256).max`.
   function remainingLimit(
     UsageLimit memory limit,
     UsageTracker storage tracker,
@@ -314,6 +357,11 @@ library SessionLib {
     }
   }
 
+  /// @notice Getter for the session state.
+  /// @param session The session storage to get the state from.
+  /// @param account The account to get the state for.
+  /// @param spec The session spec to get the state for.
+  /// @return The session state: status, remaining fee limit, transfer limits, call value and call parameter limits.
   function getState(
     SessionStorage storage session,
     address account,

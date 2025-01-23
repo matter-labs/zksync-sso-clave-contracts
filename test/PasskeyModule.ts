@@ -527,8 +527,8 @@ describe("Passkey validation", function () {
           ])
 
           const moduleSignature = encodeAbiParameters(
-            [{ name: "signature", type: "bytes" }, { name: "moduleAddress", type: "address" }, { name: "hookData", type: "bytes[]" }],
-            [fatSignature, passKeyModuleAddress, ["0x"]]);
+            [{ name: "signature", type: "bytes" }, { name: "moduleAddress", type: "address" }, { name: "validatorData", type: "bytes" }],
+            [fatSignature, passKeyModuleAddress, "0x"]);
           return moduleSignature;
         },
         address: proxyAccountAddress,
@@ -559,7 +559,7 @@ describe("Passkey validation", function () {
     const passkeyValidator = await deployValidator(wallet);
     const erc165Supported = await passkeyValidator.supportsInterface("0x01ffc9a7");
     assert(erc165Supported, "should support ERC165");
-    const iModuleValidatorSupported = await passkeyValidator.supportsInterface("0xa49a12c6");
+    const iModuleValidatorSupported = await passkeyValidator.supportsInterface("0x0c119b61");
     assert(iModuleValidatorSupported, "should support IModuleValidator");
   });
 
