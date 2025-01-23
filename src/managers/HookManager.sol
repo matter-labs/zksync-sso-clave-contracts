@@ -95,9 +95,11 @@ abstract contract HookManager is IHookManager, Auth {
     }
 
     if (isValidation) {
-      _validationHooks().add(hook);
+      bool success = _validationHooks().add(hook);
+      require(success, "Validation hook already exists");
     } else {
-      _executionHooks().add(hook);
+      bool success = _executionHooks().add(hook);
+      require(success, "Execution hook already exists");
     }
 
     IModule(hook).onInstall(initData);
@@ -107,9 +109,11 @@ abstract contract HookManager is IHookManager, Auth {
 
   function _removeHook(address hook, bool isValidation) internal {
     if (isValidation) {
-      _validationHooks().remove(hook);
+      bool success = _validationHooks().remove(hook);
+      require(success, "Validation hook not found");
     } else {
-      _executionHooks().remove(hook);
+      bool success = _executionHooks().remove(hook);
+      require(success, "Execution hook not found");
     }
 
     emit HookRemoved(hook);

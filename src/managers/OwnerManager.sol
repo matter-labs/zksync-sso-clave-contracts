@@ -38,13 +38,15 @@ abstract contract OwnerManager is IOwnerManager, Auth {
   }
 
   function _k1AddOwner(address addr) internal {
-    _k1Owners().add(addr);
+    bool success = _k1Owners().add(addr);
+    require(success, "K1 Owner already exists");
 
     emit K1AddOwner(addr);
   }
 
   function _k1RemoveOwner(address addr) internal {
-    _k1Owners().remove(addr);
+    bool success = _k1Owners().remove(addr);
+    require(success, "K1 Owner not found");
 
     emit K1RemoveOwner(addr);
   }
