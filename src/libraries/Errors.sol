@@ -12,7 +12,7 @@ library Errors {
 
   // ERC165 module errors
   error VALIDATOR_ERC165_FAIL(address validator);
-  error HOOK_ERC165_FAIL(address hookAddress, bool isValidation);
+  error HOOK_ERC165_FAIL(address hookAddress);
 
   // Auth errors
   error NOT_FROM_BOOTLOADER(address notBootloader);

@@ -22,28 +22,25 @@ interface IHookManager {
    * @notice Add a hook to the list of hooks and call it's init function
    * @dev Can only be called by self
    * @param hook - Address of the hook
-   * @param isValidation bool          - True if the hook is a validation hook, false otherwise
    * @param initData bytes calldata    - Data to pass to the hook's `onInstall` function
    */
-  function addHook(address hook, bool isValidation, bytes calldata initData) external;
+  function addHook(address hook, bytes calldata initData) external;
 
   /**
    * @notice Remove a hook from the list of hooks
    * @dev Can only be called by self
    * @param hook address      - Address of the hook to remove
-   * @param isValidation bool - True if the hook is a validation hook, false otherwise
    * @param deinitData bytes calldata - Data to pass to the hook's `onUninstall` function
    */
-  function removeHook(address hook, bool isValidation, bytes calldata deinitData) external;
+  function removeHook(address hook, bytes calldata deinitData) external;
 
   /**
    * @notice Remove a hook from the list of hooks while ignoring reverts from its `onUninstall` teardown function
    * @dev Can only be called by self
    * @param hook address      - Address of the hook to remove
-   * @param isValidation bool - True if the hook is a validation hook, false otherwise
    * @param deinitData bytes calldata - Data to pass to the hook's `onUninstall` function
    */
-  function unlinkHook(address hook, bool isValidation, bytes calldata deinitData) external;
+  function unlinkHook(address hook, bytes calldata deinitData) external;
 
   /**
    * @notice Check if an address is in the list of hooks

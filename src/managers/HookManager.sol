@@ -16,7 +16,6 @@ import { IModule } from "../interfaces/IModule.sol";
 /**
  * @title Manager contract for hooks
  * @notice Abstract contract for managing the enabled hooks of the account
- * @dev Hook addresses are stored in a linked list
  * @author https://getclave.io
  */
 abstract contract HookManager is IHookManager, Auth {
@@ -27,19 +26,20 @@ abstract contract HookManager is IHookManager, Auth {
   using ExcessivelySafeCall for address;
 
   /// @inheritdoc IHookManager
-  function addHook(address hook, bool isValidation, bytes calldata initData) external override onlySelf {
-    _addHook(hook, isValidation, initData);
+  function addHook(address hook, bytes calldata initData) external override onlySelf {
+    _addHook(hook);
+    IModule(hook).onInstall(initData);
   }
 
   /// @inheritdoc IHookManager
-  function removeHook(address hook, bool isValidation, bytes calldata deinitData) external override onlySelf {
-    _removeHook(hook, isValidation);
+  function removeHook(address hook, bytes calldata deinitData) external override onlySelf {
+    _removeHook(hook);
     IModule(hook).onUninstall(deinitData);
   }
 
   /// @inheritdoc IHookManager
-  function unlinkHook(address hook, bool isValidation, bytes calldata deinitData) external onlySelf {
-    _removeHook(hook, isValidation);
+  function unlinkHook(address hook, bytes calldata deinitData) external onlySelf {
+    _removeHook(hook);
     hook.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IModule.onUninstall.selector, deinitData));
   }
 
@@ -89,27 +89,29 @@ abstract contract HookManager is IHookManager, Auth {
     }
   }
 
-  function _addHook(address hook, bool isValidation, bytes calldata initData) internal {
-    if (!_supportsHook(hook, isValidation)) {
-      revert Errors.HOOK_ERC165_FAIL(hook, isValidation);
+  function _addHook(address hook) internal {
+    bool isExecutionHook = hook.supportsInterface(type(IExecutionHook).interfaceId);
+    bool isValidationHook = hook.supportsInterface(type(IValidationHook).interfaceId);
+    if (!isExecutionHook && !isValidationHook) {
+      revert Errors.HOOK_ERC165_FAIL(hook);
     }
-
-    if (isValidation) {
-      _validationHooks().add(hook);
-    } else {
-      _executionHooks().add(hook);
+    if (isValidationHook) {
+      require(_validationHooks().add(hook), "Validation hook already exists");
     }
-
-    IModule(hook).onInstall(initData);
+    if (isExecutionHook) {
+      require(_executionHooks().add(hook), "Execution hook already exists");
+    }
 
     emit HookAdded(hook);
   }
 
-  function _removeHook(address hook, bool isValidation) internal {
-    if (isValidation) {
-      _validationHooks().remove(hook);
-    } else {
-      _executionHooks().remove(hook);
+  function _removeHook(address hook) internal {
+    if (_validationHooks().contains(hook)) {
+      require(_validationHooks().remove(hook), "Validation hook not found");
+    }
+
+    if (_executionHooks().contains(hook)) {
+      require(_executionHooks().remove(hook), "Execution hook not found");
     }
 
     emit HookRemoved(hook);
@@ -131,15 +133,5 @@ abstract contract HookManager is IHookManager, Auth {
 
   function _executionHooks() private view returns (EnumerableSet.AddressSet storage executionHooks) {
     executionHooks = SsoStorage.layout().executionHooks;
-  }
-
-  function _supportsHook(address hook, bool isValidation) private view returns (bool) {
-    return
-      hook.supportsInterface(type(IModule).interfaceId) &&
-      (
-        isValidation
-          ? hook.supportsInterface(type(IValidationHook).interfaceId)
-          : hook.supportsInterface(type(IExecutionHook).interfaceId)
-      );
   }
 }

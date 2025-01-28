@@ -18,6 +18,12 @@ library Logger {
     }
   }
 
+  function logBytes4(bytes4 bytesToLog) internal view {
+    if (block.chainid == 260) {
+      console.logBytes4(bytesToLog);
+    }
+  }
+
   function logBytes32(bytes32 bytesToLog) internal view {
     if (block.chainid == 260) {
       console.logBytes32(bytesToLog);
