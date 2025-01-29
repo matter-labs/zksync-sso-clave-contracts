@@ -25,10 +25,13 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   bytes32 private constant HIGH_R_MAX = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
 
   event PasskeyCreated(address indexed keyOwner, string originDomain);
+  event PasskeyRemoved(address indexed keyOwner, string originDomain);
 
   // The layout is unusual due to EIP-7562 storage read restrictions for validation phase.
-  mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
-  mapping(string originDomain => mapping(address accountAddress => bytes32)) public upperKeyHalf;
+  mapping(string originDomain => mapping(uint8 index => mapping(address accountAddress => bytes32 keyBytes) keyByteMapping) keyIndexMapping)
+    public lowerKeyHalf;
+  mapping(string originDomain => mapping(uint8 index => mapping(address accountAddress => bytes32 keyBytes) keyByteMapping) keyIndexMapping)
+    public upperKeyHalf;
 
   /// @notice Runs on module install
   /// @param data ABI-encoded WebAuthn passkey to add immediately, or empty if not needed
@@ -44,8 +47,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     string[] memory domains = abi.decode(data, (string[]));
     for (uint256 i = 0; i < domains.length; i++) {
       string memory domain = domains[i];
-      lowerKeyHalf[domain][msg.sender] = 0x0;
-      upperKeyHalf[domain][msg.sender] = 0x0;
+      lowerKeyHalf[domain][0][msg.sender] = 0x0;
+      upperKeyHalf[domain][0][msg.sender] = 0x0;
     }
   }
 
@@ -54,19 +57,44 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   /// @return true if the key was added, false if it was updated
   function addValidationKey(bytes calldata key) public returns (bool) {
     (bytes32[2] memory key32, string memory originDomain) = abi.decode(key, (bytes32[2], string));
-    bytes32 initialLowerHalf = lowerKeyHalf[originDomain][msg.sender];
-    bytes32 initialUpperHalf = upperKeyHalf[originDomain][msg.sender];
+    bool keyAdded = false;
+    for (uint8 index = 0; index < 255; index++) {
+      bytes32 initialLowerHalf = lowerKeyHalf[originDomain][index][msg.sender];
+      bytes32 initialUpperHalf = upperKeyHalf[originDomain][index][msg.sender];
+      bool keyExists = initialLowerHalf != 0 && initialUpperHalf != 0;
+      if (keyExists) {
+        continue;
+      }
 
-    // we might want to support multiple passkeys per domain
-    lowerKeyHalf[originDomain][msg.sender] = key32[0];
-    upperKeyHalf[originDomain][msg.sender] = key32[1];
-
-    // we're returning true if this was a new key, false for update
-    bool keyExists = initialLowerHalf == 0 && initialUpperHalf == 0;
+      lowerKeyHalf[originDomain][index][msg.sender] = key32[0];
+      upperKeyHalf[originDomain][index][msg.sender] = key32[1];
+      keyAdded = true;
+      break;
+    }
 
     emit PasskeyCreated(msg.sender, originDomain);
 
-    return keyExists;
+    return keyAdded;
+  }
+
+  /// @notice Removes a WebAuthn passkey for the caller
+  /// @param originDomain string domain to remove the key from
+  /// @param index domain to remove the key from
+  /// @return true if the key was removed, false if it failed
+  function removeValidationKey(string calldata originDomain, uint8 index) public returns (bool) {
+    bytes32 initialLowerHalf = lowerKeyHalf[originDomain][index][msg.sender];
+    bytes32 initialUpperHalf = upperKeyHalf[originDomain][index][msg.sender];
+    bool noKey = initialLowerHalf == 0 && initialUpperHalf == 0;
+    if (noKey) {
+      return false;
+    }
+
+    lowerKeyHalf[originDomain][index][msg.sender] = 0x0;
+    upperKeyHalf[originDomain][index][msg.sender] = 0x0;
+
+    emit PasskeyRemoved(msg.sender, originDomain);
+
+    return true;
   }
 
   /// @notice Validates a WebAuthn signature
@@ -128,15 +156,6 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       return false;
     }
 
-    string memory origin = root.at('"origin"').value().decodeString();
-    bytes32[2] memory pubkey;
-    pubkey[0] = lowerKeyHalf[origin][msg.sender];
-    pubkey[1] = upperKeyHalf[origin][msg.sender];
-    // This really only validates the origin is set
-    if (pubkey[0] == 0 || pubkey[1] == 0) {
-      return false;
-    }
-
     JSONParserLib.Item memory crossOriginItem = root.at('"crossOrigin"');
     if (!crossOriginItem.isUndefined()) {
       string memory crossOrigin = crossOriginItem.value();
@@ -145,8 +164,27 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       }
     }
 
+    string memory origin = root.at('"origin"').value().decodeString();
+    bytes32[2] memory pubkey;
     bytes32 message = _createMessage(authenticatorData, bytes(clientDataJSON));
-    return callVerifier(P256_VERIFIER, message, rs, pubkey);
+
+    // try all possible passkeys for this domain
+    for (uint8 index = 0; index < 255; index++) {
+      pubkey[0] = lowerKeyHalf[origin][index][msg.sender];
+      pubkey[1] = upperKeyHalf[origin][index][msg.sender];
+      // This really only validates the origin is set
+      if (pubkey[0] == 0 || pubkey[1] == 0) {
+        continue;
+      }
+
+      bool keyVerified = callVerifier(P256_VERIFIER, message, rs, pubkey);
+      if (keyVerified) {
+        return true;
+      }
+    }
+
+    // no keys matched
+    return false;
   }
 
   /// @inheritdoc IERC165
