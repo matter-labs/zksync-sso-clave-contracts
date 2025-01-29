@@ -57,14 +57,14 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
       revert Errors.VALIDATOR_ERC165_FAIL(validator);
     }
 
-    _moduleValidators().add(validator);
+    require(_moduleValidators().add(validator), "Validator already exists");
     IModule(validator).onInstall(initData);
 
     emit ValidatorAdded(validator);
   }
 
   function _removeModuleValidator(address validator) internal {
-    _moduleValidators().remove(validator);
+    require(_moduleValidators().remove(validator), "Validator not found");
 
     emit ValidatorRemoved(validator);
   }
