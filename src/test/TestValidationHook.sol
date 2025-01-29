@@ -38,6 +38,7 @@ contract TestValidationHook is IValidationHook {
       interfaceId == type(IERC165).interfaceId;
   }
 
+  // FIXME: if a validation hook were to always revert, the account would be bricked
   function validationHook(bytes32 signedHash, Transaction calldata transaction) external {
     if (transaction.data.length == 0) {
       revert("Empty calldata not allowed");
