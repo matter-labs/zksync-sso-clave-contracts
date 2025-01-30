@@ -77,15 +77,22 @@ abstract contract HookManager is IHookManager, Auth {
   modifier runExecutionHooks(Transaction calldata transaction) {
     EnumerableSet.AddressSet storage hookList = _executionHooks();
     uint256 totalHooks = hookList.length();
+    bytes[] memory context = new bytes[](totalHooks);
 
     for (uint256 i = 0; i < totalHooks; i++) {
-      IExecutionHook(hookList.at(i)).preExecutionHook(transaction);
+      context[i] = IExecutionHook(hookList.at(i)).preExecutionHook(transaction);
     }
 
     _;
 
+    // If we removed any hooks, we have to update totalHooks.
+    // If we added any hooks, we don't want them to run yet.
+    if (totalHooks > hookList.length()) {
+      totalHooks = hookList.length();
+    }
+
     for (uint256 i = 0; i < totalHooks; i++) {
-      IExecutionHook(hookList.at(i)).postExecutionHook();
+      IExecutionHook(hookList.at(i)).postExecutionHook(context[i]);
     }
   }
 
@@ -95,9 +102,9 @@ abstract contract HookManager is IHookManager, Auth {
     }
 
     if (isValidation) {
-      _validationHooks().add(hook);
+      require(_validationHooks().add(hook), "Hook already installed");
     } else {
-      _executionHooks().add(hook);
+      require(_executionHooks().add(hook), "Hook already installed");
     }
 
     IModule(hook).onInstall(initData);
@@ -107,9 +114,9 @@ abstract contract HookManager is IHookManager, Auth {
 
   function _removeHook(address hook, bool isValidation) internal {
     if (isValidation) {
-      _validationHooks().remove(hook);
+      require(_validationHooks().remove(hook), "Hook not found");
     } else {
-      _executionHooks().remove(hook);
+      require(_executionHooks().remove(hook), "Hook not found");
     }
 
     emit HookRemoved(hook);

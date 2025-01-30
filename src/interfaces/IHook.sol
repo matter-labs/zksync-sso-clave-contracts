@@ -23,8 +23,10 @@ interface IValidationHook is IModule, IERC165 {
 interface IExecutionHook is IModule, IERC165 {
   /// @notice Hook that triggers before each transaction during the execution phase.
   /// @param transaction Transaction that is being executed.
-  function preExecutionHook(Transaction calldata transaction) external;
+  /// @return context Context that is passed to the postExecutionHook.
+  function preExecutionHook(Transaction calldata transaction) external returns (bytes memory context);
 
   /// @notice Hook that triggers after each transaction during the execution phase.
-  function postExecutionHook() external;
+  /// @param context Context that was returned by the preExecutionHook.
+  function postExecutionHook(bytes calldata context) external;
 }
