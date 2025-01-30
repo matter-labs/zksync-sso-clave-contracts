@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * @title Module interface
  * @dev Interface for a module that can be added to SSO account (e.g. hook or validator).
