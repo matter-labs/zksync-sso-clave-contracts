@@ -27,9 +27,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   error CooldownPerionNotPassed();
   error ExpiredRequest();
 
-  /**
-   * @dev Event indicating new recovery process being initiated
-   */
+  /// @dev Event indicating new recovery process being initiated
   event RecoveryInitiated(address account, address guardian);
 
   uint256 constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
@@ -41,9 +39,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
   address public webAuthValidator;
 
-  /**
-   *  @notice The constructor sets the web authn validator for which recovery process can be initiated. Used only for non proxied deployment
-   */
+  /// @notice The constructor sets the web authn validator for which recovery process can be initiated. Used only for non proxied deployment
   constructor(address _webAuthValidator) {
     initialize(_webAuthValidator);
   }
@@ -55,26 +51,21 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     webAuthValidator = _webAuthValidator;
   }
 
-  /**
-   *  @notice Validator initiator for given sso account. This module does not support initialization on creation
-   * @param initData Not used
-   */
-  function onInstall(bytes calldata initData) external {}
+  /// @notice Validator initiator for given sso account. This module does not support initialization on creation
+  function onInstall(bytes calldata) external {}
 
-  /**
-   *  @notice Removes all past guardians when this module is disabled in a account
-   */
-  function onUninstall(bytes calldata data) external {
+  /// @notice Removes all past guardians when this module is disabled in a account
+  function onUninstall(bytes calldata) external {
     Guardian[] storage guardians = accountGuardians[msg.sender];
     for (uint256 i = 0; i < guardians.length; i++) {
       address guardian = guardians[i].addr;
 
       address[] storage accounts = guardedAccounts[guardian];
-      for (uint256 i = 0; i < accounts.length; i++) {
-        if (accounts[i] == msg.sender) {
+      for (uint256 j = 0; j < accounts.length; j++) {
+        if (accounts[j] == msg.sender) {
           // If found last account is moved to current position, and then
           // last element is removed from array.
-          accounts[i] = accounts[accounts.length - 1];
+          accounts[j] = accounts[accounts.length - 1];
           accounts.pop();
           break;
         }
@@ -84,12 +75,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     delete accountGuardians[msg.sender];
   }
 
-  /**
-   * @notice The `proposeValidationKey` method handles the initial registration of external accounts by:
-   *  1. Taking an external account address and store it as pending guardian
-   *  2. Enable `addValidationKey` to confirm this account
-   * @param newGuardian    New Guardian's address
-   */
+  /// @notice The `proposeValidationKey` method handles the initial registration of guardians by:
+  ///   1. Taking an external account address and store it as pending guardian
+  ///   2. Enable `addValidationKey` to confirm this account
+  /// @param newGuardian New Guardian's address
   function proposeValidationKey(address newGuardian) external {
     Guardian[] storage guardians = accountGuardians[msg.sender];
 
@@ -103,12 +92,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     guardians.push(Guardian(newGuardian, false));
   }
 
-  /**
-   * @notice This method handles the removal of external accounts by:
-   * 1. Accepting an address as input
-   * 2. Removing the account from the list of guardians
-   * @param guardianToRemove    Guardian's address to remove
-   */
+  /// @notice This method handles the removal of guardians by:
+  ///   1. Accepting an address as input
+  ///   2. Removing the account from the list of guardians
+  /// @param guardianToRemove Guardian's address to remove
   function removeValidationKey(address guardianToRemove) external {
     Guardian[] storage guardians = accountGuardians[msg.sender];
 
@@ -137,11 +124,9 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     revert GuardianNotFound(guardianToRemove);
   }
 
-  /**
-   * @notice This method allows to accept being a guardian of given account
-   * @param key    Encoded address of account which msg.sender is becoming guardian of
-   * @return       Flag indicating whether guardian was already valid or not
-   */
+  /// @notice This method allows to accept being a guardian of given account
+  /// @param key Encoded address of account which msg.sender is becoming guardian of
+  /// @return Flag indicating whether guardian was already valid or not
   function addValidationKey(bytes memory key) external returns (bool) {
     // Interprets argument as address;
     address accountToGuard = abi.decode(key, (address));
@@ -163,42 +148,36 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     revert GuardianNotProposed(msg.sender);
   }
 
-  /**
-   * @notice This modifier allows execution only by active guardian of account
-   * @param account    Address of account for which we verify guardian existence
-   */
+  /// @notice This modifier allows execution only by active guardian of account
+  /// @param account Address of account for which we verify guardian existence
   modifier onlyGuardianOf(address account) {
     bool isGuardian = false;
     for (uint256 i = 0; i < accountGuardians[account].length; i++) {
-      if (accountGuardians[account][i].addr == msg.sender && accountGuardians[account][i].isReady) isGuardian = true;
-      break;
+      if (accountGuardians[account][i].addr == msg.sender && accountGuardians[account][i].isReady) {
+        isGuardian = true;
+        break;
+      }
     }
     if (!isGuardian) revert GuardianNotFound(msg.sender);
     // Continue execution if called by guardian
     _;
   }
 
-  /**
-   * @notice This method allows to accept being a guardian of given account
-   * @param accountToRecover   Address of account for which given recovery is initiated
-   * @param passkey            Encoded new passkey, that will be passed to WebAuthnModule
-   */
+  /// @notice This method allows to accept being a guardian of given account
+  /// @param accountToRecover Address of account for which given recovery is initiated
+  /// @param passkey Encoded new passkey, that will be passed to WebAuthnModule
   function initRecovery(address accountToRecover, bytes memory passkey) external onlyGuardianOf(accountToRecover) {
     pendingRecoveryData[accountToRecover] = RecoveryRequest(passkey, block.timestamp);
 
     emit RecoveryInitiated(accountToRecover, msg.sender);
   }
 
-  /**
-   * @notice This method allows to discard currently pending recovery
-   */
+  /// @notice This method allows to discard currently pending recovery
   function discardRecovery() external {
     delete pendingRecoveryData[msg.sender];
   }
 
-  /**
-   * @inheritdoc IModuleValidator
-   */
+  /// @inheritdoc IModuleValidator
   function validateTransaction(
     bytes32 signedHash,
     bytes memory signature,
@@ -244,22 +223,29 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     return false;
   }
 
-  // This module is not meant to be used to validate signatures
-  function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+  /// @inheritdoc IModuleValidator
+  function validateSignature(bytes32, bytes memory) external view returns (bool) {
     return false;
   }
 
-  function supportsInterface(bytes4 interfaceId) external view returns (bool) {
+  /// @inheritdoc IERC165
+  function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
     return
       interfaceId == type(IERC165).interfaceId ||
       interfaceId == type(IModuleValidator).interfaceId ||
       interfaceId == type(IModule).interfaceId;
   }
 
+  /// @notice Returns all guardians for an account
+  /// @param addr Address of account to get guardians for
+  /// @return Array of guardians for the account
   function guardiansFor(address addr) public view returns (Guardian[] memory) {
     return accountGuardians[addr];
   }
 
+  /// @notice Returns all accounts guarded by a guardian
+  /// @param guardian Address of guardian to get guarded accounts for
+  /// @return Array of accounts guarded by the guardian
   function guardianOf(address guardian) public view returns (address[] memory) {
     return guardedAccounts[guardian];
   }
