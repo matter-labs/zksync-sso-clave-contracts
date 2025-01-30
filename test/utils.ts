@@ -150,6 +150,7 @@ export class ContractFixtures {
   async deployExampleAuthServerPaymaster(
     aaFactoryAddress: string,
     sessionKeyValidatorAddress: string,
+    guardianRecoveryValidatorAddress: string,
   ): Promise<ExampleAuthServerPaymaster> {
     const contract = await create2(
       "ExampleAuthServerPaymaster",
@@ -158,6 +159,7 @@ export class ContractFixtures {
       [
         aaFactoryAddress,
         sessionKeyValidatorAddress,
+        guardianRecoveryValidatorAddress,
       ],
     );
     const paymasterAddress = ExampleAuthServerPaymaster__factory.connect(await contract.getAddress(), this.wallet);
