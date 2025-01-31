@@ -10,16 +10,20 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import { AAFactory } from "../AAFactory.sol";
 import { SessionKeyValidator } from "../validators/SessionKeyValidator.sol";
+import { GuardianRecoveryValidator } from "../validators/GuardianRecoveryValidator.sol";
 
 /// @author Matter Labs
 /// @notice This contract does not include any validations other than using the paymaster general flow.
 contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
   address public immutable AA_FACTORY_CONTRACT_ADDRESS;
   address public immutable SESSION_KEY_VALIDATOR_CONTRACT_ADDRESS;
+  address public immutable ACCOUNT_RECOVERY_VALIDATOR_CONTRACT_ADDRESS;
   bytes4 constant DEPLOY_ACCOUNT_SELECTOR = AAFactory.deployProxySsoAccount.selector;
   bytes4 constant SESSION_CREATE_SELECTOR = SessionKeyValidator.createSession.selector;
   bytes4 constant SESSION_REVOKE_KEY_SELECTOR = SessionKeyValidator.revokeKey.selector;
   bytes4 constant SESSION_REVOKE_KEYS_SELECTOR = SessionKeyValidator.revokeKeys.selector;
+  bytes4 constant ACCOUNT_RECOVERY_ADD_KEY_SELECTOR = GuardianRecoveryValidator.addValidationKey.selector;
+  bytes4 constant ACCOUNT_RECOVERY_PROPOSE_KEY_SELECTOR = GuardianRecoveryValidator.proposeValidationKey.selector;
 
   modifier onlyBootloader() {
     require(msg.sender == BOOTLOADER_FORMAL_ADDRESS, "Only bootloader can call this method");
@@ -27,9 +31,10 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
     _;
   }
 
-  constructor(address aaFactoryAddress, address sessionKeyValidatorAddress) {
+  constructor(address aaFactoryAddress, address sessionKeyValidatorAddress, address accountRecoveryValidatorAddress) {
     AA_FACTORY_CONTRACT_ADDRESS = aaFactoryAddress;
     SESSION_KEY_VALIDATOR_CONTRACT_ADDRESS = sessionKeyValidatorAddress;
+    ACCOUNT_RECOVERY_VALIDATOR_CONTRACT_ADDRESS = accountRecoveryValidatorAddress;
   }
 
   function validateAndPayForPaymasterTransaction(
@@ -44,7 +49,9 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
     // Ensure the transaction is calling one of our allowed contracts
     address to = address(uint160(_transaction.to));
     require(
-      to == AA_FACTORY_CONTRACT_ADDRESS || to == SESSION_KEY_VALIDATOR_CONTRACT_ADDRESS,
+      to == AA_FACTORY_CONTRACT_ADDRESS ||
+        to == SESSION_KEY_VALIDATOR_CONTRACT_ADDRESS ||
+        to == ACCOUNT_RECOVERY_VALIDATOR_CONTRACT_ADDRESS,
       "Unsupported contract address"
     );
 
@@ -59,6 +66,12 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
         methodSelector == SESSION_CREATE_SELECTOR ||
           methodSelector == SESSION_REVOKE_KEY_SELECTOR ||
           methodSelector == SESSION_REVOKE_KEYS_SELECTOR,
+        "Unsupported method"
+      );
+    }
+    if (to == SESSION_KEY_VALIDATOR_CONTRACT_ADDRESS) {
+      require(
+        methodSelector == ACCOUNT_RECOVERY_ADD_KEY_SELECTOR || methodSelector == ACCOUNT_RECOVERY_PROPOSE_KEY_SELECTOR,
         "Unsupported method"
       );
     }
