@@ -36,6 +36,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   mapping(address account => Guardian[]) public accountGuardians;
   mapping(address guardian => address[]) public guardedAccounts;
   mapping(address account => RecoveryRequest) public pendingRecoveryData;
+  mapping(bytes32 passkeyHash => address) public recoveryRequestByPasskey;
 
   address public webAuthValidator;
 
@@ -168,13 +169,47 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @param passkey Encoded new passkey, that will be passed to WebAuthnModule
   function initRecovery(address accountToRecover, bytes memory passkey) external onlyGuardianOf(accountToRecover) {
     pendingRecoveryData[accountToRecover] = RecoveryRequest(passkey, block.timestamp);
+    recoveryRequestByPasskey[keccak256(passkey)] = accountToRecover;
 
     emit RecoveryInitiated(accountToRecover, msg.sender);
   }
 
   /// @notice This method allows to discard currently pending recovery
   function discardRecovery() external {
+    RecoveryRequest storage request = pendingRecoveryData[msg.sender];
+    delete recoveryRequestByPasskey[keccak256(request.passkey)];
     delete pendingRecoveryData[msg.sender];
+  }
+
+  /// @notice Checks if a given passkey matches a pending recovery request and is ready to be used
+  /// @param passkey The passkey to verify
+  /// @return account The account being recovered (zero address if no match)
+  /// @return ready True if the passkey matches and is ready to be used
+  /// @return remainingTime Time in seconds until the passkey can be used (0 if ready or no match)
+  function checkRecoveryRequest(
+    bytes calldata passkey
+  ) external view returns (address account, bool ready, uint256 remainingTime) {
+    account = recoveryRequestByPasskey[keccak256(passkey)];
+
+    if (account == address(0)) {
+      return (account, false, 0);
+    }
+
+    RecoveryRequest storage request = pendingRecoveryData[account];
+    uint256 timePassedSinceRequest = block.timestamp - request.timestamp;
+
+    // If request expired
+    if (timePassedSinceRequest > REQUEST_VALIDITY_TIME) {
+      return (account, false, 0);
+    }
+
+    // If still in cooldown period
+    if (timePassedSinceRequest < REQUEST_DELAY_TIME) {
+      return (account, false, REQUEST_DELAY_TIME - timePassedSinceRequest);
+    }
+
+    // Passkey matches and is ready to be used
+    return (account, true, 0);
   }
 
   /// @inheritdoc IModuleValidator
@@ -215,6 +250,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
       if (timePassedSinceRequest > REQUEST_VALIDITY_TIME) revert ExpiredRequest();
 
       // Cleanup currently processed recovery data
+      delete recoveryRequestByPasskey[keccak256(pendingRecoveryData[msg.sender].passkey)];
       delete pendingRecoveryData[msg.sender];
 
       return true;
