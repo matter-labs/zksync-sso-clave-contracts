@@ -15,6 +15,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   struct Guardian {
     address addr;
     bool isReady;
+    uint64 addedAt;
   }
   struct RecoveryRequest {
     bytes passkey;
@@ -100,7 +101,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
       }
     }
 
-    guardians.push(Guardian(newGuardian, false));
+    guardians.push(Guardian(newGuardian, false, uint64(block.timestamp)));
+    guardedAccounts[newGuardian].push(msg.sender);
   }
 
   /**
