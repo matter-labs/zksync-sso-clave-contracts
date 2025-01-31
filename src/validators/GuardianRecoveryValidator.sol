@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import { IGuardianRecoveryValidator } from "../interfaces/IGuardianRecoveryValidator.sol";
 import { WebAuthValidator } from "./WebAuthValidator.sol";
+import { AAFactory } from "../AAFactory.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -19,12 +20,13 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   struct RecoveryRequest {
     bytes passkey;
     uint256 timestamp;
+    string accountId;
   }
 
   error GuardianNotFound(address guardian);
   error GuardianNotProposed(address guardian);
   error PasskeyNotMatched();
-  error CooldownPerionNotPassed();
+  error CooldownPeriodNotPassed();
   error ExpiredRequest();
 
   /// @dev Event indicating new recovery process being initiated
@@ -36,20 +38,21 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   mapping(address account => Guardian[]) public accountGuardians;
   mapping(address guardian => address[]) public guardedAccounts;
   mapping(address account => RecoveryRequest) public pendingRecoveryData;
-  mapping(bytes32 passkeyHash => address) public recoveryRequestByPasskey;
 
-  address public webAuthValidator;
+  WebAuthValidator public webAuthValidator;
+  AAFactory public aaFactory;
 
   /// @notice The constructor sets the web authn validator for which recovery process can be initiated. Used only for non proxied deployment
-  constructor(address _webAuthValidator) {
-    initialize(_webAuthValidator);
+  constructor(WebAuthValidator _webAuthValidator, AAFactory _aaFactory) {
+    initialize(_webAuthValidator, _aaFactory);
   }
 
   /// @notice Initializer function that sets validator initial configuration. Expected to be used in the proxy.
   /// @dev Sets webAuthValidator address
   /// @param _webAuthValidator Address of WebAuthnValidator contracts
-  function initialize(address _webAuthValidator) public initializer {
+  function initialize(WebAuthValidator _webAuthValidator, AAFactory _aaFactory) public initializer {
     webAuthValidator = _webAuthValidator;
+    aaFactory = _aaFactory;
   }
 
   /// @notice Validator initiator for given sso account. This module does not support initialization on creation
@@ -164,32 +167,34 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     _;
   }
 
-  /// @notice This method allows to accept being a guardian of given account
+  /// @notice This method initializes a recovery process for a given account
   /// @param accountToRecover Address of account for which given recovery is initiated
   /// @param passkey Encoded new passkey, that will be passed to WebAuthnModule
-  function initRecovery(address accountToRecover, bytes memory passkey) external onlyGuardianOf(accountToRecover) {
-    pendingRecoveryData[accountToRecover] = RecoveryRequest(passkey, block.timestamp);
-    recoveryRequestByPasskey[keccak256(passkey)] = accountToRecover;
-
+  function initRecovery(
+    address accountToRecover,
+    bytes memory passkey,
+    string memory accountId
+  ) external onlyGuardianOf(accountToRecover) {
+    pendingRecoveryData[accountToRecover] = RecoveryRequest(passkey, block.timestamp, accountId);
+    aaFactory.registerRecoveryBlockedAccount(accountId, accountToRecover);
     emit RecoveryInitiated(accountToRecover, msg.sender);
   }
 
   /// @notice This method allows to discard currently pending recovery
-  function discardRecovery() external {
-    RecoveryRequest storage request = pendingRecoveryData[msg.sender];
-    delete recoveryRequestByPasskey[keccak256(request.passkey)];
+  function discardRecovery(string memory accountId) external {
     delete pendingRecoveryData[msg.sender];
+    aaFactory.unregisterRecoveryBlockedAccount(accountId, msg.sender);
   }
 
   /// @notice Checks if a given passkey matches a pending recovery request and is ready to be used
-  /// @param passkey The passkey to verify
+  /// @param accountId The account ID to check
   /// @return account The account being recovered (zero address if no match)
   /// @return ready True if the passkey matches and is ready to be used
   /// @return remainingTime Time in seconds until the passkey can be used (0 if ready or no match)
   function checkRecoveryRequest(
-    bytes calldata passkey
+    string memory accountId
   ) external view returns (address account, bool ready, uint256 remainingTime) {
-    account = recoveryRequestByPasskey[keccak256(passkey)];
+    account = aaFactory.recoveryBlockedAccountIds(accountId);
 
     if (account == address(0)) {
       return (account, false, 0);
@@ -224,39 +229,43 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     //   3. Verify the new passkey is the one stored in `initRecovery`
     //   4. Allows anyone to call this method, as the recovery was already verified in `initRecovery`
     //   5. Verifies that the required timelock period has passed since `initRecovery` was called
-    (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SignatureDecoder
-      .decodeSignature(transaction.signature);
-
     require(transaction.data.length >= 4, "Only function calls are supported");
     bytes4 selector = bytes4(transaction.data[:4]);
 
     require(transaction.to <= type(uint160).max, "Overflow");
     address target = address(uint160(transaction.to));
 
-    if (target == address(webAuthValidator)) {
-      // Check for calling "addValidationKey" method by anyone on WebAuthValidator contract
-      require(selector == WebAuthValidator.addValidationKey.selector, "Unsupported function call");
-      bytes memory validationKeyData = abi.decode(transaction.data[4:], (bytes));
-
-      // Verify that current request matches pending one
-      if (
-        pendingRecoveryData[msg.sender].passkey.length != validationKeyData.length ||
-        keccak256(pendingRecoveryData[msg.sender].passkey) != keccak256(validationKeyData)
-      ) revert PasskeyNotMatched();
-
-      // Ensure time constraints
-      uint256 timePassedSinceRequest = block.timestamp - pendingRecoveryData[msg.sender].timestamp;
-      if (timePassedSinceRequest < REQUEST_DELAY_TIME) revert CooldownPerionNotPassed();
-      if (timePassedSinceRequest > REQUEST_VALIDITY_TIME) revert ExpiredRequest();
-
-      // Cleanup currently processed recovery data
-      delete recoveryRequestByPasskey[keccak256(pendingRecoveryData[msg.sender].passkey)];
-      delete pendingRecoveryData[msg.sender];
-
-      return true;
+    if (target != address(webAuthValidator)) {
+      return false;
     }
 
-    return false;
+    // Check for calling "addValidationKey" method by anyone on WebAuthValidator contract
+    require(selector == WebAuthValidator.addValidationKey.selector, "Unauthorized function call");
+    bytes memory validationKeyData = abi.decode(transaction.data[4:], (bytes));
+
+    // Verify that current request matches pending one
+    if (
+      pendingRecoveryData[msg.sender].passkey.length != validationKeyData.length ||
+      keccak256(pendingRecoveryData[msg.sender].passkey) != keccak256(validationKeyData)
+    ) revert PasskeyNotMatched();
+
+    // Ensure time constraints
+    uint256 timePassedSinceRequest = block.timestamp - pendingRecoveryData[msg.sender].timestamp;
+    if (timePassedSinceRequest < REQUEST_DELAY_TIME) revert CooldownPeriodNotPassed();
+    if (timePassedSinceRequest > REQUEST_VALIDITY_TIME) revert ExpiredRequest();
+
+    string memory accountId = pendingRecoveryData[msg.sender].accountId;
+
+    // Update account mapping in AAFactory
+    string memory previousAccountId = aaFactory.accountIds(msg.sender);
+    aaFactory.unregisterAccount(previousAccountId, msg.sender);
+    aaFactory.registerAccount(accountId, msg.sender);
+
+    // Cleanup currently processed recovery data
+    delete pendingRecoveryData[msg.sender];
+    aaFactory.unregisterRecoveryBlockedAccount(accountId, msg.sender);
+
+    return true;
   }
 
   /// @inheritdoc IModuleValidator

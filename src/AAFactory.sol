@@ -23,6 +23,13 @@ contract AAFactory {
   /// @notice A mapping from unique account IDs to their corresponding deployed account addresses.
   mapping(string => address) public accountMappings;
 
+  /// @notice A mapping from account addresses to their corresponding unique account IDs.
+  mapping(address => string) public accountIds;
+
+  /// @notice A mapping that marks account IDs as being used for recovery.
+  /// @dev This is used to prevent the same account ID from being used for recovery, deployment and future uses.
+  mapping(string => address) public recoveryBlockedAccountIds;
+
   /// @notice Constructor that initializes the factory with a beacon proxy bytecode hash and implementation contract address.
   /// @param _beaconProxyBytecodeHash The bytecode hash of the beacon proxy.
   /// @param _beacon The address of the UpgradeableBeacon contract used for the SSO accounts' beacon proxies.
@@ -48,7 +55,11 @@ contract AAFactory {
     bytes[] calldata _initialValidators,
     address[] calldata _initialK1Owners
   ) external returns (address accountAddress) {
-    require(accountMappings[_uniqueAccountId] == address(0), "Account already exists");
+    require(
+      accountMappings[_uniqueAccountId] == address(0) && bytes(accountIds[msg.sender]).length == 0,
+      "Account already exists"
+    );
+    require(recoveryBlockedAccountIds[_uniqueAccountId] == address(0), "Account ID is being used for recovery");
 
     (bool success, bytes memory returnData) = SystemContractsCaller.systemCallWithReturndata(
       uint32(gasleft()),
@@ -65,8 +76,65 @@ contract AAFactory {
     // Initialize the newly deployed account with validators, hooks and K1 owners.
     ISsoAccount(accountAddress).initialize(_initialValidators, _initialK1Owners);
 
-    accountMappings[_uniqueAccountId] = accountAddress;
+    _registerAccount(_uniqueAccountId, accountAddress);
 
     emit AccountCreated(accountAddress, _uniqueAccountId);
+  }
+
+  /// @notice Registers an account with a given account ID.
+  /// @dev Can only be called by the account's validators.
+  /// @param _uniqueAccountId The unique identifier for the account.
+  /// @param _accountAddress The address of the account to register.
+  function registerAccount(
+    string calldata _uniqueAccountId,
+    address _accountAddress
+  ) external onlyAccountValidator(_accountAddress) {
+    _registerAccount(_uniqueAccountId, _accountAddress);
+  }
+
+  function _registerAccount(string calldata _uniqueAccountId, address _accountAddress) internal {
+    accountMappings[_uniqueAccountId] = _accountAddress;
+    accountIds[_accountAddress] = _uniqueAccountId;
+  }
+
+  /// @notice Unregisters an account from the factory.
+  /// @dev Can only be called by the account's validators.
+  /// @param _uniqueAccountId The unique identifier for the account.
+  /// @param _accountAddress The address of the account to unregister.
+  function unregisterAccount(
+    string memory _uniqueAccountId,
+    address _accountAddress
+  ) external onlyAccountValidator(_accountAddress) {
+    accountMappings[_uniqueAccountId] = address(0);
+    accountIds[_accountAddress] = "";
+  }
+
+  /// @notice Updates the account mapping for a given account ID during recovery.
+  /// @dev Can only be called by the account's validators.
+  /// @param _uniqueAccountId The unique identifier for the account.
+  /// @param _accountAddress The address of the account to update the mapping for.
+  function registerRecoveryBlockedAccount(
+    string calldata _uniqueAccountId,
+    address _accountAddress
+  ) external onlyAccountValidator(_accountAddress) {
+    recoveryBlockedAccountIds[_uniqueAccountId] = _accountAddress;
+  }
+
+  /// @notice Unregisters a recovery blocked account from the factory.
+  /// @dev Can only be called by the account's validators.
+  /// @param _uniqueAccountId The unique identifier for the account.
+  /// @param _accountAddress The address of the account to unregister.
+  function unregisterRecoveryBlockedAccount(
+    string calldata _uniqueAccountId,
+    address _accountAddress
+  ) external onlyAccountValidator(_accountAddress) {
+    recoveryBlockedAccountIds[_uniqueAccountId] = address(0);
+  }
+
+  /// @notice Modifier that checks if the caller is a validator for the given account.
+  /// @param _accountAddress The address of the account to check the validator for.
+  modifier onlyAccountValidator(address _accountAddress) {
+    require(ISsoAccount(_accountAddress).isModuleValidator(msg.sender), "Unauthorized validator");
+    _;
   }
 }
