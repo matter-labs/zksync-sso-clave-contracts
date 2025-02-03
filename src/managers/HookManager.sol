@@ -40,7 +40,7 @@ abstract contract HookManager is IHookManager, Auth {
   /// @inheritdoc IHookManager
   function unlinkHook(address hook, bool isValidation, bytes calldata deinitData) external onlySelf {
     _removeHook(hook, isValidation);
-    hook.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IModule.onUninstall.selector, deinitData));
+    hook.excessivelySafeCall(gasleft(), 0, abi.encodeCall(IModule.onUninstall.selector, (deinitData)));
   }
 
   /// @inheritdoc IHookManager

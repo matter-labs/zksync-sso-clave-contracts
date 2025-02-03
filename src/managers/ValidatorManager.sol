@@ -39,7 +39,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   ///@inheritdoc IValidatorManager
   function unlinkModuleValidator(address validator, bytes calldata deinitData) external onlySelf {
     _removeModuleValidator(validator);
-    validator.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IModule.onUninstall.selector, deinitData));
+    validator.excessivelySafeCall(gasleft(), 0, abi.encodeCall(IModule.onUninstall.selector, (deinitData)));
   }
 
   /// @inheritdoc IValidatorManager
