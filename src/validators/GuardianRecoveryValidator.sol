@@ -181,9 +181,9 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   /// @notice This method allows to discard currently pending recovery
-  function discardRecovery(string memory accountId) external {
+  function discardRecovery() external {
+    aaFactory.unregisterRecoveryBlockedAccount(pendingRecoveryData[msg.sender].accountId, msg.sender);
     delete pendingRecoveryData[msg.sender];
-    aaFactory.unregisterRecoveryBlockedAccount(accountId, msg.sender);
   }
 
   /// @notice Checks if a given passkey matches a pending recovery request and is ready to be used
