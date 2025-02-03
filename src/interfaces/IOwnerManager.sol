@@ -10,13 +10,13 @@ interface IOwnerManager {
    * @notice Event emitted when a k1 owner is added
    * @param addr address - k1 owner that has been added
    */
-  event K1AddOwner(address indexed addr);
+  event K1OwnerAdded(address indexed addr);
 
   /**
    * @notice Event emitted when a k1 owner is removed
    * @param addr address - k1 owner that has been removed
    */
-  event K1RemoveOwner(address indexed addr);
+  event K1OwnerRemoved(address indexed addr);
 
   /**
    * @notice Adds a k1 owner to the list of k1 owners
