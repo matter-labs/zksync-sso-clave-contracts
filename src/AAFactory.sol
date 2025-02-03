@@ -62,9 +62,14 @@ contract AAFactory {
     bytes[] calldata _initialValidators,
     address[] calldata _initialK1Owners
   ) external returns (address accountAddress) {
-    require(accountMappings[_uniqueAccountId] == address(0), AccountAlreadyRegistered(_uniqueAccountId, msg.sender));
-    require(accountIds[msg.sender].equal(""), AccountAlreadyRegistered(_uniqueAccountId, msg.sender));
-    require(recoveryAccountIds[_uniqueAccountId] == address(0), AccountUsedForRecovery(_uniqueAccountId, msg.sender));
+    require(
+      accountMappings[_uniqueAccountId] == address(0),
+      AccountAlreadyRegistered(_uniqueAccountId, accountMappings[_uniqueAccountId])
+    );
+    require(
+      recoveryAccountIds[_uniqueAccountId] == address(0),
+      AccountUsedForRecovery(_uniqueAccountId, recoveryAccountIds[_uniqueAccountId])
+    );
 
     (bool success, bytes memory returnData) = SystemContractsCaller.systemCallWithReturndata(
       uint32(gasleft()),
@@ -77,6 +82,9 @@ contract AAFactory {
     );
     require(success, "Deployment failed");
     (accountAddress) = abi.decode(returnData, (address));
+
+    // Check if the account is already registered in accountIds mapping.
+    require(accountIds[accountAddress].equal(""), AccountAlreadyRegistered(_uniqueAccountId, accountAddress));
 
     // Initialize the newly deployed account with validators, hooks and K1 owners.
     ISsoAccount(accountAddress).initialize(_initialValidators, _initialK1Owners);
