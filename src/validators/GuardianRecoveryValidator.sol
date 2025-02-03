@@ -194,7 +194,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   function checkRecoveryRequest(
     string memory accountId
   ) external view returns (address account, bool ready, uint256 remainingTime) {
-    account = aaFactory.recoveryBlockedAccountIds(accountId);
+    account = aaFactory.recoveryAccountIds(accountId);
 
     if (account == address(0)) {
       return (account, false, 0);
@@ -218,11 +218,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   /// @inheritdoc IModuleValidator
-  function validateTransaction(
-    bytes32 signedHash,
-    bytes memory signature,
-    Transaction calldata transaction
-  ) external returns (bool) {
+  function validateTransaction(bytes32, bytes memory, Transaction calldata transaction) external returns (bool) {
     // If the user has a recovery in progress then:
     //   1. The method will verify calls to `WebAuthnModule`
     //   2. Checks if the transaction is attempting to modify passkeys
@@ -259,22 +255,22 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     // Update account mapping in AAFactory
     string memory previousAccountId = aaFactory.accountIds(msg.sender);
     aaFactory.unregisterAccount(previousAccountId, msg.sender);
+    aaFactory.unregisterRecoveryBlockedAccount(accountId, msg.sender);
     aaFactory.registerAccount(accountId, msg.sender);
 
     // Cleanup currently processed recovery data
     delete pendingRecoveryData[msg.sender];
-    aaFactory.unregisterRecoveryBlockedAccount(accountId, msg.sender);
 
     return true;
   }
 
   /// @inheritdoc IModuleValidator
-  function validateSignature(bytes32, bytes memory) external view returns (bool) {
+  function validateSignature(bytes32, bytes memory) external pure returns (bool) {
     return false;
   }
 
   /// @inheritdoc IERC165
-  function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
+  function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
     return
       interfaceId == type(IERC165).interfaceId ||
       interfaceId == type(IModuleValidator).interfaceId ||
