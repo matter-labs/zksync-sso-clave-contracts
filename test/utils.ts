@@ -109,7 +109,9 @@ export class ContractFixtures {
   private _guardianRecoveryValidator: GuardianRecoveryValidator
   async getGuardianRecoveryValidator () {
     if (this._guardianRecoveryValidator === undefined) {
-      const contract = await create2("GuardianRecoveryValidator", this.wallet, ethersStaticSalt, [await (await this.getWebAuthnVerifierContract()).getAddress()]);
+      const webAuthVerifier = await this.getWebAuthnVerifierContract();
+      const aaFactoryAddress = await this.getAaFactoryAddress()
+      const contract = await create2("GuardianRecoveryValidator", this.wallet, ethersStaticSalt, [await webAuthVerifier.getAddress(), aaFactoryAddress]);
       this._guardianRecoveryValidator = GuardianRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._guardianRecoveryValidator
