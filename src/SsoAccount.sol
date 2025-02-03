@@ -5,14 +5,16 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { ACCOUNT_VALIDATION_SUCCESS_MAGIC } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IAccount.sol";
 import { Transaction, TransactionHelper } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { EfficientCall } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/EfficientCall.sol";
-import { NONCE_HOLDER_SYSTEM_CONTRACT, DEPLOYER_SYSTEM_CONTRACT, INonceHolder } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
+import { NONCE_HOLDER_SYSTEM_CONTRACT, DEPLOYER_SYSTEM_CONTRACT } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
+import { INonceHolder } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/INonceHolder.sol";
 import { SystemContractsCaller } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 import { Utils } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/Utils.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { HookManager } from "./managers/HookManager.sol";
 
-import { TokenCallbackHandler, IERC165 } from "./helpers/TokenCallbackHandler.sol";
+import { TokenCallbackHandler } from "./helpers/TokenCallbackHandler.sol";
 
 import { Errors } from "./libraries/Errors.sol";
 import { SignatureDecoder } from "./libraries/SignatureDecoder.sol";

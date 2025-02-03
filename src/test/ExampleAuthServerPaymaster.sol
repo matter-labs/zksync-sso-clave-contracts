@@ -5,8 +5,8 @@ import { IPaymaster, ExecutionResult, PAYMASTER_VALIDATION_SUCCESS_MAGIC } from 
 import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
 import { TransactionHelper, Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 
-import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import { BOOTLOADER_FORMAL_ADDRESS } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { AAFactory } from "../AAFactory.sol";
 import { SessionKeyValidator } from "../validators/SessionKeyValidator.sol";
