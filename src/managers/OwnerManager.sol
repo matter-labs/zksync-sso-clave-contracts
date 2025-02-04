@@ -40,13 +40,13 @@ abstract contract OwnerManager is IOwnerManager, Auth {
   function _k1AddOwner(address addr) internal {
     require(_k1Owners().add(addr), "K1 owner already exists");
 
-    emit K1AddOwner(addr);
+    emit K1OwnerAdded(addr);
   }
 
   function _k1RemoveOwner(address addr) internal {
     require(_k1Owners().remove(addr), "K1 owner not found");
 
-    emit K1RemoveOwner(addr);
+    emit K1OwnerRemoved(addr);
   }
 
   function _k1IsOwner(address addr) internal view returns (bool) {
