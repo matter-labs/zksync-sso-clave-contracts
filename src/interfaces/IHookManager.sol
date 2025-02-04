@@ -19,7 +19,7 @@ interface IHookManager {
   event HookRemoved(address indexed hook);
 
   /**
-   * @notice Add a hook to the list of hooks and call it's init function
+   * @notice Add a hook to the list of hooks and call its init function
    * @dev Can only be called by self
    * @param hook - Address of the hook
    * @param isValidation bool          - True if the hook is a validation hook, false otherwise
