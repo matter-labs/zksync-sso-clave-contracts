@@ -286,7 +286,9 @@ library SessionLib {
       if (paymasterInputSelector == IPaymasterFlow.approvalBased.selector) {
         require(transaction.paymasterInput.length >= 68, "Invalid paymaster input length");
         (address token, uint256 amount, ) = abi.decode(transaction.paymasterInput[4:], (address, uint256, bytes));
-        bytes memory data = abi.encodeWithSelector(IERC20.approve.selector, transaction.paymaster, amount);
+        require(transaction.paymaster <= type(uint160).max, "Overflow");
+        address paymasterAddr = address(uint160(transaction.paymaster));
+        bytes memory data = abi.encodeCall(IERC20.approve, (paymasterAddr, amount));
 
         // check that session allows .approve() for this token
         CallSpec memory approvePolicy = checkCallPolicy(
