@@ -40,7 +40,10 @@ abstract contract HookManager is IHookManager, Auth {
   /// @inheritdoc IHookManager
   function unlinkHook(address hook, bool isValidation, bytes calldata deinitData) external onlySelf {
     _removeHook(hook, isValidation);
-    hook.excessivelySafeCall(gasleft(), 0, abi.encodeCall(IModule.onUninstall, (deinitData)));
+    // Allow-listing slither finding as the call's success is checked below
+    // slither-disable-next-line unused-return
+    (bool success, ) = hook.excessivelySafeCall(gasleft(), 0, abi.encodeCall(IModule.onUninstall, (deinitData)));
+    require(success, "onUninstall call failed");
   }
 
   /// @inheritdoc IHookManager
