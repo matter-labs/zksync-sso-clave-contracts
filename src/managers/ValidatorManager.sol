@@ -39,7 +39,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   ///@inheritdoc IValidatorManager
   function unlinkModuleValidator(address validator, bytes calldata deinitData) external onlySelf {
     _removeModuleValidator(validator);
-    // Allow-listing slither finding as we don´t want reverting modules to lock unlinking
+    // Allow-listing slither finding as we don´t want reverting calls to prevent unlinking
     // slither-disable-next-line unused-return
     validator.excessivelySafeCall(gasleft(), 0, abi.encodeCall(IModule.onUninstall, (deinitData)));
   }
