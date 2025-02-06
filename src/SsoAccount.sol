@@ -173,7 +173,7 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
   }
 
   /// @dev type(ISsoAccount).interfaceId indicates SSO accounts
-  function supportsInterface(bytes4 interfaceId) external view override(IERC165, TokenCallbackHandler) returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public view override(IERC165, TokenCallbackHandler) returns (bool) {
     return interfaceId == type(ISsoAccount).interfaceId || super.supportsInterface(interfaceId);
   }
 
