@@ -17,7 +17,7 @@ import { IModule } from "../interfaces/IModule.sol";
  * @title Manager contract for hooks
  * @notice Abstract contract for managing the enabled hooks of the account
  * @dev Hook addresses are stored in an EnumerableSet
- * @author https://getclave.io
+ * @author Based on https://getclave.io, modified version by Matter Labs
  */
 abstract contract HookManager is IHookManager, Auth {
   using EnumerableSet for EnumerableSet.AddressSet;
