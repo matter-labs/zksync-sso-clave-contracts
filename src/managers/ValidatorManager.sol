@@ -54,6 +54,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     validatorList = _moduleValidators().values();
   }
 
+  // Should not be set to private as it is called from SsoAccount's initialize
   function _addModuleValidator(address validator, bytes memory initData) internal {
     if (!_supportsModuleValidator(validator)) {
       revert Errors.VALIDATOR_ERC165_FAIL(validator);
