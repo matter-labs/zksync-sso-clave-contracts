@@ -133,12 +133,7 @@ library SessionLib {
   /// @param value The tracked value to check the limit against.
   /// @param period The period ID to check the limit against. Ignored if the limit is not of type Allowance.
   /// @dev Reverts if the limit is exceeded or the period is invalid.
-  function checkAndUpdate(
-    UsageLimit memory limit,
-    UsageTracker storage tracker,
-    uint256 value,
-    uint64 period
-  ) internal {
+  function checkAndUpdate(UsageLimit memory limit, UsageTracker storage tracker, uint256 value, uint64 period) private {
     if (limit.limitType == LimitType.Lifetime) {
       require(tracker.lifetimeUsage[msg.sender] + value <= limit.limit, "Lifetime limit exceeded");
       tracker.lifetimeUsage[msg.sender] += value;
@@ -161,7 +156,7 @@ library SessionLib {
     UsageTracker storage tracker,
     bytes memory data,
     uint64 period
-  ) internal {
+  ) private {
     require(data.length >= 4 + constraint.index * 32 + 32, "Invalid data length");
     bytes32 param = data.load(4 + constraint.index * 32);
     Condition condition = constraint.condition;
@@ -201,7 +196,7 @@ library SessionLib {
     CallSpec[] memory callPolicies,
     uint64[] memory periodIds,
     uint256 periodIdsOffset
-  ) internal returns (CallSpec memory) {
+  ) private returns (CallSpec memory) {
     CallSpec memory callPolicy;
     bool found = false;
 
@@ -344,7 +339,7 @@ library SessionLib {
     UsageLimit memory limit,
     UsageTracker storage tracker,
     address account
-  ) internal view returns (uint256) {
+  ) private view returns (uint256) {
     if (limit.limitType == LimitType.Unlimited) {
       // this might be still limited by `maxValuePerUse` or a constraint
       return type(uint256).max;

@@ -65,7 +65,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     emit ValidatorAdded(validator);
   }
 
-  function _removeModuleValidator(address validator) internal {
+  function _removeModuleValidator(address validator) private {
     require(_moduleValidators().remove(validator), "Validator not found");
 
     emit ValidatorRemoved(validator);
