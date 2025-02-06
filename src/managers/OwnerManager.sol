@@ -3,7 +3,6 @@ pragma solidity ^0.8.24;
 
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
-import { Errors } from "../libraries/Errors.sol";
 import { Auth } from "../auth/Auth.sol";
 import { IOwnerManager } from "../interfaces/IOwnerManager.sol";
 

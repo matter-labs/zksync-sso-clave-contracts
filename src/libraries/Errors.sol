@@ -16,7 +16,6 @@ library Errors {
 
   // Auth errors
   error NOT_FROM_BOOTLOADER(address notBootloader);
-  error NOT_FROM_HOOK(address notHook);
   error NOT_FROM_SELF(address notSelf);
 
   // Batch caller errors
