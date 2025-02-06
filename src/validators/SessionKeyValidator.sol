@@ -22,11 +22,9 @@ contract SessionKeyValidator is IModuleValidator {
   event SessionCreated(address indexed account, bytes32 indexed sessionHash, SessionLib.SessionSpec sessionSpec);
   event SessionRevoked(address indexed account, bytes32 indexed sessionHash);
 
-  // account => number of open sessions
   // NOTE: expired sessions are still counted if not explicitly revoked
-  mapping(address => uint256) private sessionCounter;
-  // session hash => session state
-  mapping(bytes32 => SessionLib.SessionStorage) private sessions;
+  mapping(address account => uint256 nOpenSessions) private sessionCounter;
+  mapping(bytes32 sessionHash => SessionLib.SessionStorage sessionState) private sessions;
 
   /// @notice Get the session state for an account
   /// @param account The account to fetch the session state for
