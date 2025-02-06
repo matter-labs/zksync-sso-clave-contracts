@@ -22,7 +22,7 @@ contract AAFactory {
   address public immutable beacon;
 
   /// @notice A mapping from unique account IDs to their corresponding deployed account addresses.
-  mapping(string => address) public accountMappings;
+  mapping(string accountId => address deployedAccount) public accountMappings;
 
   /// @notice Constructor that initializes the factory with a beacon proxy bytecode hash and implementation contract address.
   /// @param _beaconProxyBytecodeHash The bytecode hash of the beacon proxy.
