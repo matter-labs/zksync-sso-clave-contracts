@@ -46,7 +46,7 @@ abstract contract HookManager is IHookManager, Auth {
   }
 
   /// @inheritdoc IHookManager
-  function isHook(address addr) external view override returns (bool) {
+  function isHook(address addr) external view returns (bool) {
     return _isHook(addr);
   }
 
