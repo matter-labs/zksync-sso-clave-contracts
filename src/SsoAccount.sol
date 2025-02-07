@@ -22,6 +22,8 @@ import { SignatureDecoder } from "./libraries/SignatureDecoder.sol";
 import { ERC1271Handler } from "./handlers/ERC1271Handler.sol";
 import { BatchCaller } from "./batch/BatchCaller.sol";
 
+import { BootloaderAuth } from "./auth/BootloaderAuth.sol";
+
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 import { IModuleValidator } from "./interfaces/IModuleValidator.sol";
 
@@ -32,7 +34,15 @@ import { IModuleValidator } from "./interfaces/IModuleValidator.sol";
 /// @notice This contract is a modular and extensible account implementation with support of
 /// multi-ownership, custom modules, validation/execution hooks and different signature validation formats.
 /// @dev Contract is expected to be used as Beacon proxy implementation.
-contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallbackHandler, BatchCaller, ISsoAccount {
+contract SsoAccount is
+  Initializable,
+  HookManager,
+  ERC1271Handler,
+  TokenCallbackHandler,
+  BatchCaller,
+  ISsoAccount,
+  BootloaderAuth
+{
   // Helper library for the Transaction struct
   using TransactionHelper for Transaction;
 

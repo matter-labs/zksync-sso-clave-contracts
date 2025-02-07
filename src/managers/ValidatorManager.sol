@@ -5,7 +5,7 @@ import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC16
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/ExcessivelySafeCall.sol";
 
-import { Auth } from "../auth/Auth.sol";
+import { SelfAuth } from "../auth/SelfAuth.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
@@ -18,7 +18,7 @@ import { IModule } from "../interfaces/IModule.sol";
  * @dev Validators are stored in an enumerable set
  * @author https://getclave.io
  */
-abstract contract ValidatorManager is IValidatorManager, Auth {
+abstract contract ValidatorManager is IValidatorManager, SelfAuth {
   using EnumerableSet for EnumerableSet.AddressSet;
   // Interface helper library
   using ERC165Checker for address;
