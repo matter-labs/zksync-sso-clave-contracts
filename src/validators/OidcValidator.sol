@@ -7,14 +7,13 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
-import { JSONParserLib } from "solady/src/utils/JSONParserLib.sol";
 
 /// @title OidcValidator
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract allows secure user authentication using OIDC protocol.
 contract OidcValidator is VerifierCaller, IModuleValidator {
-  event OidcKeyCreated(address indexed keyOwner, bytes iss);
+  event OidcKeyUpdated(address indexed account, bytes iss, bool isNew);
 
   struct OidcData {
     bytes oidcDigest; // PoseidonHash(sub || aud || iss || salt)
@@ -43,19 +42,18 @@ contract OidcValidator is VerifierCaller, IModuleValidator {
     accountData[msg.sender] = OidcData(bytes(""), bytes(""), bytes(""));
   }
 
-  /// @notice Adds a OidcData for the caller
-  /// @param key ABI-encoded OidcData
-  /// @return true if the key was added, false if it was updated
+  /// @notice Adds an `OidcData` for the caller.
+  /// @param key ABI-encoded `OidcData`.
+  /// @return true if the key was added, false if it was updated.
   function addValidationKey(bytes calldata key) public returns (bool) {
-    // TODO
-  }
+      OidcData memory oidcData = abi.decode(key, (OidcData));
 
-  /// @notice Unimplemented because signature validation is not required.
-  /// @dev We only need `validateTransaction` to add new passkeys, so this function is intentionally left unimplemented.
-  function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
-      revert("OidcValidator: validateSignature not implemented");
-  }
+      bool isNew = accountData[msg.sender].oidcDigest.length == 0;
+      accountData[msg.sender] = oidcData;
 
+      emit OidcKeyUpdated(msg.sender, oidcData.iss, isNew);
+      return isNew;
+  }
 
   /// @notice Validates a transaction to add a new passkey for the user.
   /// @dev Ensures the transaction calls `addValidationKey` in `WebAuthValidator` and verifies the zk proof.
@@ -72,6 +70,12 @@ contract OidcValidator is VerifierCaller, IModuleValidator {
     Transaction calldata transaction
   ) external view returns (bool){
     revert("OidcValidator: validateTransaction not implemented");
+  }
+
+  /// @notice Unimplemented because signature validation is not required.
+  /// @dev We only need `validateTransaction` to add new passkeys, so this function is intentionally left unimplemented.
+  function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+      revert("OidcValidator: validateSignature not implemented");
   }
 
   /// @inheritdoc IERC165
