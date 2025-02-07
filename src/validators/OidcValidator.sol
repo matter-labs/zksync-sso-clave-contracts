@@ -30,7 +30,7 @@ contract OidcValidator is VerifierCaller, IModuleValidator {
   mapping(address => OidcData) public accountData;
 
   /// @notice Runs on module install
-  /// @param data ABI-encoded WebAuthn passkey to add immediately, or empty if not needed
+  /// @param data ABI-encoded OidcData key to add immediately, or empty if not needed
   function onInstall(bytes calldata data) external override {
     if (data.length > 0) {
       require(addValidationKey(data), "OidcValidator: key already exists");
@@ -38,14 +38,9 @@ contract OidcValidator is VerifierCaller, IModuleValidator {
   }
 
   /// @notice Runs on module uninstall
-  /// @param data ABI-encoded array of origin domains to remove keys for
+  /// @param data unused
   function onUninstall(bytes calldata data) external override {
-    string[] memory domains = abi.decode(data, (string[]));
-    for (uint256 i = 0; i < domains.length; i++) {
-      string memory domain = domains[i];
-      lowerKeyHalf[domain][msg.sender] = 0x0;
-      upperKeyHalf[domain][msg.sender] = 0x0;
-    }
+    accountData[msg.sender] = OidcData(bytes(""), bytes(""), bytes(""));
   }
 
   /// @notice Adds a OidcData for the caller
