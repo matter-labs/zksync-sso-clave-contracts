@@ -201,7 +201,7 @@ library SessionLib {
     CallSpec[] memory callPolicies,
     uint64[] memory periodIds,
     uint256 periodIdsOffset
-  ) internal returns (CallSpec memory) {
+  ) private returns (CallSpec memory) {
     CallSpec memory callPolicy;
     bool found = false;
 
@@ -344,7 +344,7 @@ library SessionLib {
     UsageLimit memory limit,
     UsageTracker storage tracker,
     address account
-  ) internal view returns (uint256) {
+  ) private view returns (uint256) {
     if (limit.limitType == LimitType.Unlimited) {
       // this might be still limited by `maxValuePerUse` or a constraint
       return type(uint256).max;

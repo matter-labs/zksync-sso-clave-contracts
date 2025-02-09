@@ -98,7 +98,7 @@ abstract contract HookManager is IHookManager, Auth {
     }
   }
 
-  function _addHook(address hook, bool isValidation, bytes calldata initData) internal {
+  function _addHook(address hook, bool isValidation, bytes calldata initData) private {
     if (!_supportsHook(hook, isValidation)) {
       revert Errors.HOOK_ERC165_FAIL(hook, isValidation);
     }
@@ -114,7 +114,7 @@ abstract contract HookManager is IHookManager, Auth {
     emit HookAdded(hook);
   }
 
-  function _removeHook(address hook, bool isValidation) internal {
+  function _removeHook(address hook, bool isValidation) private {
     if (isValidation) {
       require(_validationHooks().remove(hook), "Hook not found");
     } else {

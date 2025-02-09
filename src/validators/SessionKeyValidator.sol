@@ -95,7 +95,7 @@ contract SessionKeyValidator is IModuleValidator {
 
   /// @notice creates a new session for an account, called by onInstall
   /// @param sessionData ABI-encoded session specification
-  function _addValidationKey(bytes calldata sessionData) internal returns (bool) {
+  function _addValidationKey(bytes calldata sessionData) private returns (bool) {
     SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
     createSession(sessionSpec);
     return true;
