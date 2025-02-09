@@ -124,7 +124,7 @@ abstract contract HookManager is IHookManager, Auth {
     emit HookRemoved(hook);
   }
 
-  function _isHook(address addr) internal view override returns (bool) {
+  function _isHook(address addr) internal view returns (bool) {
     return _validationHooks().contains(addr) || _executionHooks().contains(addr);
   }
 
