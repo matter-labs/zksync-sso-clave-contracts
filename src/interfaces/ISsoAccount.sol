@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import { IAccount } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IAccount.sol";
 
 import { IERC1271Upgradeable } from "@openzeppelin/contracts-upgradeable/interfaces/IERC1271Upgradeable.sol";
-import { IERC777Recipient } from "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
 import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
@@ -26,5 +25,5 @@ interface ISsoAccount is
   IValidatorManager,
   IAccount
 {
-  function initialize(bytes[] calldata initialValidators, address[] calldata k1Owners) external;
+  function initialize(bytes[] calldata initialValidators, address[] calldata initialK1Owners) external;
 }

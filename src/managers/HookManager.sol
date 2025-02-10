@@ -6,7 +6,7 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/ExcessivelySafeCall.sol";
 
-import { Auth } from "../auth/Auth.sol";
+import { SelfAuth } from "../auth/SelfAuth.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { IExecutionHook, IValidationHook } from "../interfaces/IHook.sol";
@@ -19,7 +19,7 @@ import { IModule } from "../interfaces/IModule.sol";
  * @dev Hook addresses are stored in a linked list
  * @author https://getclave.io
  */
-abstract contract HookManager is IHookManager, Auth {
+abstract contract HookManager is IHookManager, SelfAuth {
   using EnumerableSet for EnumerableSet.AddressSet;
   // Interface helper library
   using ERC165Checker for address;
@@ -124,7 +124,7 @@ abstract contract HookManager is IHookManager, Auth {
     emit HookRemoved(hook);
   }
 
-  function _isHook(address addr) internal view override returns (bool) {
+  function _isHook(address addr) internal view returns (bool) {
     return _validationHooks().contains(addr) || _executionHooks().contains(addr);
   }
 
