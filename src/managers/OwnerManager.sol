@@ -3,7 +3,8 @@ pragma solidity ^0.8.24;
 
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
-import { Auth } from "../auth/Auth.sol";
+import { Errors } from "../libraries/Errors.sol";
+import { SelfAuth } from "../auth/SelfAuth.sol";
 import { IOwnerManager } from "../interfaces/IOwnerManager.sol";
 
 /**
@@ -13,7 +14,7 @@ import { IOwnerManager } from "../interfaces/IOwnerManager.sol";
  * @dev Owners are stored in a linked list
  * @author https://getclave.io
  */
-abstract contract OwnerManager is IOwnerManager, Auth {
+abstract contract OwnerManager is IOwnerManager, SelfAuth {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   /// @inheritdoc IOwnerManager
