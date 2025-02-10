@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-import { Errors } from "../libraries/Errors.sol";
-
 library SignatureDecoder {
   // Decode transaction.signature into signature, validator and hook data
   function decodeSignature(
