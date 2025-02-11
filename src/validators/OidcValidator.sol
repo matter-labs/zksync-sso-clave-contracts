@@ -7,6 +7,7 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
+import { OidcKeyRegistry } from "../OidcKeyRegistry.sol";
 
 /// @title OidcValidator
 /// @author Matter Labs
@@ -23,10 +24,19 @@ contract OidcValidator is VerifierCaller, IModuleValidator {
 
   struct OidcSignature {
     bytes zkProof;
-    bytes kid; // Key id used in the jwt
+    bytes32 issHash; // Hash of the issuer
+    bytes32 kid; // Key id used in the jwt
   }
 
   mapping(address => OidcData) public accountData;
+
+  address public immutable keyRegistry;
+  address public immutable verifier;
+
+  constructor(address _keyRegistry, address _verifier) {
+    keyRegistry = _keyRegistry;
+    verifier = _verifier;
+  }
 
   /// @notice Runs on module install
   /// @param data ABI-encoded OidcData key to add immediately, or empty if not needed
@@ -46,13 +56,13 @@ contract OidcValidator is VerifierCaller, IModuleValidator {
   /// @param key ABI-encoded `OidcData`.
   /// @return true if the key was added, false if it was updated.
   function addValidationKey(bytes calldata key) public returns (bool) {
-      OidcData memory oidcData = abi.decode(key, (OidcData));
+    OidcData memory oidcData = abi.decode(key, (OidcData));
 
-      bool isNew = accountData[msg.sender].oidcDigest.length == 0;
-      accountData[msg.sender] = oidcData;
+    bool isNew = accountData[msg.sender].oidcDigest.length == 0;
+    accountData[msg.sender] = oidcData;
 
-      emit OidcKeyUpdated(msg.sender, oidcData.iss, isNew);
-      return isNew;
+    emit OidcKeyUpdated(msg.sender, oidcData.iss, isNew);
+    return isNew;
   }
 
   /// @notice Validates a transaction to add a new passkey for the user.
@@ -68,14 +78,18 @@ contract OidcValidator is VerifierCaller, IModuleValidator {
     bytes32 signedHash,
     bytes calldata signature,
     Transaction calldata transaction
-  ) external view returns (bool){
+  ) external view returns (bool) {
+    OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);
+    OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
+    OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(oidcSignature.issHash, oidcSignature.kid);
+
     revert("OidcValidator: validateTransaction not implemented");
   }
 
   /// @notice Unimplemented because signature validation is not required.
   /// @dev We only need `validateTransaction` to add new passkeys, so this function is intentionally left unimplemented.
   function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
-      revert("OidcValidator: validateSignature not implemented");
+    revert("OidcValidator: validateSignature not implemented");
   }
 
   /// @inheritdoc IERC165
