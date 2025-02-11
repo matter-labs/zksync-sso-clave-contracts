@@ -87,15 +87,14 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
     _;
 
-    // If we removed any hooks, we have to update hookList.
-    // If we added any hooks, we don't want them to run yet.
-    if (totalHooks > _executionHooks().length()) {
-      hookList = _executionHooks().values();
-      totalHooks = hookList.length;
-    }
+    EnumerableSet.AddressSet storage newHookList = _executionHooks();
 
     for (uint256 i = 0; i < totalHooks; i++) {
-      IExecutionHook(hookList[i]).postExecutionHook(context[i]);
+      // Only execute hooks which are both in the old `hookList` and the `newHookList`,
+      // and we don't want to execute hooks that were removed and/or added during this transaction.
+      if (newHookList.contains(hookList[i])) {
+        IExecutionHook(hookList[i]).postExecutionHook(context[i]);
+      }
     }
   }
 
