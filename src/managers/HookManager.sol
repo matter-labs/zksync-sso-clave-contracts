@@ -77,24 +77,24 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
   // Runs the execution hooks that are enabled by the account before and after _executeTransaction
   modifier runExecutionHooks(Transaction calldata transaction) {
-    EnumerableSet.AddressSet storage hookList = _executionHooks();
-    uint256 totalHooks = hookList.length();
+    address[] memory hookList = _executionHooks().values();
+    uint256 totalHooks = hookList.length;
     bytes[] memory context = new bytes[](totalHooks);
 
     for (uint256 i = 0; i < totalHooks; i++) {
-      context[i] = IExecutionHook(hookList.at(i)).preExecutionHook(transaction);
+      context[i] = IExecutionHook(hookList[i]).preExecutionHook(transaction);
     }
 
     _;
 
-    // If we removed any hooks, we have to update totalHooks.
-    // If we added any hooks, we don't want them to run yet.
-    if (totalHooks > hookList.length()) {
-      totalHooks = hookList.length();
-    }
+    EnumerableSet.AddressSet storage newHookList = _executionHooks();
 
     for (uint256 i = 0; i < totalHooks; i++) {
-      IExecutionHook(hookList.at(i)).postExecutionHook(context[i]);
+      // Only execute hooks which are both in the old `hookList` and the `newHookList`,
+      // and we don't want to execute hooks that were removed and/or added during this transaction.
+      if (newHookList.contains(hookList[i])) {
+        IExecutionHook(hookList[i]).postExecutionHook(context[i]);
+      }
     }
   }
 
