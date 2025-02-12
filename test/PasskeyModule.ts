@@ -8,7 +8,7 @@ import { assert, expect } from "chai";
 import { randomBytes } from "crypto";
 import { parseEther, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
-import { encodeAbiParameters, Hex, hexToBytes, toHex } from "viem";
+import { encodeAbiParameters, Hex, hexToBytes, toHex, pad } from "viem";
 import { SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 
@@ -433,8 +433,14 @@ async function validateSignatureTest(
     { name: "clientDataJson", type: "string" },
     { name: "rs", type: "bytes32[2]" },
   ],
-  [toHex(authData), sampleClientString, [toHex(rNormalization(generatedSignature.r)), toHex(sNormalization(generatedSignature.s))]],
-  );
+  [
+    toHex(authData),
+    sampleClientString,
+    [
+      pad(toHex(rNormalization(generatedSignature.r))),
+      pad(toHex(sNormalization(generatedSignature.s)))
+    ]
+  ]);
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
 
