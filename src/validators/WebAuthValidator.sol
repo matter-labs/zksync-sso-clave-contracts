@@ -62,7 +62,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     upperKeyHalf[originDomain][msg.sender] = key32[1];
 
     // we're returning true if this was a new key, false for update
-    bool keyExists = initialLowerHalf == 0 && initialUpperHalf == 0;
+    bool keyExists = uint256(initialLowerHalf) == 0 && uint256(initialUpperHalf) == 0;
 
     emit PasskeyCreated(msg.sender, originDomain);
 
@@ -133,7 +133,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     pubkey[0] = lowerKeyHalf[origin][msg.sender];
     pubkey[1] = upperKeyHalf[origin][msg.sender];
     // This really only validates the origin is set
-    if (pubkey[0] == 0 || pubkey[1] == 0) {
+    if (uint256(pubkey[0]) == 0 || uint256(pubkey[1]) == 0) {
       return false;
     }
 
