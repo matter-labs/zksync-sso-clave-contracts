@@ -1,23 +1,27 @@
 import { Address } from "viem";
-import { ContractFixtures } from "./utils";
+import { ContractFixtures, getProvider } from "./utils";
 import { Wallet } from "zksync-ethers";
 import { expect } from "chai";
 import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
 
 describe("OidcKeyRegistry", function () {
-  const fixtures = new ContractFixtures();
+  let fixtures: ContractFixtures;
   let oidcKeyRegistry: OidcKeyRegistry;
 
-  this.beforeAll(async () => {
-    const contract = await fixtures.getOidcKeyRegistryContract();
-    let oidcKeyRegistryAddress = await contract.getAddress() as Address;
-    let deployer: Wallet = fixtures.wallet;
-    oidcKeyRegistry = OidcKeyRegistry__factory.connect(oidcKeyRegistryAddress, deployer);
+  this.beforeEach(async () => {
+    fixtures = new ContractFixtures();
+    oidcKeyRegistry = await fixtures.deployOidcKeyRegistryContract();
+  });
+
+  it("should return empty key when fetching a non-existent key", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const nonExistentKid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+
+    await expect(oidcKeyRegistry.getKey(issHash, nonExistentKid)).to.be.revertedWith("Key not found");
   });
 
   it("should set one key", async () => {
-    const oidcKeyRegistry = await fixtures.getOidcKeyRegistryContract();
-  
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
     const key = {
@@ -32,5 +36,20 @@ describe("OidcKeyRegistry", function () {
     expect(storedKey.kid).to.equal(key.kid);
     expect(storedKey.n).to.equal(key.n);
     expect(storedKey.e).to.equal(key.e);
+  });
+
+  it("should revert when a non-owner tries to set a key", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const key = {
+      kid: "0x3333333333333333333333333333333333333333333333333333333333333333",
+      n: "0xcccc",
+      e: "0x010001",
+    };
+
+    const nonOwner = Wallet.createRandom(getProvider());
+    const nonOwnerRegistry = OidcKeyRegistry__factory.connect(await oidcKeyRegistry.getAddress(), nonOwner);
+
+    await expect(nonOwnerRegistry.setKey(issHash, key)).to.be.revertedWith("Ownable: caller is not the owner");
   });
 });

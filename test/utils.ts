@@ -120,9 +120,9 @@ export class ContractFixtures {
   }
 
   private _oicdKeyRegistryContract: OidcKeyRegistry;
-  async getOidcKeyRegistryContract() {
+  async deployOidcKeyRegistryContract() {
     if (!this._oicdKeyRegistryContract) {
-      const contract = await create2("OidcKeyRegistry", this.wallet, ethersStaticSalt);
+      const contract = await create2("OidcKeyRegistry", this.wallet, randomBytes(32));
       this._oicdKeyRegistryContract = OidcKeyRegistry__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._oicdKeyRegistryContract;
