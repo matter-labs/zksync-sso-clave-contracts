@@ -6,7 +6,7 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IModule } from "./IModule.sol";
 
 /// @title Validation hook interface for native AA
-/// @author getclave.io
+/// @author Initially getclave.io, updated by Matter Labs
 /// @notice Validation hooks trigger before each transaction,
 /// can be used to enforce additional restrictions on the account and/or transaction during the validation phase.
 interface IValidationHook is IModule, IERC165 {
@@ -18,7 +18,7 @@ interface IValidationHook is IModule, IERC165 {
 }
 
 /// @title Execution hook interface for native AA
-/// @author getclave.io
+/// @author Initially getclave.io, updated by Matter Labs
 /// @notice Execution hooks trigger before and after each transaction, during the execution phase.
 interface IExecutionHook is IModule, IERC165 {
   /// @notice Hook that triggers before each transaction during the execution phase.
