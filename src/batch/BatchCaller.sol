@@ -75,11 +75,12 @@ abstract contract BatchCaller is SelfAuth {
     }
   }
 
-  function getReturnData() private pure returns (bytes memory) {
+  function getReturnData() private pure returns (bytes memory data) {
     assembly {
       let size := returndatasize()
-      returndatacopy(0, 0, size)
-      return(0, size)
+      data := mload(0x40)
+      mstore(data, size)
+      returndatacopy(add(data, 0x20), 0, size)
     }
   }
 }
