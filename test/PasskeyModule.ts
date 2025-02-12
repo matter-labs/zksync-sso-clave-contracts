@@ -11,7 +11,7 @@ import { SmartAccount, Wallet } from "zksync-ethers";
 import { SsoAccount__factory, WebAuthValidator, WebAuthValidator__factory } from "../typechain-types";
 import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
-import { encodeAbiParameters, Hex, hexToBytes, toHex } from "viem";
+import { encodeAbiParameters, Hex, hexToBytes, toHex, pad } from "viem";
 import { randomBytes } from "crypto";
 import { parseEther, ZeroAddress } from "ethers";
 
@@ -428,7 +428,14 @@ async function validateSignatureTest(
     { name: "clientDataJson", type: "string" },
     { name: "rs", type: "bytes32[2]" },
   ],
-    [toHex(authData), sampleClientString, [toHex(rNormalization(generatedSignature.r)), toHex(sNormalization(generatedSignature.s))]]
+    [
+      toHex(authData),
+      sampleClientString,
+      [
+        pad(toHex(rNormalization(generatedSignature.r))),
+        pad(toHex(sNormalization(generatedSignature.s)))
+      ]
+    ]
   )
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
