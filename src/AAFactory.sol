@@ -19,6 +19,7 @@ contract AAFactory {
 
   /// @dev The bytecode hash of the beacon proxy, used for deploying proxy accounts.
   bytes32 public immutable beaconProxyBytecodeHash;
+  /// @dev The address of the SsoBeacon contract used for the SSO accounts' beacon proxies.
   address public immutable beacon;
 
   /// @notice A mapping from unique account IDs to their corresponding deployed account addresses.
