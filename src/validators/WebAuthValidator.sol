@@ -20,6 +20,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   using JSONParserLib for string;
 
   address private constant P256_VERIFIER = address(0x100);
+
+  // check for secure validation: bit 0 = 1 (user present), bit 2 = 1 (user verified)
   bytes1 private constant AUTH_DATA_MASK = 0x05;
   bytes32 private constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
   bytes32 private constant HIGH_R_MAX = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
@@ -103,17 +105,19 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       fatSignature
     );
 
+    // prevent signature replay https://yondon.blog/2019/01/01/how-not-to-use-ecdsa/
     if (rs[0] <= 0 || rs[0] > HIGH_R_MAX || rs[1] <= 0 || rs[1] > LOW_S_MAX) {
       return false;
     }
 
-    // check if the flags are set
+    // https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#attestedcredentialdata
     if (authenticatorData[32] & AUTH_DATA_MASK != AUTH_DATA_MASK) {
       return false;
     }
 
-    // parse out the important fields (type, challenge, origin, crossOrigin): https://goo.gl/yabPex
+    // parse out the required fields (type, challenge, crossOrigin): https://goo.gl/yabPex
     JSONParserLib.Item memory root = JSONParserLib.parse(clientDataJSON);
+    // challenge should contain the transaction hash, ensuring that the transaction is signed
     string memory challenge = root.at('"challenge"').value().decodeString();
     bytes memory challengeData = Base64.decode(challenge);
     if (challengeData.length != 32) {
@@ -123,11 +127,14 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       return false;
     }
 
+    // type ensures the signature was created from a validation request
     string memory type_ = root.at('"type"').value().decodeString();
     if (!Strings.equal("webauthn.get", type_)) {
       return false;
     }
 
+    // the origin determines which key to validate against
+    // as passkeys are linked to domains, so the storage mapping reflects that
     string memory origin = root.at('"origin"').value().decodeString();
     bytes32[2] memory pubkey;
     pubkey[0] = lowerKeyHalf[origin][msg.sender];
@@ -137,6 +144,10 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       return false;
     }
 
+    // cross-origin validation is optional, but explicitly not supported.
+    // cross-origin requests would be from embedding the auth request
+    // from another domain. The current SSO setup uses a pop-up instead of
+    // an i-frame, so we're rejecting these until the implemention supports it
     JSONParserLib.Item memory crossOriginItem = root.at('"crossOrigin"');
     if (!crossOriginItem.isUndefined()) {
       string memory crossOrigin = crossOriginItem.value();
@@ -181,7 +192,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     bytes32 message,
     bytes32[2] calldata rs,
     bytes32[2] calldata pubKey
-  ) external view returns (bool valid) {
+  ) internal view returns (bool valid) {
     valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
   }
 }
