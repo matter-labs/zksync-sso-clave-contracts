@@ -3,6 +3,7 @@ import { ContractFixtures, getProvider } from "./utils";
 import { Wallet } from "zksync-ethers";
 import { expect } from "chai";
 import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
+import { ethers } from "ethers";
 
 describe("OidcKeyRegistry", function () {
   let fixtures: ContractFixtures;
@@ -51,5 +52,47 @@ describe("OidcKeyRegistry", function () {
     const nonOwnerRegistry = OidcKeyRegistry__factory.connect(await oidcKeyRegistry.getAddress(), nonOwner);
 
     await expect(nonOwnerRegistry.setKey(issHash, key)).to.be.revertedWith("Ownable: caller is not the owner");
+  });
+
+  it("should correctly implement circular key storage", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+
+    const keys = Array.from({ length: 5 }, (_, i) => ({
+      kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}`)),
+      n: "0xabcdef",
+      e: "0x010001",
+    }));
+
+    for (const key of keys) {
+      await oidcKeyRegistry.setKey(issHash, key);
+    }
+
+    // Check that the keys are stored correctly
+    for (let i = 0; i < 5; i++) {
+      const storedKey = await oidcKeyRegistry.getKey(issHash, keys[i].kid);
+      expect(storedKey.kid).to.equal(keys[i].kid);
+    }
+
+    const moreKeys = Array.from({ length: 5 }, (_, i) => ({
+      kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 6}`)),
+      n: "0xabcdef",
+      e: "0x010001",
+    }));
+
+    for (const key of moreKeys) {
+      await oidcKeyRegistry.setKey(issHash, key);
+    }
+
+    // Check that the new keys are stored correctly
+    for (let i = 0; i < 5; i++) {
+      const storedKey = await oidcKeyRegistry.getKey(issHash, moreKeys[i].kid);
+      expect(storedKey.kid).to.equal(moreKeys[i].kid);
+    }
+
+    // Check that the old keys are not stored anymore
+    for (let i = 0; i < 5; i++) {
+      await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid)).to.be.revertedWith("Key not found");
+    }
   });
 });
