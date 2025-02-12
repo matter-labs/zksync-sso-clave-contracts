@@ -20,7 +20,7 @@ interface IOwnerManager {
 
   /**
    * @notice Adds a k1 owner to the list of k1 owners
-   * @dev Can only be called by self or a whitelisted module
+   * @dev Can only be called by self
    * @dev Address can not be the zero address
    * @param addr address - Address to add to the list of k1 owners
    */
@@ -28,7 +28,7 @@ interface IOwnerManager {
 
   /**
    * @notice Removes a k1 owner from the list of k1 owners
-   * @dev Can only be called by self or a whitelisted module
+   * @dev Can only be called by self
    * @param addr address - Address to remove from the list of k1 owners
    */
   function k1RemoveOwner(address addr) external;
