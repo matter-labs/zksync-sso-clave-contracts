@@ -68,7 +68,8 @@ contract SessionKeyValidator is IModuleValidator {
     require(sessionCounter[msg.sender] == 0, "Revoke all keys first");
   }
 
-  /// @notice This module should not be used to validate signatures
+  /// @notice This module should not be used to validate signatures (including EIP-1271),
+  /// as a signature by itself does not have enough information to validate it against a session.
   /// @return false
   function validateSignature(bytes32, bytes memory) external pure returns (bool) {
     return false;

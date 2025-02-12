@@ -19,6 +19,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   using JSONParserLib for JSONParserLib.Item;
   using JSONParserLib for string;
 
+  /// @dev P256Verify precompile implementation, as defined in RIP-7212, is found at
+  /// https://github.com/matter-labs/era-contracts/blob/main/system-contracts/contracts/precompiles/P256Verify.yul
   address private constant P256_VERIFIER = address(0x100);
   bytes1 private constant AUTH_DATA_MASK = 0x05;
   bytes32 private constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
