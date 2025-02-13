@@ -16,7 +16,7 @@ import { IModule } from "../interfaces/IModule.sol";
 /**
  * @title Manager contract for hooks
  * @notice Abstract contract for managing the enabled hooks of the account
- * @dev Hook addresses are stored in a linked list
+ * @dev Hook addresses are stored in an enumerable set
  * @author Initially https://getclave.io, then updated by Matter Labs
  */
 abstract contract HookManager is IHookManager, SelfAuth {

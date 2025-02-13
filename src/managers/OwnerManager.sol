@@ -11,7 +11,7 @@ import { IOwnerManager } from "../interfaces/IOwnerManager.sol";
  * @title Manager contract for owners
  * @notice Abstract contract for managing the owners of the account
  * @dev K1 Owners are secp256k1 addresses
- * @dev Owners are stored in a linked list
+ * @dev Owners are stored in an enumerable set
  * @author https://getclave.io
  */
 abstract contract OwnerManager is IOwnerManager, SelfAuth {
