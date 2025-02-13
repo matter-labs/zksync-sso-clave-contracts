@@ -39,36 +39,37 @@ contract AAFactory {
 
   /// @notice Deploys a new SSO account as a beacon proxy with the specified parameters.
   /// @dev Uses `create2` to deploy a proxy account, allowing for deterministic addresses based on the provided salt.
-  /// @param _salt The salt used for the `create2` deployment to make the address deterministic.
-  /// @param _uniqueAccountId A unique identifier for the new account.
-  /// @param _initialValidators An array of initial validators for the new account.
-  /// @param _initialK1Owners An array of initial owners of the K1 key for the new account.
+  /// @param salt The salt used for the `create2` deployment to make the address deterministic.
+  /// @param uniqueAccountId A unique identifier for the new account.
+  /// @param initialValidators An array of initial validators for the new account.
+  /// @param initialK1Owners An array of initial owners of the K1 key for the new account.
   /// @return accountAddress The address of the newly deployed SSO account.
   function deployProxySsoAccount(
-    bytes32 _salt,
-    string calldata _uniqueAccountId,
-    bytes[] calldata _initialValidators,
-    address[] calldata _initialK1Owners
+    bytes32 salt,
+    string calldata uniqueAccountId,
+    bytes[] calldata initialValidators,
+    address[] calldata initialK1Owners
   ) external returns (address accountAddress) {
-    require(accountMappings[_uniqueAccountId] == address(0), "Account already exists");
+    require(accountMappings[uniqueAccountId] == address(0), "Account already exists");
 
+    bytes32 uniqueSalt = keccak256(abi.encodePacked(salt, msg.sender));
     (bool success, bytes memory returnData) = SystemContractsCaller.systemCallWithReturndata(
       uint32(gasleft()),
       address(DEPLOYER_SYSTEM_CONTRACT),
       uint128(0),
       abi.encodeCall(
         DEPLOYER_SYSTEM_CONTRACT.create2Account,
-        (_salt, beaconProxyBytecodeHash, abi.encode(beacon), IContractDeployer.AccountAbstractionVersion.Version1)
+        (uniqueSalt, beaconProxyBytecodeHash, abi.encode(beacon), IContractDeployer.AccountAbstractionVersion.Version1)
       )
     );
     require(success, "Deployment failed");
     (accountAddress) = abi.decode(returnData, (address));
 
-    accountMappings[_uniqueAccountId] = accountAddress;
+    accountMappings[uniqueAccountId] = accountAddress;
 
     // Initialize the newly deployed account with validators and K1 owners.
-    ISsoAccount(accountAddress).initialize(_initialValidators, _initialK1Owners);
+    ISsoAccount(accountAddress).initialize(initialValidators, initialK1Owners);
 
-    emit AccountCreated(accountAddress, _uniqueAccountId);
+    emit AccountCreated(accountAddress, uniqueAccountId);
   }
 }
