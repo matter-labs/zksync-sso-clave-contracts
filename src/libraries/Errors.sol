@@ -31,7 +31,7 @@ library Errors {
   error UNINSTALL_WITH_OPEN_SESSIONS(uint256 openSessions);
   error SESSION_ZERO_SIGNER();
   error SESSION_INVALID_SIGNER(address recovered, address expected);
-  error SESSION_ALREDY_EXISTS(bytes32 sessionHash);
+  error SESSION_ALREADY_EXISTS(bytes32 sessionHash);
   error SESSION_UNLIMITED_FEES();
   error SESSION_EXPIRES_TOO_SOON(uint256 expiresAt);
   error SESSION_NOT_ACTIVE();

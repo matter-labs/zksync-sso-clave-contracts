@@ -95,7 +95,7 @@ contract SessionKeyValidator is IModuleValidator {
       revert Errors.SESSION_UNLIMITED_FEES();
     }
     if (sessions[sessionHash].status[msg.sender] != SessionLib.Status.NotInitialized) {
-      revert Errors.SESSION_ALREDY_EXISTS(sessionHash);
+      revert Errors.SESSION_ALREADY_EXISTS(sessionHash);
     }
     // Sessions should expire in no less than 60 seconds.
     if (sessionSpec.expiresAt <= block.timestamp + 60) {
