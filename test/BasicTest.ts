@@ -1,7 +1,8 @@
 import { assert, expect } from "chai";
-import { ethers, parseEther, randomBytes } from "ethers";
+import { concat, ethers, keccak256, parseEther, randomBytes } from "ethers";
 import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
+import { toBytes } from "viem";
 import { SmartAccount, utils } from "zksync-ethers";
 
 import { SsoAccount__factory } from "../typechain-types";
@@ -49,12 +50,13 @@ describe("Basic tests", function () {
     const args = await aaFactoryContract.getEncodedBeacon();
     const deployedBeaconAddress = new ethers.AbiCoder().encode(["address"], [await fixtures.getBeaconAddress()]);
     expect(args, "the beacon address").to.equal(deployedBeaconAddress, "the deployment beacon");
-    
+
     const randomSalt = randomBytes(32);
-    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args) ;
+    const uniqueSalt = keccak256(concat([randomSalt, toBytes(fixtures.wallet.address)]));
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, uniqueSalt, args);
 
     const preDeployAccountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
-    expect(preDeployAccountCode , "expected deploy location").to.equal("0x", "nothing deployed here (yet)");
+    expect(preDeployAccountCode, "expected deploy location").to.equal("0x", "nothing deployed here (yet)");
 
     const deployTx = await aaFactoryContract.deployProxySsoAccount(
       randomSalt,
