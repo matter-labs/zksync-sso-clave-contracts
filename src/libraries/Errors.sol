@@ -19,6 +19,5 @@ library Errors {
   error NOT_FROM_SELF(address notSelf);
 
   // Batch caller errors
-  error CALL_FAILED(uint256 batchCallIndex);
   error MSG_VALUE_MISMATCH(uint256 actualValue, uint256 expectedValue);
 }

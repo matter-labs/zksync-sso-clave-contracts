@@ -101,7 +101,7 @@ contract SessionKeyValidator is IModuleValidator {
   }
 
   /// @inheritdoc IERC165
-  function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
+  function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
     return
       interfaceId == type(IERC165).interfaceId ||
       interfaceId == type(IModuleValidator).interfaceId ||
