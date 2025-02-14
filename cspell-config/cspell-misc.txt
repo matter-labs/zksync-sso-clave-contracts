@@ -32,3 +32,6 @@ fren
 // src/OidcKeyRegistry
 Oidc
 oidc
+
+// src/validators/OidcValidator
+pkop
