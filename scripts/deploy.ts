@@ -6,6 +6,7 @@ import { Wallet } from "zksync-ethers";
 
 const WEBAUTH_NAME = "WebAuthValidator";
 const SESSIONS_NAME = "SessionKeyValidator";
+const GUARDIAN_RECOVERY_NAME = "GuardianRecoveryValidator";
 const ACCOUNT_IMPL_NAME = "SsoAccount";
 const FACTORY_NAME = "AAFactory";
 const PAYMASTER_NAME = "ExampleAuthServerPaymaster";
@@ -32,7 +33,6 @@ async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any
   console.log(name, "proxy contract deployed at:", proxyAddress, "\n");
   return proxyAddress;
 }
-
 
 task("deploy", "Deploys ZKsync SSO contracts")
   .addOptionalParam("only", "name of a specific contract to deploy")
@@ -77,12 +77,14 @@ task("deploy", "Deploys ZKsync SSO contracts")
     }
 
     if (!cmd.only) {
-      await deploy(WEBAUTH_NAME, deployer, !cmd.noProxy);
+      const webauth = await deploy(WEBAUTH_NAME, deployer, !cmd.noProxy);
       const sessions = await deploy(SESSIONS_NAME, deployer, !cmd.noProxy);
       const implementation = await deploy(ACCOUNT_IMPL_NAME, deployer, false);
       const beacon = await deploy(BEACON_NAME, deployer, false, [implementation]);
       const factory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon]);
-      const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions]);
+      const guardianInterface = new ethers.Interface((await hre.artifacts.readArtifact(GUARDIAN_RECOVERY_NAME)).abi);
+      const recovery = await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [webauth, factory], guardianInterface.encodeFunctionData("initialize", [webauth, factory]));
+      const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions, recovery]);
       const oidcKeyRegistryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_KEY_REGISTRY_NAME)).abi);
       await deploy(OIDC_KEY_REGISTRY_NAME, deployer, !cmd.noProxy, [], oidcKeyRegistryInterface.encodeFunctionData("initialize", []));
 
