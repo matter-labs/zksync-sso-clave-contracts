@@ -6,9 +6,14 @@ import { ethers, parseEther, randomBytes } from "ethers";
 import { readFileSync } from "fs";
 import { promises } from "fs";
 import * as hre from "hardhat";
+import {
+  SnapshotRestorer,
+  takeSnapshot,
+} from "@nomicfoundation/hardhat-network-helpers";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
 import { Address, isHex, toHex } from "viem";
+import { AsyncFunc } from "mocha";
 
 import type {
   AAFactory,
@@ -18,7 +23,8 @@ import type {
   SsoAccount,
   WebAuthValidator,
   SsoBeacon,
-  AccountProxy
+  AccountProxy,
+  GuardianRecoveryValidator
 } from "../typechain-types";
 import {
   AAFactory__factory,
@@ -29,7 +35,8 @@ import {
   SsoAccount__factory,
   WebAuthValidator__factory,
   SsoBeacon__factory,
-  TestPaymaster__factory
+  TestPaymaster__factory,
+  GuardianRecoveryValidator__factory
 } from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
@@ -99,6 +106,17 @@ export class ContractFixtures {
     return isHex(contractAddress) ? contractAddress : toHex(contractAddress);
   }
 
+  private _guardianRecoveryValidator: GuardianRecoveryValidator
+  async getGuardianRecoveryValidator () {
+    if (this._guardianRecoveryValidator === undefined) {
+      const webAuthVerifier = await this.getWebAuthnVerifierContract();
+      const aaFactoryAddress = await this.getAaFactoryAddress()
+      const contract = await create2("GuardianRecoveryValidator", this.wallet, ethersStaticSalt, [await webAuthVerifier.getAddress(), aaFactoryAddress]);
+      this._guardianRecoveryValidator = GuardianRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._guardianRecoveryValidator
+  }
+
   private _accountImplContract: SsoAccount;
   async getAccountImplContract(salt?: ethers.BytesLike) {
     if (!this._accountImplContract) {
@@ -134,6 +152,7 @@ export class ContractFixtures {
   async deployExampleAuthServerPaymaster(
     aaFactoryAddress: string,
     sessionKeyValidatorAddress: string,
+    guardianRecoveryValidatorAddress: string,
   ): Promise<ExampleAuthServerPaymaster> {
     const contract = await create2(
       "ExampleAuthServerPaymaster",
@@ -142,6 +161,7 @@ export class ContractFixtures {
       [
         aaFactoryAddress,
         sessionKeyValidatorAddress,
+        guardianRecoveryValidatorAddress,
       ],
     );
     const paymasterAddress = ExampleAuthServerPaymaster__factory.connect(await contract.getAddress(), this.wallet);
@@ -404,4 +424,29 @@ export class RecordedResponse {
   readonly passkeyBytes: Uint8Array;
   // the domain linked the passkey that needs to be validated
   readonly expectedOrigin: string;
+}
+
+const SNAPSHOTS: SnapshotRestorer[] = [];
+
+export function cacheBeforeEach(initializer: AsyncFunc): void {
+  let initialized = false;
+
+  beforeEach(async function () {
+    if (!initialized) {
+      await initializer.call(this);
+      SNAPSHOTS.push(await takeSnapshot());
+      initialized = true;
+    } else {
+      const snapshotId = SNAPSHOTS.pop()!;
+      await snapshotId.restore();
+      SNAPSHOTS.push(await takeSnapshot());
+    }
+  });
+
+  after(async function () {
+    if (initialized) {
+      const snapshotId = SNAPSHOTS.pop()!;
+      await snapshotId.restore();
+    }
+  });
 }
