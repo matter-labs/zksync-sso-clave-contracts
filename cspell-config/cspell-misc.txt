@@ -28,3 +28,7 @@ usdc
 // examples/nft-quest
 Fren
 fren
+
+// src/OidcKeyRegistry
+Oidc
+oidc
