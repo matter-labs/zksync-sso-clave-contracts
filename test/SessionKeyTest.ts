@@ -310,9 +310,12 @@ describe("SessionKeyModule tests", function () {
     assert(beaconContract != null, "No Beacon deployed");
     const factoryContract = await fixtures.getAaFactory();
     assert(factoryContract != null, "No AA Factory deployed");
+    const guardianRecoveryContract = await fixtures.getGuardianRecoveryValidator();
+    assert(guardianRecoveryContract != null, "No Guardian Recovery deployed");
     const authServerPaymaster = await fixtures.deployExampleAuthServerPaymaster(
       await factoryContract.getAddress(),
       await sessionModuleContract.getAddress(),
+      await guardianRecoveryContract.getAddress(),
     );
     assert(authServerPaymaster != null, "No Auth Server Paymaster deployed");
 
