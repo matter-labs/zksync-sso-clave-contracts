@@ -13,6 +13,7 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { HookManager } from "./managers/HookManager.sol";
+import { Utils as SsoUtils } from "./helpers/Utils.sol";
 
 import { TokenCallbackHandler } from "./helpers/TokenCallbackHandler.sol";
 
@@ -109,7 +110,7 @@ contract SsoAccount is
     bytes32,
     Transaction calldata _transaction
   ) external payable override onlyBootloader runExecutionHooks(_transaction) {
-    address to = _safeCastToAddress(_transaction.to);
+    address to = SsoUtils.safeCastToAddress(_transaction.to);
     uint128 value = Utils.safeCastToU128(_transaction.value);
 
     _executeCall(to, value, _transaction.data);
@@ -231,12 +232,5 @@ contract SsoAccount is
       0,
       abi.encodeCall(INonceHolder.incrementMinNonceIfEquals, (_expectedNonce))
     );
-  }
-
-  /// @dev Safely casts a uint256 to an address.
-  /// @dev Revert if the value exceeds the maximum size for an address (160 bits).
-  function _safeCastToAddress(uint256 _value) private pure returns (address) {
-    require(_value <= type(uint160).max, "Overflow");
-    return address(uint160(_value));
   }
 }

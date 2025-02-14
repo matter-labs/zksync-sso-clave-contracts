@@ -10,6 +10,7 @@ import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Base64 } from "solady/src/utils/Base64.sol";
 import { JSONParserLib } from "solady/src/utils/JSONParserLib.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 /// @title WebAuthValidator
 /// @author Matter Labs
@@ -38,7 +39,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   /// @param data ABI-encoded WebAuthn passkey to add immediately, or empty if not needed
   function onInstall(bytes calldata data) external override {
     if (data.length > 0) {
-      require(addValidationKey(data), "WebAuthValidator: key already exists");
+      if (!addValidationKey(data)) {
+        revert Errors.WEBAUTHN_KEY_EXISTS();
+      }
     }
   }
 

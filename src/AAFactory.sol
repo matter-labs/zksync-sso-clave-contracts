@@ -6,6 +6,7 @@ import { IContractDeployer } from "@matterlabs/zksync-contracts/l2/system-contra
 import { SystemContractsCaller } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
+import { Errors } from "./libraries/Errors.sol";
 
 /// @title AAFactory
 /// @author Matter Labs
@@ -50,9 +51,12 @@ contract AAFactory {
     bytes[] calldata _initialValidators,
     address[] calldata _initialK1Owners
   ) external returns (address accountAddress) {
-    require(accountMappings[_uniqueAccountId] == address(0), "Account already exists");
+    address accountAddress = accountMappings[_uniqueAccountId];
+    if (accountAddress != address(0)) {
+      revert Errors.ACCOUNT_ALREADY_EXISTS(accountAddress);
+    }
 
-    (bool success, bytes memory returnData) = SystemContractsCaller.systemCallWithReturndata(
+    bytes memory returnData = SystemContractsCaller.systemCallWithPropagatedRevert(
       uint32(gasleft()),
       address(DEPLOYER_SYSTEM_CONTRACT),
       uint128(0),
@@ -61,7 +65,6 @@ contract AAFactory {
         (_salt, beaconProxyBytecodeHash, abi.encode(beacon), IContractDeployer.AccountAbstractionVersion.Version1)
       )
     );
-    require(success, "Deployment failed");
     (accountAddress) = abi.decode(returnData, (address));
 
     accountMappings[_uniqueAccountId] = accountAddress;

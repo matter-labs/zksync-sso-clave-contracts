@@ -104,9 +104,13 @@ abstract contract HookManager is IHookManager, SelfAuth {
     }
 
     if (isValidation) {
-      require(_validationHooks().add(hook), "Hook already installed");
+      if (!_validationHooks().add(hook)) {
+        revert Errors.HOOK_ALREADY_EXISTS(hook, isValidation);
+      }
     } else {
-      require(_executionHooks().add(hook), "Hook already installed");
+      if (!_executionHooks().add(hook)) {
+        revert Errors.HOOK_ALREADY_EXISTS(hook, isValidation);
+      }
     }
 
     IModule(hook).onInstall(initData);
@@ -116,9 +120,13 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
   function _removeHook(address hook, bool isValidation) private {
     if (isValidation) {
-      require(_validationHooks().remove(hook), "Hook not found");
+      if (!_validationHooks().remove(hook)) {
+        revert Errors.HOOK_NOT_FOUND(hook, isValidation);
+      }
     } else {
-      require(_executionHooks().remove(hook), "Hook not found");
+      if (!_executionHooks().remove(hook)) {
+        revert Errors.HOOK_NOT_FOUND(hook, isValidation);
+      }
     }
 
     emit HookRemoved(hook);

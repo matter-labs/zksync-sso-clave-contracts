@@ -71,7 +71,7 @@ abstract contract BatchCaller is SelfAuth {
     }
 
     if (totalValue != msg.value) {
-      revert Errors.MSG_VALUE_MISMATCH(msg.value, totalValue);
+      revert Errors.BATCH_MSG_VALUE_MISMATCH(msg.value, totalValue);
     }
   }
 

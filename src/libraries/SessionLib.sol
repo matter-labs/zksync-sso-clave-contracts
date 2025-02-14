@@ -6,6 +6,8 @@ import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { LibBytes } from "solady/src/utils/LibBytes.sol";
+import { Errors } from "./Errors.sol";
+import { Utils } from "../helpers/Utils.sol";
 
 /// @title Session Library
 /// @author Matter Labs
@@ -140,11 +142,15 @@ library SessionLib {
     uint64 period
   ) internal {
     if (limit.limitType == LimitType.Lifetime) {
-      require(tracker.lifetimeUsage[msg.sender] + value <= limit.limit, "Lifetime limit exceeded");
+      if (tracker.lifetimeUsage[msg.sender] + value > limit.limit) {
+        revert Errors.SESSION_LIFETIME_USAGE_EXCEEDED(tracker.lifetimeUsage[msg.sender], limit.limit);
+      }
       tracker.lifetimeUsage[msg.sender] += value;
     } else if (limit.limitType == LimitType.Allowance) {
       TimestampAsserterLocator.locate().assertTimestampInRange(period * limit.period, (period + 1) * limit.period - 1);
-      require(tracker.allowanceUsage[period][msg.sender] + value <= limit.limit, "Allowance limit exceeded");
+      if (tracker.allowanceUsage[period][msg.sender] + value > limit.limit) {
+        revert Errors.SESSION_ALLOWANCE_EXCEEDED(tracker.allowanceUsage[period][msg.sender], limit.limit, period);
+      }
       tracker.allowanceUsage[period][msg.sender] += value;
     }
   }
@@ -162,23 +168,23 @@ library SessionLib {
     bytes memory data,
     uint64 period
   ) internal {
-    require(data.length >= 4 + constraint.index * 32 + 32, "Invalid data length");
+    uint256 expectedLength = 4 + constraint.index * 32 + 32;
+    if (data.length < expectedLength) {
+      revert Errors.SESSION_INVALID_DATA_LENGTH(data.length, expectedLength);
+    }
     bytes32 param = data.load(4 + constraint.index * 32);
     Condition condition = constraint.condition;
     bytes32 refValue = constraint.refValue;
 
-    if (condition == Condition.Equal) {
-      require(param == refValue, "EQUAL constraint not met");
-    } else if (condition == Condition.Greater) {
-      require(param > refValue, "GREATER constraint not met");
-    } else if (condition == Condition.Less) {
-      require(param < refValue, "LESS constraint not met");
-    } else if (condition == Condition.GreaterOrEqual) {
-      require(param >= refValue, "GREATER_OR_EQUAL constraint not met");
-    } else if (condition == Condition.LessOrEqual) {
-      require(param <= refValue, "LESS_OR_EQUAL constraint not met");
-    } else if (condition == Condition.NotEqual) {
-      require(param != refValue, "NOT_EQUAL constraint not met");
+    if (
+      (condition == Condition.Equal && param != refValue) ||
+      (condition == Condition.Greater && param <= refValue) ||
+      (condition == Condition.Less && param >= refValue) ||
+      (condition == Condition.GreaterOrEqual && param < refValue) ||
+      (condition == Condition.LessOrEqual && param > refValue) ||
+      (condition == Condition.NotEqual && param == refValue)
+    ) {
+      revert Errors.SESSION_CONDITION_FAILED(param, refValue, uint8(condition));
     }
 
     constraint.limit.checkAndUpdate(tracker, uint256(param), period);
@@ -213,7 +219,9 @@ library SessionLib {
       }
     }
 
-    require(found, "Call to this contract is not allowed");
+    if (!found) {
+      revert Errors.SESSION_CALL_POLICY_VIOLATED(target, selector);
+    }
 
     for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
       callPolicy.constraints[i].checkAndUpdate(state.params[target][selector][i], data, periodIds[periodIdsOffset + i]);
@@ -271,11 +279,12 @@ library SessionLib {
     SessionSpec memory spec,
     uint64[] memory periodIds
   ) internal {
-    require(state.status[msg.sender] == Status.Active, "Session is not active");
-    TimestampAsserterLocator.locate().assertTimestampInRange(0, spec.expiresAt);
+    if (state.status[msg.sender] != Status.Active) {
+      revert Errors.SESSION_NOT_ACTIVE();
+    }
 
-    require(transaction.to <= type(uint160).max, "Overflow");
-    address target = address(uint160(transaction.to));
+    TimestampAsserterLocator.locate().assertTimestampInRange(0, spec.expiresAt);
+    address target = Utils.safeCastToAddress(transaction.to);
 
     // Validate paymaster input
     uint256 periodIdsOffset = 2;
@@ -284,10 +293,11 @@ library SessionLib {
       // SsoAccount will automatically `approve()` a token for an approval-based paymaster in `prepareForPaymaster()` call.
       // We need to make sure that the session spec allows this.
       if (paymasterInputSelector == IPaymasterFlow.approvalBased.selector) {
-        require(transaction.paymasterInput.length >= 68, "Invalid paymaster input length");
+        if (transaction.paymasterInput.length < 68) {
+          revert Errors.INVALID_PAYMASTER_INPUT(transaction.paymasterInput);
+        }
         (address token, uint256 amount, ) = abi.decode(transaction.paymasterInput[4:], (address, uint256, bytes));
-        require(transaction.paymaster <= type(uint160).max, "Overflow");
-        address paymasterAddr = address(uint160(transaction.paymaster));
+        address paymasterAddr = Utils.safeCastToAddress(transaction.paymaster);
         bytes memory data = abi.encodeCall(IERC20.approve, (paymasterAddr, amount));
 
         // check that session allows .approve() for this token
@@ -315,7 +325,9 @@ library SessionLib {
         periodIds,
         periodIdsOffset
       );
-      require(transaction.value <= callPolicy.maxValuePerUse, "Value exceeds limit");
+      if (transaction.value > callPolicy.maxValuePerUse) {
+        revert Errors.SESSION_MAX_VALUE_EXCEEDED(transaction.value, callPolicy.maxValuePerUse);
+      }
       callPolicy.valueLimit.checkAndUpdate(state.callValue[target][selector], transaction.value, periodIds[1]);
     } else {
       TransferSpec memory transferPolicy;
@@ -329,8 +341,12 @@ library SessionLib {
         }
       }
 
-      require(found, "Transfer to this address is not allowed");
-      require(transaction.value <= transferPolicy.maxValuePerUse, "Value exceeds limit");
+      if (!found) {
+        revert Errors.SESSION_TRANSFER_POLICY_VIOLATED(target);
+      }
+      if (transaction.value > transferPolicy.maxValuePerUse) {
+        revert Errors.SESSION_MAX_VALUE_EXCEEDED(transaction.value, transferPolicy.maxValuePerUse);
+      }
       transferPolicy.valueLimit.checkAndUpdate(state.transferValue[target], transaction.value, periodIds[1]);
     }
   }

@@ -39,13 +39,17 @@ abstract contract OwnerManager is IOwnerManager, SelfAuth {
 
   // Should not be set to private as it is called from SsoAccount's initialize
   function _k1AddOwner(address addr) internal {
-    require(_k1Owners().add(addr), "K1 owner already exists");
+    if (!_k1Owners().add(addr)) {
+      revert Errors.OWNER_ALREADY_EXISTS(addr);
+    }
 
     emit K1OwnerAdded(addr);
   }
 
   function _k1RemoveOwner(address addr) private {
-    require(_k1Owners().remove(addr), "K1 owner not found");
+    if (!_k1Owners().remove(addr)) {
+      revert Errors.OWNER_NOT_FOUND(addr);
+    }
 
     emit K1OwnerRemoved(addr);
   }
