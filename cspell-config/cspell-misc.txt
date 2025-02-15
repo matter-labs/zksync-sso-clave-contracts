@@ -33,5 +33,5 @@ fren
 Oidc
 oidc
 
-// src/validators/OidcValidator
+// src/validators/OidcRecoveryValidator
 pkop

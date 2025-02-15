@@ -9,11 +9,11 @@ import { IModule } from "../interfaces/IModule.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { OidcKeyRegistry } from "../OidcKeyRegistry.sol";
 
-/// @title OidcValidator
+/// @title OidcRecoveryValidator
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract allows secure user authentication using OIDC protocol.
-contract OidcValidator is VerifierCaller, IModuleValidator {
+contract OidcRecoveryValidator is VerifierCaller, IModuleValidator {
   event OidcKeyUpdated(address indexed account, bytes iss, bool isNew);
 
   struct OidcData {
@@ -42,7 +42,7 @@ contract OidcValidator is VerifierCaller, IModuleValidator {
   /// @param data ABI-encoded OidcData key to add immediately, or empty if not needed
   function onInstall(bytes calldata data) external override {
     if (data.length > 0) {
-      require(addValidationKey(data), "OidcValidator: key already exists");
+      require(addValidationKey(data), "OidcRecoveryValidator: key already exists");
     }
   }
 
@@ -83,13 +83,13 @@ contract OidcValidator is VerifierCaller, IModuleValidator {
     OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
     OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(oidcSignature.issHash, oidcSignature.kid);
 
-    revert("OidcValidator: validateTransaction not implemented");
+    revert("OidcRecoveryValidator: validateTransaction not implemented");
   }
 
   /// @notice Unimplemented because signature validation is not required.
   /// @dev We only need `validateTransaction` to add new passkeys, so this function is intentionally left unimplemented.
   function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
-    revert("OidcValidator: validateSignature not implemented");
+    revert("OidcRecoveryValidator: validateSignature not implemented");
   }
 
   /// @inheritdoc IERC165
