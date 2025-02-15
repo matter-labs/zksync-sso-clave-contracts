@@ -36,7 +36,12 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
     _;
   }
 
-  constructor(address aaFactoryAddress, address sessionKeyValidatorAddress, address accountRecoveryValidatorAddress, address oidcRecoveryValidatorAddress) {
+  constructor(
+    address aaFactoryAddress,
+    address sessionKeyValidatorAddress,
+    address accountRecoveryValidatorAddress,
+    address oidcRecoveryValidatorAddress
+  ) {
     AA_FACTORY_CONTRACT_ADDRESS = aaFactoryAddress;
     SESSION_KEY_VALIDATOR_CONTRACT_ADDRESS = sessionKeyValidatorAddress;
     ACCOUNT_RECOVERY_VALIDATOR_CONTRACT_ADDRESS = accountRecoveryValidatorAddress;
@@ -88,10 +93,7 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
     }
 
     if (to == OIDC_RECOVERY_VALIDATOR_CONTRACT_ADDRESS) {
-      require(
-        methodSelector == OIDC_RECOVERY_ADD_KEY_SELECTOR,
-        "Unsupported method"
-      );
+      require(methodSelector == OIDC_RECOVERY_ADD_KEY_SELECTOR, "Unsupported method");
     }
 
     bytes4 paymasterInputSelector = bytes4(_transaction.paymasterInput[0:4]);
