@@ -12,7 +12,7 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
-import { Address, isHex, toHex } from "viem";
+import { Address, isHex, toHex, zeroAddress } from "viem";
 import { AsyncFunc } from "mocha";
 
 import type {
@@ -25,7 +25,8 @@ import type {
   SsoBeacon,
   AccountProxy,
   OidcKeyRegistry,
-  GuardianRecoveryValidator
+  GuardianRecoveryValidator,
+  OidcRecoveryValidator
 } from "../typechain-types";
 import {
   AAFactory__factory,
@@ -38,7 +39,8 @@ import {
   SsoBeacon__factory,
   TestPaymaster__factory,
   OidcKeyRegistry__factory,
-  GuardianRecoveryValidator__factory
+  GuardianRecoveryValidator__factory,
+  OidcRecoveryValidator__factory
 } from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
@@ -108,7 +110,7 @@ export class ContractFixtures {
     return isHex(contractAddress) ? contractAddress : toHex(contractAddress);
   }
 
-  private _guardianRecoveryValidator: GuardianRecoveryValidator
+  private _guardianRecoveryValidator: GuardianRecoveryValidator;
   async getGuardianRecoveryValidator () {
     if (this._guardianRecoveryValidator === undefined) {
       const webAuthVerifier = await this.getWebAuthnVerifierContract();
@@ -117,6 +119,18 @@ export class ContractFixtures {
       this._guardianRecoveryValidator = GuardianRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._guardianRecoveryValidator
+  }
+
+  private _oidcRecoveryValidator: OidcRecoveryValidator;
+  async getOidcRecoveryValidator () {
+    if (this._oidcRecoveryValidator === undefined) {
+      const verifierAddress = zeroAddress;
+      const oidcKeyRegistry = await this.deployOidcKeyRegistryContract();
+      const contract = await create2("OidcRecoveryValidator", this.wallet, ethersStaticSalt, [await oidcKeyRegistry.getAddress(), verifierAddress]);
+      this._oidcRecoveryValidator = OidcRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
+    }
+
+    return this._oidcRecoveryValidator;
   }
 
   private _accountImplContract: SsoAccount;
@@ -164,6 +178,7 @@ export class ContractFixtures {
     aaFactoryAddress: string,
     sessionKeyValidatorAddress: string,
     guardianRecoveryValidatorAddress: string,
+    oidcRecoveryValidatorAddress: string,
   ): Promise<ExampleAuthServerPaymaster> {
     const contract = await create2(
       "ExampleAuthServerPaymaster",
@@ -173,6 +188,7 @@ export class ContractFixtures {
         aaFactoryAddress,
         sessionKeyValidatorAddress,
         guardianRecoveryValidatorAddress,
+        oidcRecoveryValidatorAddress,
       ],
     );
     const paymasterAddress = ExampleAuthServerPaymaster__factory.connect(await contract.getAddress(), this.wallet);
