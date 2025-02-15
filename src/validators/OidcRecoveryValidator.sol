@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
@@ -13,7 +14,7 @@ import { OidcKeyRegistry } from "../OidcKeyRegistry.sol";
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract allows secure user authentication using OIDC protocol.
-contract OidcRecoveryValidator is VerifierCaller, IModuleValidator {
+contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializable {
   event OidcKeyUpdated(address indexed account, bytes iss, bool isNew);
 
   struct OidcData {
@@ -34,6 +35,10 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator {
   address public immutable verifier;
 
   constructor(address _keyRegistry, address _verifier) {
+    initialize(_keyRegistry, _verifier);
+  }
+
+  function initialize(address _keyRegistry, address _verifier) public initializer {
     keyRegistry = _keyRegistry;
     verifier = _verifier;
   }
