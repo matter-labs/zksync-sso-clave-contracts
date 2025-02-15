@@ -31,8 +31,8 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
   mapping(address => OidcData) public accountData;
 
-  address public immutable keyRegistry;
-  address public immutable verifier;
+  address public keyRegistry;
+  address public verifier;
 
   constructor(address _keyRegistry, address _verifier) {
     initialize(_keyRegistry, _verifier);
