@@ -26,7 +26,7 @@ import type {
   AccountProxy,
   OidcKeyRegistry,
   GuardianRecoveryValidator,
-  OidcRecoveryValidator
+  OidcRecoveryValidator,
 } from "../typechain-types";
 import {
   AAFactory__factory,
@@ -40,7 +40,7 @@ import {
   TestPaymaster__factory,
   OidcKeyRegistry__factory,
   GuardianRecoveryValidator__factory,
-  OidcRecoveryValidator__factory
+  OidcRecoveryValidator__factory,
 } from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
@@ -114,7 +114,7 @@ export class ContractFixtures {
   async getGuardianRecoveryValidator () {
     if (this._guardianRecoveryValidator === undefined) {
       const webAuthVerifier = await this.getWebAuthnVerifierContract();
-      const aaFactoryAddress = await this.getAaFactoryAddress()
+      const aaFactoryAddress = await this.getAaFactoryAddress();
       const contract = await create2("GuardianRecoveryValidator", this.wallet, ethersStaticSalt, [await webAuthVerifier.getAddress(), aaFactoryAddress]);
       this._guardianRecoveryValidator = GuardianRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
