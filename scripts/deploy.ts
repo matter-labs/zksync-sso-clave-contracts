@@ -86,11 +86,11 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const factory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon]);
       const guardianInterface = new ethers.Interface((await hre.artifacts.readArtifact(GUARDIAN_RECOVERY_NAME)).abi);
       const recovery = await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [webauth, factory], guardianInterface.encodeFunctionData("initialize", [webauth, factory]));
+      const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions, recovery]);
       const oidcKeyRegistryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_KEY_REGISTRY_NAME)).abi);
       const oidcKeyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, !cmd.noProxy, [], oidcKeyRegistryInterface.encodeFunctionData("initialize", []));
       const oidcVerifier = await deploy(OIDC_VERIFIER_NAME, deployer, false, []);
       await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier]);
-      const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions, recovery]);
 
       await fundPaymaster(paymaster, cmd.fund);
     } else {
@@ -117,7 +117,6 @@ task("deploy", "Deploys ZKsync SSO contracts")
       if (cmd.only == OIDC_KEY_REGISTRY_NAME) {
         args = [];
       }
-
       const deployedContract = await deploy(cmd.only, deployer, false, args);
 
       if (cmd.only == PAYMASTER_NAME) {
