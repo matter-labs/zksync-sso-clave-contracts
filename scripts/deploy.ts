@@ -90,7 +90,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const oidcKeyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, !cmd.noProxy, [], oidcKeyRegistryInterface.encodeFunctionData("initialize", []));
       const oidcRecoveryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_RECOVERY_NAME)).abi);
       const oidcVerifier = await deploy(OIDC_VERIFIER_NAME, deployer, false, []);
-      const oidcRecovery = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier], oidcRecoveryInterface.encodeFunctionData("initialize", []));
+      const oidcRecovery = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier]));
       const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions, recovery, oidcRecovery]);
       await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier]);
 
