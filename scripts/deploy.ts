@@ -92,7 +92,6 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const oidcVerifier = await deploy(OIDC_VERIFIER_NAME, deployer, false, []);
       const oidcRecovery = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier]));
       const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions, recovery, oidcRecovery]);
-      await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier]);
 
       await fundPaymaster(paymaster, cmd.fund);
     } else {
