@@ -69,11 +69,11 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     upperKeyHalf[originDomain][msg.sender] = key32[1];
 
     // we're returning true if this was a new key, false for update
-    bool keyExists = uint256(initialLowerHalf) == 0 && uint256(initialUpperHalf) == 0;
+    bool keyIsNew = uint256(initialLowerHalf) == 0 && uint256(initialUpperHalf) == 0;
 
     emit PasskeyCreated(msg.sender, originDomain);
 
-    return keyExists;
+    return keyIsNew;
   }
 
   /// @notice Validates a WebAuthn signature
