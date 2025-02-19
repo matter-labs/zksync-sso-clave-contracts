@@ -87,13 +87,10 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   /// @notice Validates a transaction signed with a passkey
   /// @dev Does not validate the transaction signature field, which is expected to be different due to the modular format
   /// @param signedHash The hash of the signed transaction
-  /// @param signature The signature to validate
+  /// @param transaction The transaction to validate
   /// @return true if the signature is valid
-  function validateTransaction(
-    bytes32 signedHash,
-    bytes calldata signature,
-    Transaction calldata
-  ) external view returns (bool) {
+  function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external view returns (bool) {
+    (bytes memory signature, , ) = abi.decode(transaction.signature, (bytes, address, bytes));
     return webAuthVerify(signedHash, signature);
   }
 
