@@ -74,7 +74,7 @@ describe("Basic tests", function () {
     expect(proxyAccountAddress, "the proxy account location").to.equal(standardCreate2Address, "be what create2 returns");
 
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
-    assert(await account.k1IsOwner(fixtures.wallet.address));
+    assert(await account.isK1Owner(fixtures.wallet.address));
   });
 
   it("should execute a simple transfer of ETH", async () => {
