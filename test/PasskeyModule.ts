@@ -506,7 +506,7 @@ describe("Passkey validation", function () {
       expect(initUpperKey).to.equal(toHex(generatedY), "initial upper key should exist");
 
       const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
-      assert(await account.k1IsOwner(fixtures.wallet.address));
+      assert(await account.isK1Owner(fixtures.wallet.address));
       assert(!await account.isHook(passKeyModuleAddress), "passkey module should not be an execution hook");
       assert(await account.isModuleValidator(passKeyModuleAddress), "passkey module should be a validator");
     });
