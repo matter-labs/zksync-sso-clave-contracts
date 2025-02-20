@@ -8,12 +8,12 @@ import { assert, expect } from "chai";
 import { randomBytes } from "crypto";
 import { parseEther, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
-import { encodeAbiParameters, Hex, hexToBytes, toHex, pad } from "viem";
+import { encodeAbiParameters, Hex, hexToBytes, pad, toHex } from "viem";
 import { SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 
-import { SsoAccount__factory, WebAuthValidator__factory, WebAuthValidatorTest__factory, IModuleValidator__factory, IERC165__factory } from "../typechain-types";
 import type { WebAuthValidator, WebAuthValidatorTest } from "../typechain-types";
+import { IERC165__factory, IModuleValidator__factory, SsoAccount__factory, WebAuthValidator__factory, WebAuthValidatorTest__factory } from "../typechain-types";
 import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
 /**
@@ -439,8 +439,8 @@ async function validateSignatureTest(
     sampleClientString,
     [
       pad(toHex(rNormalization(generatedSignature.r))),
-      pad(toHex(sNormalization(generatedSignature.s)))
-    ]
+      pad(toHex(sNormalization(generatedSignature.s))),
+    ],
   ]);
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
@@ -477,7 +477,6 @@ describe("Passkey validation", function () {
       logInfo(`\`deployProxySsoAccount\` args: ${initPasskeyData}`);
       const deployTx = await factoryContract.deployProxySsoAccount(
         randomSalt,
-        "pass-key-test-id" + randomBytes(32).toString(),
         [passKeyPayload],
         [wallet.address],
       );
@@ -574,10 +573,10 @@ describe("Passkey validation", function () {
     assert(erc165Supported, "should support ERC165");
 
     const ivalidator = IModuleValidator__factory.createInterface();
-    const xoredSelectors =
-      BigInt(ivalidator.getFunction("validateSignature").selector) ^
-      BigInt(ivalidator.getFunction("validateTransaction").selector);
-    const ivalidatorId = '0x' + xoredSelectors.toString(16).padStart(8, '0');
+    const xoredSelectors
+      = BigInt(ivalidator.getFunction("validateSignature").selector)
+      ^ BigInt(ivalidator.getFunction("validateTransaction").selector);
+    const ivalidatorId = "0x" + xoredSelectors.toString(16).padStart(8, "0");
     const iModuleValidatorSupported = await passkeyValidator.supportsInterface(ivalidatorId);
     assert(iModuleValidatorSupported, "should support IModuleValidator");
   });

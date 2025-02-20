@@ -16,7 +16,7 @@ contract AAFactory {
   /// @notice Emitted when a new account is successfully created.
   /// @param accountAddress The address of the newly created account.
   /// @param uniqueAccountId A unique identifier for the account.
-  event AccountCreated(address indexed accountAddress, string uniqueAccountId);
+  event AccountCreated(address indexed accountAddress, bytes32 uniqueAccountId);
 
   /// @dev The bytecode hash of the beacon proxy, used for deploying proxy accounts.
   bytes32 public immutable beaconProxyBytecodeHash;
@@ -24,7 +24,7 @@ contract AAFactory {
   address public immutable beacon;
 
   /// @notice A mapping from unique account IDs to their corresponding deployed account addresses.
-  mapping(string accountId => address deployedAccount) public accountMappings;
+  mapping(bytes32 accountId => address deployedAccount) public accountMappings;
 
   /// @notice Constructor that initializes the factory with a beacon proxy bytecode hash and implementation contract address.
   /// @param _beaconProxyBytecodeHash The bytecode hash of the beacon proxy.
@@ -39,31 +39,34 @@ contract AAFactory {
   }
 
   /// @notice Deploys a new SSO account as a beacon proxy with the specified parameters.
-  /// @dev Uses `create2` to deploy a proxy account, allowing for deterministic addresses based on the provided salt.
-  /// @param salt The salt used for the `create2` deployment to make the address deterministic.
-  /// @param uniqueAccountId A unique identifier for the new account.
+  /// @dev Uses `create2` to deploy a proxy account, allowing for deterministic addresses based on the provided unique id.
+  /// @param uniqueId Use to generate a unique account id and deterministic address calculation (create2 salt).
   /// @param initialValidators An array of initial validators for the new account.
   /// @param initialK1Owners An array of initial owners of the K1 key for the new account.
   /// @return accountAddress The address of the newly deployed SSO account.
   function deployProxySsoAccount(
-    bytes32 salt,
-    string calldata uniqueAccountId,
+    bytes32 uniqueId,
     bytes[] calldata initialValidators,
     address[] calldata initialK1Owners
   ) external returns (address accountAddress) {
-    address accountAddress = accountMappings[uniqueAccountId];
-    if (accountAddress != address(0)) {
-      revert Errors.ACCOUNT_ALREADY_EXISTS(accountAddress);
+    bytes32 uniqueAccountId = keccak256(abi.encodePacked(uniqueId, msg.sender));
+    address existingAccountAddress = accountMappings[uniqueAccountId];
+    if (existingAccountAddress != address(0)) {
+      revert Errors.ACCOUNT_ALREADY_EXISTS(existingAccountAddress);
     }
 
-    bytes32 uniqueSalt = keccak256(abi.encodePacked(salt, msg.sender));
     bytes memory returnData = SystemContractsCaller.systemCallWithPropagatedRevert(
       uint32(gasleft()),
       address(DEPLOYER_SYSTEM_CONTRACT),
       uint128(0),
       abi.encodeCall(
         DEPLOYER_SYSTEM_CONTRACT.create2Account,
-        (uniqueSalt, beaconProxyBytecodeHash, abi.encode(beacon), IContractDeployer.AccountAbstractionVersion.Version1)
+        (
+          uniqueAccountId,
+          beaconProxyBytecodeHash,
+          abi.encode(beacon),
+          IContractDeployer.AccountAbstractionVersion.Version1
+        )
       )
     );
     (accountAddress) = abi.decode(returnData, (address));
