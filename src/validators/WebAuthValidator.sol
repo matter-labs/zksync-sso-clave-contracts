@@ -108,7 +108,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     );
 
     // prevent signature replay https://yondon.blog/2019/01/01/how-not-to-use-ecdsa/
-    if (rs[0] == 0 || rs[0] > HIGH_R_MAX || rs[1] == 0 || rs[1] > LOW_S_MAX) {
+    if (uint256(rs[0]) == 0 || rs[0] > HIGH_R_MAX || uint256(rs[1]) == 0 || rs[1] > LOW_S_MAX) {
       return false;
     }
 
