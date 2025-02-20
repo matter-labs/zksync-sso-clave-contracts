@@ -6,20 +6,19 @@ import { ethers, parseEther, randomBytes } from "ethers";
 import { readFileSync } from "fs";
 import { promises } from "fs";
 import * as hre from "hardhat";
+import { Address, isHex, toHex } from "viem";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
-import { Address, isHex, toHex } from "viem";
 
 import type {
   AAFactory,
+  AccountProxy,
   ERC20,
   ExampleAuthServerPaymaster,
   SessionKeyValidator,
   SsoAccount,
-  WebAuthValidator,
   SsoBeacon,
-  AccountProxy
-} from "../typechain-types";
+  WebAuthValidator } from "../typechain-types";
 import {
   AAFactory__factory,
   AccountProxy__factory,
@@ -27,10 +26,9 @@ import {
   ExampleAuthServerPaymaster__factory,
   SessionKeyValidator__factory,
   SsoAccount__factory,
-  WebAuthValidator__factory,
   SsoBeacon__factory,
-  TestPaymaster__factory
-} from "../typechain-types";
+  TestPaymaster__factory,
+  WebAuthValidator__factory } from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
   205, 241, 161, 186, 101, 105, 79,
@@ -95,7 +93,7 @@ export class ContractFixtures {
 
   async getPasskeyModuleAddress(): Promise<Address> {
     const webAuthnVerifierContract = await this.getWebAuthnVerifierContract();
-    const contractAddress = await webAuthnVerifierContract.getAddress()
+    const contractAddress = await webAuthnVerifierContract.getAddress();
     return isHex(contractAddress) ? contractAddress : toHex(contractAddress);
   }
 
@@ -309,13 +307,13 @@ const masterWallet = ethers.Wallet.fromPhrase("stuff slice staff easily soup par
 export const LOCAL_RICH_WALLETS = [
   hre.network.name == "dockerizedNode"
     ? {
-      address: masterWallet.address,
-      privateKey: masterWallet.privateKey,
-    }
+        address: masterWallet.address,
+        privateKey: masterWallet.privateKey,
+      }
     : {
-      address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-      privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-    },
+        address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+      },
   {
     address: "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049",
     privateKey: "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110",
@@ -384,6 +382,7 @@ export class RecordedResponse {
     this.b64SignedChallenge = responseData.response.response.signature;
     this.passkeyBytes = convertObjArrayToUint8Array(responseData.authenticator.credentialPublicKey);
     this.expectedOrigin = responseData.expectedOrigin;
+    this.credentialId = responseData.authenticator.credentialID;
   }
 
   getXyPublicKeys() {
@@ -404,4 +403,6 @@ export class RecordedResponse {
   readonly passkeyBytes: Uint8Array;
   // the domain linked the passkey that needs to be validated
   readonly expectedOrigin: string;
+  // the unique id encoded in the client data
+  readonly credentialId: string;
 }
