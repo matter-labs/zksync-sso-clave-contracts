@@ -103,14 +103,23 @@ abstract contract HookManager is IHookManager, SelfAuth {
       revert Errors.HOOK_ERC165_FAIL(hook, isValidation);
     }
 
+    // Regardless of whether or not it is a validation or an execution hook,
+    // if the module is already installed, it cannot be installed again (even as another type).
+    if (_validationHooks().contains(hook)) {
+      revert Errors.HOOK_ALREADY_EXISTS(hook, true);
+    }
+    if (_executionHooks().contains(hook)) {
+      revert Errors.HOOK_ALREADY_EXISTS(hook, false);
+    }
+    if (_validators().contains(hook)) {
+      revert Errors.VALIDATOR_ALREADY_EXISTS(hook);
+    }
+
+    // No need to check the return value of .add() as we just checked that it is not already present.
     if (isValidation) {
-      if (!_validationHooks().add(hook)) {
-        revert Errors.HOOK_ALREADY_EXISTS(hook, isValidation);
-      }
+      _validationHooks().add(hook);
     } else {
-      if (!_executionHooks().add(hook)) {
-        revert Errors.HOOK_ALREADY_EXISTS(hook, isValidation);
-      }
+      _executionHooks().add(hook);
     }
 
     IModule(hook).onInstall(initData);
@@ -148,6 +157,10 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
   function _executionHooks() private view returns (EnumerableSet.AddressSet storage executionHooks) {
     executionHooks = SsoStorage.layout().executionHooks;
+  }
+
+  function _validators() private view returns (EnumerableSet.AddressSet storage validators) {
+    validators = SsoStorage.layout().moduleValidators;
   }
 
   function _supportsHook(address hook, bool isValidation) private view returns (bool) {
