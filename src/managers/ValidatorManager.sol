@@ -60,8 +60,7 @@ abstract contract ValidatorManager is IValidatorManager, SelfAuth {
       revert Errors.VALIDATOR_ERC165_FAIL(validator);
     }
 
-    // Regardless of whether or not it is a validation or an execution hook,
-    // if the module is already installed, it cannot be installed again (even as another type).
+    // If the module is already installed, it cannot be installed again (even as another type).
     if (SsoStorage.validationHooks().contains(validator)) {
       revert Errors.HOOK_ALREADY_EXISTS(validator, true);
     }

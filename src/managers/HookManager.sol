@@ -117,9 +117,9 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
     // No need to check the return value of .add() as we just checked that it is not already present.
     if (isValidation) {
-      SsoStorage.validationHooks().add(hook);
+      bool _result = SsoStorage.validationHooks().add(hook);
     } else {
-      SsoStorage.executionHooks().add(hook);
+      bool _result = SsoStorage.executionHooks().add(hook);
     }
 
     IModule(hook).onInstall(initData);
