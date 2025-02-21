@@ -25,4 +25,16 @@ library SsoStorage {
       l.slot := slot
     }
   }
+
+  function validators() internal view returns (EnumerableSet.AddressSet storage) {
+    return layout().moduleValidators;
+  }
+
+  function validationHooks() internal view returns (EnumerableSet.AddressSet storage) {
+    return layout().validationHooks;
+  }
+
+  function executionHooks() internal view returns (EnumerableSet.AddressSet storage) {
+    return layout().executionHooks;
+  }
 }

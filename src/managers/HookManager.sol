@@ -53,15 +53,15 @@ abstract contract HookManager is IHookManager, SelfAuth {
   /// @inheritdoc IHookManager
   function listHooks(bool isValidation) external view override returns (address[] memory hookList) {
     if (isValidation) {
-      hookList = _validationHooks().values();
+      hookList = SsoStorage.validationHooks().values();
     } else {
-      hookList = _executionHooks().values();
+      hookList = SsoStorage.executionHooks().values();
     }
   }
 
   // Runs the validation hooks that are enabled by the account and returns true if none reverts
   function runValidationHooks(bytes32 signedHash, Transaction calldata transaction) internal returns (bool) {
-    EnumerableSet.AddressSet storage hookList = _validationHooks();
+    EnumerableSet.AddressSet storage hookList = SsoStorage.validationHooks();
     uint256 totalHooks = hookList.length();
 
     for (uint256 i = 0; i < totalHooks; i++) {
@@ -77,7 +77,7 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
   // Runs the execution hooks that are enabled by the account before and after _executeTransaction
   modifier runExecutionHooks(Transaction calldata transaction) {
-    address[] memory hookList = _executionHooks().values();
+    address[] memory hookList = SsoStorage.executionHooks().values();
     uint256 totalHooks = hookList.length;
     bytes[] memory context = new bytes[](totalHooks);
 
@@ -87,7 +87,7 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
     _;
 
-    EnumerableSet.AddressSet storage newHookList = _executionHooks();
+    EnumerableSet.AddressSet storage newHookList = SsoStorage.executionHooks();
 
     for (uint256 i = 0; i < totalHooks; i++) {
       // Only execute hooks which are both in the old `hookList` and the `newHookList`,
@@ -105,21 +105,21 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
     // Regardless of whether or not it is a validation or an execution hook,
     // if the module is already installed, it cannot be installed again (even as another type).
-    if (_validationHooks().contains(hook)) {
+    if (SsoStorage.validationHooks().contains(hook)) {
       revert Errors.HOOK_ALREADY_EXISTS(hook, true);
     }
-    if (_executionHooks().contains(hook)) {
+    if (SsoStorage.executionHooks().contains(hook)) {
       revert Errors.HOOK_ALREADY_EXISTS(hook, false);
     }
-    if (_validators().contains(hook)) {
+    if (SsoStorage.validators().contains(hook)) {
       revert Errors.VALIDATOR_ALREADY_EXISTS(hook);
     }
 
     // No need to check the return value of .add() as we just checked that it is not already present.
     if (isValidation) {
-      _validationHooks().add(hook);
+      SsoStorage.validationHooks().add(hook);
     } else {
-      _executionHooks().add(hook);
+      SsoStorage.executionHooks().add(hook);
     }
 
     IModule(hook).onInstall(initData);
@@ -129,11 +129,11 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
   function _removeHook(address hook, bool isValidation) private {
     if (isValidation) {
-      if (!_validationHooks().remove(hook)) {
+      if (!SsoStorage.validationHooks().remove(hook)) {
         revert Errors.HOOK_NOT_FOUND(hook, isValidation);
       }
     } else {
-      if (!_executionHooks().remove(hook)) {
+      if (!SsoStorage.executionHooks().remove(hook)) {
         revert Errors.HOOK_NOT_FOUND(hook, isValidation);
       }
     }
@@ -142,25 +142,13 @@ abstract contract HookManager is IHookManager, SelfAuth {
   }
 
   function _isHook(address addr) internal view returns (bool) {
-    return _validationHooks().contains(addr) || _executionHooks().contains(addr);
+    return SsoStorage.validationHooks().contains(addr) || SsoStorage.executionHooks().contains(addr);
   }
 
   function _call(address target, bytes memory data) private returns (bool success) {
     assembly ("memory-safe") {
       success := call(gas(), target, 0, add(data, 0x20), mload(data), 0, 0)
     }
-  }
-
-  function _validationHooks() private view returns (EnumerableSet.AddressSet storage validationHooks) {
-    validationHooks = SsoStorage.layout().validationHooks;
-  }
-
-  function _executionHooks() private view returns (EnumerableSet.AddressSet storage executionHooks) {
-    executionHooks = SsoStorage.layout().executionHooks;
-  }
-
-  function _validators() private view returns (EnumerableSet.AddressSet storage validators) {
-    validators = SsoStorage.layout().moduleValidators;
   }
 
   function _supportsHook(address hook, bool isValidation) private view returns (bool) {
