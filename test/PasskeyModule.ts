@@ -12,7 +12,8 @@ import { encodeAbiParameters, Hex, hexToBytes, toHex, pad } from "viem";
 import { SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 
-import { SsoAccount__factory, WebAuthValidator, WebAuthValidator__factory, WebAuthValidatorTest, WebAuthValidatorTest__factory } from "../typechain-types";
+import { SsoAccount__factory, WebAuthValidator__factory, WebAuthValidatorTest__factory, IModuleValidator__factory, IERC165__factory } from "../typechain-types";
+import type { WebAuthValidator, WebAuthValidatorTest } from "../typechain-types";
 import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
 /**
@@ -568,9 +569,16 @@ describe("Passkey validation", function () {
 
   it("should support ERC165 and IModuleValidator", async () => {
     const passkeyValidator = await deployValidator(wallet);
-    const erc165Supported = await passkeyValidator.supportsInterface("0x01ffc9a7");
+    const ierc165 = IERC165__factory.createInterface().getFunction("supportsInterface").selector;
+    const erc165Supported = await passkeyValidator.supportsInterface(ierc165);
     assert(erc165Supported, "should support ERC165");
-    const iModuleValidatorSupported = await passkeyValidator.supportsInterface("0x0c119b61");
+
+    const ivalidator = IModuleValidator__factory.createInterface();
+    const xoredSelectors =
+      BigInt(ivalidator.getFunction("validateSignature").selector) ^
+      BigInt(ivalidator.getFunction("validateTransaction").selector);
+    const ivalidatorId = '0x' + xoredSelectors.toString(16).padStart(8, '0');
+    const iModuleValidatorSupported = await passkeyValidator.supportsInterface(ivalidatorId);
     assert(iModuleValidatorSupported, "should support IModuleValidator");
   });
 

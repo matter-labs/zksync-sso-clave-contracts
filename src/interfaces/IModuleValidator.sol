@@ -13,15 +13,10 @@ interface IModuleValidator is IModule, IERC165 {
   /**
    * @notice Validate transaction for account
    * @param signedHash Hash of the transaction
-   * @param signature Signature for the transaction
    * @param transaction Transaction to validate
    * @return bool True if transaction is valid
    */
-  function validateTransaction(
-    bytes32 signedHash,
-    bytes calldata signature,
-    Transaction calldata transaction
-  ) external returns (bool);
+  function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external returns (bool);
 
   /**
    * @notice Validate signature for account (including via EIP-1271)

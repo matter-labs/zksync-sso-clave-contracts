@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
 
 /// @title Module interface
 /// @dev Interface for a module that can be added to SSO account (e.g. hook or validator).

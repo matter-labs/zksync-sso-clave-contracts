@@ -37,9 +37,11 @@ abstract contract BatchCaller is SelfAuth {
   function batchCall(Call[] calldata _calls) external payable onlySelf {
     uint256 totalValue;
     uint256 len = _calls.length;
+
     for (uint256 i = 0; i < len; ++i) {
       totalValue += _calls[i].value;
       bool success;
+      uint32 gas = Utils.safeCastToU32(gasleft());
 
       if (_calls[i].target == address(DEPLOYER_SYSTEM_CONTRACT)) {
         bytes4 selector = bytes4(_calls[i].callData[:4]);
@@ -52,14 +54,14 @@ abstract contract BatchCaller is SelfAuth {
           selector == DEPLOYER_SYSTEM_CONTRACT.create2Account.selector;
         // Note, that the deployer contract can only be called with a "isSystemCall" flag.
         success = EfficientCall.rawCall({
-          _gas: Utils.safeCastToU32(gasleft()),
+          _gas: gas,
           _address: _calls[i].target,
           _value: _calls[i].value,
           _data: _calls[i].callData,
           _isSystem: isSystemCall
         });
       } else {
-        success = EfficientCall.rawCall(gasleft(), _calls[i].target, _calls[i].value, _calls[i].callData, false);
+        success = EfficientCall.rawCall(gas, _calls[i].target, _calls[i].value, _calls[i].callData, false);
       }
 
       if (!success) {
