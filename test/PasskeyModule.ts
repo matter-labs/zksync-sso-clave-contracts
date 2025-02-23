@@ -8,12 +8,12 @@ import { assert, expect } from "chai";
 import { randomBytes } from "crypto";
 import { parseEther, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
-import { encodeAbiParameters, Hex, hexToBytes, toHex, pad } from "viem";
+import { encodeAbiParameters, Hex, hexToBytes, pad, toHex } from "viem";
 import { SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 
-import { SsoAccount__factory, WebAuthValidator__factory, WebAuthValidatorTest__factory, IModuleValidator__factory, IERC165__factory } from "../typechain-types";
-import type { WebAuthValidator, WebAuthValidatorTest } from "../typechain-types";
+import type { WebAuthValidator } from "../typechain-types";
+import { IERC165__factory, IModuleValidator__factory, SsoAccount__factory, WebAuthValidator__factory } from "../typechain-types";
 import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
 /**
@@ -35,14 +35,6 @@ async function deployValidator(wallet: Wallet): Promise<WebAuthValidator> {
 
   const validator = await deployer.deploy(passkeyValidatorArtifact, []);
   return WebAuthValidator__factory.connect(await validator.getAddress(), wallet);
-}
-
-async function deployP256Tester(wallet: Wallet): Promise<WebAuthValidatorTest> {
-  const deployer: Deployer = new Deployer(hre, wallet);
-  const passkeyValidatorArtifact = await deployer.loadArtifact("WebAuthValidatorTest");
-
-  const validator = await deployer.deploy(passkeyValidatorArtifact, []);
-  return WebAuthValidatorTest__factory.connect(await validator.getAddress(), wallet);
 }
 
 /**
@@ -363,22 +355,6 @@ function encodeFatSignature(
   );
 }
 
-async function rawVerify(
-  passkeyValidator: WebAuthValidatorTest,
-  authenticatorData: string,
-  clientData: string,
-  b64SignedChallange: string,
-  publicKeyEs256Bytes: Uint8Array,
-) {
-  const authDataBuffer = toBuffer(authenticatorData);
-  const clientDataHash = await toHash(toBuffer(clientData));
-  const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
-  const rs = unwrapEC2Signature(toBuffer(b64SignedChallange));
-  const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-
-  return await passkeyValidator.p256Verify(hashedData, rs, publicKeys);
-}
-
 async function verifyKeyStorage(
   passkeyValidator: WebAuthValidator,
   domain: string,
@@ -439,8 +415,8 @@ async function validateSignatureTest(
     sampleClientString,
     [
       pad(toHex(rNormalization(generatedSignature.r))),
-      pad(toHex(sNormalization(generatedSignature.s)))
-    ]
+      pad(toHex(sNormalization(generatedSignature.s))),
+    ],
   ]);
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
@@ -574,10 +550,10 @@ describe("Passkey validation", function () {
     assert(erc165Supported, "should support ERC165");
 
     const ivalidator = IModuleValidator__factory.createInterface();
-    const xoredSelectors =
-      BigInt(ivalidator.getFunction("validateSignature").selector) ^
-      BigInt(ivalidator.getFunction("validateTransaction").selector);
-    const ivalidatorId = '0x' + xoredSelectors.toString(16).padStart(8, '0');
+    const xoredSelectors
+      = BigInt(ivalidator.getFunction("validateSignature").selector)
+      ^ BigInt(ivalidator.getFunction("validateTransaction").selector);
+    const ivalidatorId = "0x" + xoredSelectors.toString(16).padStart(8, "0");
     const iModuleValidatorSupported = await passkeyValidator.supportsInterface(ivalidatorId);
     assert(iModuleValidatorSupported, "should support IModuleValidator");
   });
@@ -683,109 +659,6 @@ describe("Passkey validation", function () {
 
       const createdKey = await passkeyValidator.validateSignature(signatureData, fatSignature);
       assert(createdKey, "invalid sig");
-    });
-  });
-
-  // fully expand the raw validation to compare step by step
-  describe("P256 precompile comparison", () => {
-    it("should verify passkey", async function () {
-      const passkeyValidator = await deployP256Tester(wallet);
-
-      // 37 bytes
-      const authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABQ";
-      const clientData
-        = "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZFhPM3ctdWdycS00SkdkZUJLNDFsZFk1V2lNd0ZORDkiLCJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2UsIm90aGVyX2tleXNfY2FuX2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgifQ";
-      const b64SignedChallenge
-        = "MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A";
-
-      const verifyMessage = await rawVerify(
-        passkeyValidator,
-        authenticatorData,
-        clientData,
-        b64SignedChallenge,
-        publicKeyEs256Bytes,
-      );
-
-      assert(verifyMessage == true, "valid sig");
-    });
-    it("should sign with new data", async function () {
-      const passkeyValidator = await deployP256Tester(wallet);
-      // The precompile expects the fully hashed data
-      const preHashedData = await toHash(
-        concat([toBuffer(ethersResponse.authenticatorData), await toHash(toBuffer(ethersResponse.clientData))]),
-      );
-      // the web crpyto library automatically performs the final hash on the data, so we need to do that here
-      const partiallyHashedData = concat([
-        toBuffer(ethersResponse.authenticatorData),
-        await toHash(toBuffer(ethersResponse.clientData)),
-      ]);
-      const recordedSignature = toBuffer(ethersResponse.b64SignedChallenge);
-      const [recordedR, recordedS] = unwrapEC2Signature(recordedSignature);
-      const [recordedX, recordedY] = await getRawPublicKeyFromWebAuthN(ethersResponse.passkeyBytes);
-
-      // try to compare the signature with the one generated by the browser
-      const generatedR1Key = await generateES256R1Key();
-      assert(generatedR1Key != null, "no key was generated");
-      const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
-
-      const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
-      assert(generatedSignature != null, "no signature was generated");
-
-      const offChainGeneratedVerified = await verifySignatureWithR1Key(
-        partiallyHashedData,
-        [generatedSignature.r, generatedSignature.s],
-        [generatedX, generatedY],
-      );
-      const onChainGeneratedVerified = await passkeyValidator.p256Verify(
-        preHashedData,
-        [generatedSignature.r, generatedSignature.s],
-        [generatedX, generatedY],
-      );
-      const offChainRecordedVerified = await verifySignatureWithR1Key(
-        partiallyHashedData,
-        [recordedR, recordedS],
-        [recordedX, recordedY],
-      );
-      const onChainRecordedVerified = await passkeyValidator.p256Verify(
-        preHashedData,
-        [recordedR, recordedS],
-        [recordedX, recordedY],
-      );
-
-      assert(onChainRecordedVerified, "on-chain recording self-check");
-      assert(offChainGeneratedVerified, "generated self-check");
-      assert(onChainGeneratedVerified, "verify generated sig on chain");
-      assert(offChainRecordedVerified, "verify recorded sig off chain");
-    });
-
-    it("should verify other test passkey data", async function () {
-      const passkeyValidator = await deployP256Tester(wallet);
-
-      const verifyMessage = await rawVerify(
-        passkeyValidator,
-        ethersResponse.authenticatorData,
-        ethersResponse.clientData,
-        ethersResponse.b64SignedChallenge,
-        ethersResponse.passkeyBytes,
-      );
-
-      assert(verifyMessage == true, "test sig is valid");
-    });
-
-    it("should fail when signature is bad", async function () {
-      const passkeyValidator = await deployP256Tester(wallet);
-
-      const b64SignedChallenge
-        = "MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A";
-      const verifyMessage = await rawVerify(
-        passkeyValidator,
-        ethersResponse.authenticatorData,
-        ethersResponse.clientData,
-        b64SignedChallenge,
-        ethersResponse.passkeyBytes,
-      );
-
-      assert(verifyMessage == false, "bad sig should be false");
     });
   });
 

@@ -183,18 +183,4 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   ) private pure returns (bytes memory authenticatorData, string memory clientDataSuffix, bytes32[2] memory rs) {
     (authenticatorData, clientDataSuffix, rs) = abi.decode(fatSignature, (bytes, string, bytes32[2]));
   }
-
-  /// @notice Verifies a message using the P256 curve.
-  /// @dev Useful for testing the P256 precompile
-  /// @param message The sha256 hash of the authenticator hash and hashed client data
-  /// @param rs The signature to validate (r, s) from the signed message
-  /// @param pubKey The public key to validate the signature against (x, y)
-  /// @return valid true if the signature is valid
-  function rawVerify(
-    bytes32 message,
-    bytes32[2] calldata rs,
-    bytes32[2] calldata pubKey
-  ) internal view returns (bool valid) {
-    valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
-  }
 }
