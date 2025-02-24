@@ -35,13 +35,11 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   function addKey(Key memory newKey) public onlyOwner {
     uint8 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
 
-    bytes32 newLeaf = keccak256(bytes.concat(keccak256(abi.encode(newKey.issHash, newKey.kid, newKey.n, newKey.e))));
+    bytes32 newLeaf = _hashKey(newKey);
     bytes32[MAX_KEYS] memory leaves;
     for (uint8 i = 0; i < MAX_KEYS; i++) {
       if (i != nextIndex) {
-        leaves[i] = keccak256(
-          bytes.concat(keccak256(abi.encode(OIDCKeys[i].issHash, OIDCKeys[i].kid, OIDCKeys[i].n, OIDCKeys[i].e)))
-        );
+        leaves[i] = _hashKey(OIDCKeys[i]);
       } else {
         leaves[i] = newLeaf;
       }
@@ -62,9 +60,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
 
     bytes32[MAX_KEYS] memory leaves;
     for (uint8 i = 0; i < MAX_KEYS; i++) {
-      leaves[i] = keccak256(
-        bytes.concat(keccak256(abi.encode(OIDCKeys[i].issHash, OIDCKeys[i].kid, OIDCKeys[i].n, OIDCKeys[i].e)))
-      );
+      leaves[i] = _hashKey(OIDCKeys[i]);
     }
 
     bytes32 newRoot = _computeMerkleRoot(leaves);
@@ -81,6 +77,10 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       }
     }
     revert("Key not found");
+  }
+
+  function _hashKey(Key memory key) private pure returns (bytes32) {
+    return keccak256(bytes.concat(keccak256(abi.encode(key.issHash, key.kid, key.n, key.e))));
   }
 
   function _computeMerkleRoot(bytes32[MAX_KEYS] memory leaves) private pure returns (bytes32) {
