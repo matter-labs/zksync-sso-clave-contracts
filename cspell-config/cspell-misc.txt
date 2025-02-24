@@ -33,6 +33,8 @@ fren
 // src/OidcKeyRegistry
 Oidc
 oidc
+Merkle
+merkle
 
 // src/validators/OidcRecoveryValidator
 pkop
