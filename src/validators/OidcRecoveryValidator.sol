@@ -18,7 +18,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   event OidcKeyUpdated(address indexed account, bytes iss, bool isNew);
 
   struct OidcData {
-    bytes oidcDigest; // PoseidonHash(sub || aud || iss || salt)
+    bytes32 oidcDigest; // PoseidonHash(sub || aud || iss || salt)
     bytes iss; // Issuer
     bytes aud; // Audience
   }
@@ -30,6 +30,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   }
 
   mapping(address => OidcData) public accountData;
+  mapping(bytes32 => address) public digestIndex;
 
   address public keyRegistry;
   address public verifier;
@@ -54,7 +55,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice Runs on module uninstall
   /// @param data unused
   function onUninstall(bytes calldata data) external override {
-    accountData[msg.sender] = OidcData(bytes(""), bytes(""), bytes(""));
+    accountData[msg.sender] = OidcData(bytes32(0), bytes(""), bytes(""));
   }
 
   /// @notice Adds an `OidcData` for the caller.
@@ -65,6 +66,12 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     bool isNew = accountData[msg.sender].oidcDigest.length == 0;
     accountData[msg.sender] = oidcData;
+
+    if (digestIndex[oidcData.oidcDigest] != address(0)) {
+      revert("oidc_digest already registered in other account");
+    }
+
+    digestIndex[oidcData.oidcDigest] = msg.sender;
 
     emit OidcKeyUpdated(msg.sender, oidcData.iss, isNew);
     return isNew;
@@ -103,5 +110,14 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
       interfaceId == type(IERC165).interfaceId ||
       interfaceId == type(IModuleValidator).interfaceId ||
       interfaceId == type(IModule).interfaceId;
+  }
+
+  function addressFor(bytes32 digest) public view returns (address) {
+    address addr = digestIndex[digest];
+    if (addr == address(0)) {
+      revert("Address not found for given digest.");
+    }
+
+    return digestIndex[digest];
   }
 }
