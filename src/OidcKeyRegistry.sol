@@ -33,23 +33,9 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   }
 
   function addKey(Key memory newKey) public onlyOwner {
-    uint8 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
-
-    bytes32 newLeaf = _hashKey(newKey);
-    bytes32[MAX_KEYS] memory leaves;
-    for (uint8 i = 0; i < MAX_KEYS; i++) {
-      if (i != nextIndex) {
-        leaves[i] = _hashKey(OIDCKeys[i]);
-      } else {
-        leaves[i] = newLeaf;
-      }
-    }
-
-    bytes32 newRoot = _computeMerkleRoot(leaves);
-
-    OIDCKeys[nextIndex] = newKey;
-    keyIndex = nextIndex;
-    merkleRoot = newRoot;
+    Key[] memory newKeys = new Key[](1);
+    newKeys[0] = newKey;
+    addKeys(newKeys);
   }
 
   function addKeys(Key[] memory newKeys) public onlyOwner {
@@ -58,14 +44,8 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       OIDCKeys[nextIndex] = newKeys[i];
     }
 
-    bytes32[MAX_KEYS] memory leaves;
-    for (uint8 i = 0; i < MAX_KEYS; i++) {
-      leaves[i] = _hashKey(OIDCKeys[i]);
-    }
-
-    bytes32 newRoot = _computeMerkleRoot(leaves);
+    _updateMerkleRoot();
     keyIndex = uint8((uint256(keyIndex) + newKeys.length) % uint256(MAX_KEYS));
-    merkleRoot = newRoot;
   }
 
   function getKey(bytes32 issHash, bytes32 kid) public view returns (Key memory) {
@@ -77,6 +57,14 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       }
     }
     revert("Key not found");
+  }
+
+  function _updateMerkleRoot() private {
+    bytes32[MAX_KEYS] memory leaves;
+    for (uint8 i = 0; i < MAX_KEYS; i++) {
+      leaves[i] = _hashKey(OIDCKeys[i]);
+    }
+    merkleRoot = _computeMerkleRoot(leaves);
   }
 
   function _hashKey(Key memory key) private pure returns (bytes32) {
