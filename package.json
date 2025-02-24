@@ -21,6 +21,7 @@
     "clean": "pnpm hardhat clean",
     "test": "pnpm hardhat test",
     "deploy": "pnpm hardhat deploy",
+    "publish": "pnpm hardhat publish",
     "upgrade": "pnpm hardhat upgrade"
   },
   "devDependencies": {
