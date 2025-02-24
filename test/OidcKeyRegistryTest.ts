@@ -1,9 +1,9 @@
-import { Address } from "viem";
-import { ContractFixtures, getProvider } from "./utils";
-import { Wallet } from "zksync-ethers";
 import { expect } from "chai";
-import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
 import { ethers } from "ethers";
+import { Wallet } from "zksync-ethers";
+
+import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
+import { ContractFixtures, getProvider } from "./utils";
 
 describe("OidcKeyRegistry", function () {
   let fixtures: ContractFixtures;
@@ -30,9 +30,9 @@ describe("OidcKeyRegistry", function () {
       n: "0xabcdef",
       e: "0x010001",
     };
-  
+
     await oidcKeyRegistry.setKey(issHash, key);
-  
+
     const storedKey = await oidcKeyRegistry.getKey(issHash, key.kid);
     expect(storedKey.kid).to.equal(key.kid);
     expect(storedKey.n).to.equal(key.n);
