@@ -29,8 +29,8 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bytes32 kid; // Key id used in the jwt
   }
 
-  mapping(address => OidcData) public accountData;
-  mapping(bytes32 => address) public digestIndex;
+  mapping(address => OidcData) accountData;
+  mapping(bytes32 => address) digestIndex;
 
   address public keyRegistry;
   address public verifier;
@@ -67,9 +67,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bool isNew = accountData[msg.sender].oidcDigest.length == 0;
     accountData[msg.sender] = oidcData;
 
-    if (digestIndex[oidcData.oidcDigest] != address(0)) {
-      revert("oidc_digest already registered in other account");
-    }
+    // if (digestIndex[oidcData.oidcDigest] != address(0)) {
+    //   revert("oidc_digest already registered in other account");
+    // }
 
     digestIndex[oidcData.oidcDigest] = msg.sender;
 
@@ -112,12 +112,25 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
       interfaceId == type(IModule).interfaceId;
   }
 
-  function addressFor(bytes32 digest) public view returns (address) {
+  function addressForDigest(bytes32 digest) public view returns (address) {
     address addr = digestIndex[digest];
     if (addr == address(0)) {
       revert("Address not found for given digest.");
     }
 
     return digestIndex[digest];
+  }
+
+  function oidcDataForAddress(address account) public view returns (OidcData[] memory) {
+    OidcData memory data = accountData[account];
+    OidcData[] memory array;
+
+    if (data.oidcDigest == bytes32(0)) {
+      return array;
+    }
+
+    array = new OidcData[](1);
+    array[0] = data;
+    return array;
   }
 }
