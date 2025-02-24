@@ -24,25 +24,25 @@ interface IOwnerManager {
    * @dev Address can not be the zero address
    * @param addr address - Address to add to the list of k1 owners
    */
-  function k1AddOwner(address addr) external;
+  function addK1Owner(address addr) external;
 
   /**
    * @notice Removes a k1 owner from the list of k1 owners
    * @dev Can only be called by self
    * @param addr address - Address to remove from the list of k1 owners
    */
-  function k1RemoveOwner(address addr) external;
+  function removeK1Owner(address addr) external;
 
   /**
    * @notice Checks if an address is in the list of k1 owners
    * @param addr address - Address to check
    * @return bool - True if the address is in the list, false otherwise
    */
-  function k1IsOwner(address addr) external view returns (bool);
+  function isK1Owner(address addr) external view returns (bool);
 
   /**
    * @notice Returns the list of k1 owners
    * @return k1OwnerList address[] memory - Array of k1 owner addresses
    */
-  function k1ListOwners() external view returns (address[] memory k1OwnerList);
+  function listK1Owners() external view returns (address[] memory k1OwnerList);
 }

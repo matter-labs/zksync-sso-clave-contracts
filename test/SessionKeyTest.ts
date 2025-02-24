@@ -366,7 +366,7 @@ describe("SessionKeyModule tests", function () {
     expect(initState.status).to.equal(1, "initial session should be active");
 
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
-    assert(await account.k1IsOwner(fixtures.wallet.address));
+    assert(await account.isK1Owner(fixtures.wallet.address));
     assert(!await account.isHook(sessionKeyModuleAddress), "session key module should not be an execution hook");
     assert(await account.isModuleValidator(sessionKeyModuleAddress), "session key module should be a validator");
   });
