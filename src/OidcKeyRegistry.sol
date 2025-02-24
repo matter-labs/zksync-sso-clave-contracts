@@ -25,6 +25,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
 
   function initialize() public initializer {
     __Ownable_init();
+    keyIndex = MAX_KEYS - 1;
   }
 
   function hashIssuer(string memory iss) public pure returns (bytes32) {
@@ -53,10 +54,22 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     merkleRoot = newRoot;
   }
 
-  function addKeys(Key[] memory keys) public onlyOwner {
-    for (uint8 i = 0; i < keys.length; i++) {
-      addKey(keys[i]);
+  function addKeys(Key[] memory newKeys) public onlyOwner {
+    for (uint8 i = 0; i < newKeys.length; i++) {
+      uint8 nextIndex = (keyIndex + 1 + i) % MAX_KEYS; // Circular buffer
+      OIDCKeys[nextIndex] = newKeys[i];
     }
+
+    bytes32[MAX_KEYS] memory leaves;
+    for (uint8 i = 0; i < MAX_KEYS; i++) {
+      leaves[i] = keccak256(
+        bytes.concat(keccak256(abi.encode(OIDCKeys[i].issHash, OIDCKeys[i].kid, OIDCKeys[i].n, OIDCKeys[i].e)))
+      );
+    }
+
+    bytes32 newRoot = _computeMerkleRoot(leaves);
+    keyIndex = uint8((uint256(keyIndex) + newKeys.length) % uint256(MAX_KEYS));
+    merkleRoot = newRoot;
   }
 
   function getKey(bytes32 issHash, bytes32 kid) public view returns (Key memory) {

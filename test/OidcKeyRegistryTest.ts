@@ -51,6 +51,31 @@ describe("OidcKeyRegistry", function () {
     expect(await oidcKeyRegistry.merkleRoot()).to.equal(root);
   });
 
+  it("should set multiple keys", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const newKeys = Array.from({ length: 8 }, (_, i) => ({
+      issHash,
+      kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}`)),
+      n: "0xabcdef",
+      e: "0x010001",
+    }));
+
+    await oidcKeyRegistry.addKeys(newKeys);
+
+    for (let i = 0; i < 8; i++) {
+      const storedKey = await oidcKeyRegistry.getKey(issHash, newKeys[i].kid);
+      expect(storedKey.kid).to.equal(newKeys[i].kid);
+    }
+    
+    let anotherKeyRegistry = await fixtures.deployOidcKeyRegistryContract();
+    for (let i = 0; i < 8; i++) {
+      await anotherKeyRegistry.addKey(newKeys[i]);
+    }
+
+    expect(await oidcKeyRegistry.merkleRoot()).to.equal(await anotherKeyRegistry.merkleRoot());
+  });
+
   it("should revert when a non-owner tries to set a key", async () => {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
