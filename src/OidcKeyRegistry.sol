@@ -8,14 +8,14 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   uint8 public constant MAX_KEYS = 5;
 
   struct Key {
+    bytes32 issHash; // Issuer
     bytes32 kid; // Key ID
     bytes n; // RSA modulus
     bytes e; // RSA exponent
   }
 
-  // Mapping uses keccak256(iss) as the key
-  mapping(bytes32 => Key[MAX_KEYS]) public OIDCKeys; // Stores up to MAX_KEYS per issuer
-  mapping(bytes32 => uint8) public keyIndexes; // Tracks the latest key index for each issuer
+  Key[MAX_KEYS] public OIDCKeys;
+  uint8 public keyIndex;
 
   constructor() {
     initialize();
@@ -29,25 +29,24 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     return keccak256(abi.encodePacked(iss));
   }
 
-  function setKey(bytes32 issHash, Key memory key) public onlyOwner {
-    uint8 index = keyIndexes[issHash];
-    uint8 nextIndex = (index + 1) % MAX_KEYS; // Circular buffer
-    OIDCKeys[issHash][nextIndex] = key;
-    keyIndexes[issHash] = nextIndex;
+  function addKey(Key memory key) public onlyOwner {
+    uint8 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
+    OIDCKeys[nextIndex] = key;
+    keyIndex = nextIndex;
   }
 
-  function setKeys(bytes32 issHash, Key[] memory keys) public onlyOwner {
+  function addKeys(Key[] memory keys) public onlyOwner {
     for (uint8 i = 0; i < keys.length; i++) {
-      setKey(issHash, keys[i]);
+      addKey(keys[i]);
     }
   }
 
   function getKey(bytes32 issHash, bytes32 kid) public view returns (Key memory) {
+    require(issHash != 0, "Invalid issHash");
     require(kid != 0, "Invalid kid");
-    Key[MAX_KEYS] storage keys = OIDCKeys[issHash];
     for (uint8 i = 0; i < MAX_KEYS; i++) {
-      if (keys[i].kid == kid) {
-        return keys[i];
+      if (OIDCKeys[i].issHash == issHash && OIDCKeys[i].kid == kid) {
+        return OIDCKeys[i];
       }
     }
     revert("Key not found");

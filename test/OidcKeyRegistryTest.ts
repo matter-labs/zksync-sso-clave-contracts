@@ -26,12 +26,13 @@ describe("OidcKeyRegistry", function () {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
     const key = {
+      issHash,
       kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
       n: "0xabcdef",
       e: "0x010001",
     };
   
-    await oidcKeyRegistry.setKey(issHash, key);
+    await oidcKeyRegistry.addKey(key);
   
     const storedKey = await oidcKeyRegistry.getKey(issHash, key.kid);
     expect(storedKey.kid).to.equal(key.kid);
@@ -43,6 +44,7 @@ describe("OidcKeyRegistry", function () {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
     const key = {
+      issHash,
       kid: "0x3333333333333333333333333333333333333333333333333333333333333333",
       n: "0xcccc",
       e: "0x010001",
@@ -51,7 +53,7 @@ describe("OidcKeyRegistry", function () {
     const nonOwner = Wallet.createRandom(getProvider());
     const nonOwnerRegistry = OidcKeyRegistry__factory.connect(await oidcKeyRegistry.getAddress(), nonOwner);
 
-    await expect(nonOwnerRegistry.setKey(issHash, key)).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(nonOwnerRegistry.addKey(key)).to.be.revertedWith("Ownable: caller is not the owner");
   });
 
   it("should correctly implement circular key storage", async () => {
@@ -59,14 +61,13 @@ describe("OidcKeyRegistry", function () {
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
 
     const keys = Array.from({ length: 5 }, (_, i) => ({
+      issHash,
       kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}`)),
       n: "0xabcdef",
       e: "0x010001",
     }));
 
-    for (const key of keys) {
-      await oidcKeyRegistry.setKey(issHash, key);
-    }
+    await oidcKeyRegistry.addKeys(keys);
 
     // Check that the keys are stored correctly
     for (let i = 0; i < 5; i++) {
@@ -75,14 +76,13 @@ describe("OidcKeyRegistry", function () {
     }
 
     const moreKeys = Array.from({ length: 5 }, (_, i) => ({
+      issHash,
       kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 6}`)),
       n: "0xabcdef",
       e: "0x010001",
     }));
 
-    for (const key of moreKeys) {
-      await oidcKeyRegistry.setKey(issHash, key);
-    }
+    await oidcKeyRegistry.addKeys(moreKeys);
 
     // Check that the new keys are stored correctly
     for (let i = 0; i < 5; i++) {
