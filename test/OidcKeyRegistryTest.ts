@@ -1,4 +1,4 @@
-import { Address } from "viem";
+import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { ContractFixtures, getProvider } from "./utils";
 import { Wallet } from "zksync-ethers";
 import { expect } from "chai";
@@ -23,8 +23,13 @@ describe("OidcKeyRegistry", function () {
   });
 
   it("should set one key", async () => {
+    let keys = await Promise.all(Array.from({ length: 8 }, (_, i) => oidcKeyRegistry.OIDCKeys(i)));
+    const currentIndex = await oidcKeyRegistry.keyIndex();
+    const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
+  
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+  
     const key = {
       issHash,
       kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
@@ -32,12 +37,18 @@ describe("OidcKeyRegistry", function () {
       e: "0x010001",
     };
   
+    keys[nextIndex] = [key.issHash, key.kid, key.n, key.e];
+  
+    const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "bytes", "bytes"]);
+    const root = tree.root;
+  
     await oidcKeyRegistry.addKey(key);
   
     const storedKey = await oidcKeyRegistry.getKey(issHash, key.kid);
     expect(storedKey.kid).to.equal(key.kid);
     expect(storedKey.n).to.equal(key.n);
     expect(storedKey.e).to.equal(key.e);
+    expect(await oidcKeyRegistry.merkleRoot()).to.equal(root);
   });
 
   it("should revert when a non-owner tries to set a key", async () => {

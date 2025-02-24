@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   uint8 public constant MAX_KEYS = 8;
@@ -16,6 +17,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
 
   Key[MAX_KEYS] public OIDCKeys;
   uint8 public keyIndex;
+  bytes32 public merkleRoot;
 
   constructor() {
     initialize();
@@ -29,10 +31,26 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     return keccak256(abi.encodePacked(iss));
   }
 
-  function addKey(Key memory key) public onlyOwner {
+  function addKey(Key memory newKey) public onlyOwner {
     uint8 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
-    OIDCKeys[nextIndex] = key;
+
+    bytes32 newLeaf = keccak256(bytes.concat(keccak256(abi.encode(newKey.issHash, newKey.kid, newKey.n, newKey.e))));
+    bytes32[MAX_KEYS] memory leaves;
+    for (uint8 i = 0; i < MAX_KEYS; i++) {
+      if (i != nextIndex) {
+        leaves[i] = keccak256(
+          bytes.concat(keccak256(abi.encode(OIDCKeys[i].issHash, OIDCKeys[i].kid, OIDCKeys[i].n, OIDCKeys[i].e)))
+        );
+      } else {
+        leaves[i] = newLeaf;
+      }
+    }
+
+    bytes32 newRoot = _computeMerkleRoot(leaves);
+
+    OIDCKeys[nextIndex] = newKey;
     keyIndex = nextIndex;
+    merkleRoot = newRoot;
   }
 
   function addKeys(Key[] memory keys) public onlyOwner {
@@ -50,5 +68,29 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       }
     }
     revert("Key not found");
+  }
+
+  function _computeMerkleRoot(bytes32[MAX_KEYS] memory leaves) private pure returns (bytes32) {
+    uint256 n = leaves.length;
+    while (n > 1) {
+      for (uint256 i = 0; i < n / 2; i++) {
+        leaves[i] = _hashPair(leaves[2 * i], leaves[2 * i + 1]);
+      }
+      n = n / 2;
+    }
+    return leaves[0];
+  }
+
+  // Taken from OpenZeppelin's MerkleProof.sol
+  function _hashPair(bytes32 a, bytes32 b) private pure returns (bytes32) {
+    return a < b ? _efficientHash(a, b) : _efficientHash(b, a);
+  }
+
+  function _efficientHash(bytes32 a, bytes32 b) private pure returns (bytes32 value) {
+    assembly {
+      mstore(0x00, a)
+      mstore(0x20, b)
+      value := keccak256(0x00, 0x40)
+    }
   }
 }

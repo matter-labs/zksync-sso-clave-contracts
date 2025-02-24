@@ -85,5 +85,8 @@
     "zksync-ethers": "6.15.0",
     "zksync-sso": "0.0.0-beta.2"
   },
-  "packageManager": "pnpm@9.11.0"
+  "packageManager": "pnpm@9.11.0",
+  "dependencies": {
+    "@openzeppelin/merkle-tree": "^1.0.8"
+  }
 }
