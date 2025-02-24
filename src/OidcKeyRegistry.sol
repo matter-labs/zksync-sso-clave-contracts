@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
-  uint8 public constant MAX_KEYS = 5;
+  uint8 public constant MAX_KEYS = 8;
 
   struct Key {
     bytes32 issHash; // Issuer

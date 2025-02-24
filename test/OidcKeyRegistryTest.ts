@@ -60,7 +60,7 @@ describe("OidcKeyRegistry", function () {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
 
-    const keys = Array.from({ length: 5 }, (_, i) => ({
+    const keys = Array.from({ length: 8 }, (_, i) => ({
       issHash,
       kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}`)),
       n: "0xabcdef",
@@ -70,14 +70,14 @@ describe("OidcKeyRegistry", function () {
     await oidcKeyRegistry.addKeys(keys);
 
     // Check that the keys are stored correctly
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       const storedKey = await oidcKeyRegistry.getKey(issHash, keys[i].kid);
       expect(storedKey.kid).to.equal(keys[i].kid);
     }
 
-    const moreKeys = Array.from({ length: 5 }, (_, i) => ({
+    const moreKeys = Array.from({ length: 8 }, (_, i) => ({
       issHash,
-      kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 6}`)),
+      kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 9}`)),
       n: "0xabcdef",
       e: "0x010001",
     }));
@@ -85,13 +85,13 @@ describe("OidcKeyRegistry", function () {
     await oidcKeyRegistry.addKeys(moreKeys);
 
     // Check that the new keys are stored correctly
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       const storedKey = await oidcKeyRegistry.getKey(issHash, moreKeys[i].kid);
       expect(storedKey.kid).to.equal(moreKeys[i].kid);
     }
 
     // Check that the old keys are not stored anymore
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid)).to.be.revertedWith("Key not found");
     }
   });
