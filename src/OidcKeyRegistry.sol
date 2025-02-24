@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   uint8 public constant MAX_KEYS = 8;
+  bytes32 public merkleRoot; // Merkle root should be on slot 1
 
   struct Key {
     bytes32 issHash; // Issuer
@@ -17,7 +18,6 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
 
   Key[MAX_KEYS] public OIDCKeys;
   uint8 public keyIndex;
-  bytes32 public merkleRoot;
 
   constructor() {
     initialize();
