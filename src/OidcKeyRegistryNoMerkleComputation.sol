@@ -39,13 +39,14 @@ contract OidcKeyRegistryNoMerkleComputation is Initializable, OwnableUpgradeable
   }
 
   function addKeys(Key[] memory newKeys, bytes32 root) public onlyOwner {
+    uint8 nextIndex = keyIndex;
     for (uint8 i = 0; i < newKeys.length; i++) {
-      uint8 nextIndex = (keyIndex + 1 + i) % MAX_KEYS; // Circular buffer
+      nextIndex = (keyIndex + 1 + i) % MAX_KEYS; // Circular buffer
       OIDCKeys[nextIndex] = newKeys[i];
     }
 
     merkleRoot = root;
-    keyIndex = uint8((uint256(keyIndex) + newKeys.length) % uint256(MAX_KEYS));
+    keyIndex = nextIndex;
   }
 
   function getKey(bytes32 issHash, bytes32 kid) public view returns (Key memory) {
