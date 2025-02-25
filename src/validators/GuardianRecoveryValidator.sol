@@ -39,8 +39,8 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   event RecoveryFinished(address indexed account);
   event RecoveryDiscarded(address indexed account);
 
-  uint256 constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
-  uint256 constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
+  uint256 public constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
+  uint256 public constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
 
   mapping(address account => Guardian[]) public accountGuardians;
   mapping(address guardian => address[]) public guardedAccounts;
@@ -281,16 +281,5 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   /// @return Array of accounts guarded by the guardian
   function guardianOf(address guardian) public view returns (address[] memory) {
     return guardedAccounts[guardian];
-  }
-
-  /// @notice Returns public key associated with ongoing recovery
-  /// @param hashedOriginDomain Hash of origin domain of the new passkey
-  /// @param accountAddress Address of account for which given recovery is initiated
-  /// @return Array of public key pair registered for current recovery
-  function getRecoveryPublicKey(
-    bytes32 hashedOriginDomain,
-    address accountAddress
-  ) external view returns (bytes32[2] memory) {
-    return pendingRecoveryData[hashedOriginDomain][accountAddress].rawPublicKey;
   }
 }
