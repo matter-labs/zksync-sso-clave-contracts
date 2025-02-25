@@ -222,15 +222,22 @@ contract SsoAccount is
 
   /// @dev Increments the nonce value in Nonce Holder system contract to ensure replay attack protection.
   /// @dev Reverts if the Nonce Holder stores different `_nonce` value from the expected one.
-  /// @param _expectedNonce The nonce value expected for the account to be stored in the Nonce Holder.
-  function _incrementNonce(uint256 _expectedNonce) private {
+  /// @param _nonce The nonce value for the account to be stored in the Nonce Holder.
+  function _incrementNonce(uint256 _nonce) private {
+    uint192 nonceKey = uint192(_nonce >> 64);
+    bytes memory nonceCall;
+    if (nonceKey == 0) {
+      nonceCall = abi.encodeCall(INonceHolder.incrementMinNonceIfEquals, (_nonce));
+    } else {
+      nonceCall = abi.encodeCall(INonceHolder.setValueUnderNonce, (_nonce, 1));
+    }
     // Allow-listing slither finding as the call's success is checked+revert within the fn
     // slither-disable-next-line unused-return
     SystemContractsCaller.systemCallWithPropagatedRevert(
       uint32(gasleft()),
       address(NONCE_HOLDER_SYSTEM_CONTRACT),
       0,
-      abi.encodeCall(INonceHolder.incrementMinNonceIfEquals, (_expectedNonce))
+      nonceCall
     );
   }
 }
