@@ -131,4 +131,65 @@ describe("OidcKeyRegistry", function () {
       await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid)).to.be.revertedWith("Key not found");
     }
   });
+
+  it("should verify key with merkle proof", async () => {
+    let keys = await Promise.all(Array.from({ length: 8 }, (_, i) => oidcKeyRegistry.OIDCKeys(i)));
+    const currentIndex = await oidcKeyRegistry.keyIndex();
+    const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
+  
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+  
+    const key = {
+      issHash,
+      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      n: "0xabcdef",
+      e: "0x010001",
+    };
+  
+    keys[nextIndex] = [key.issHash, key.kid, key.n, key.e];
+  
+    const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "bytes", "bytes"]);
+  
+    await oidcKeyRegistry.addKey(key);
+    
+    const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
+    
+    const isValid = await oidcKeyRegistry.verifyKey(key, proof);
+    expect(isValid).to.be.true;
+  });
+
+  it("verifyKey should return false when the key is not in the registry", async () => {
+    let keys = await Promise.all(Array.from({ length: 8 }, (_, i) => oidcKeyRegistry.OIDCKeys(i)));
+    const currentIndex = await oidcKeyRegistry.keyIndex();
+    const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
+  
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+  
+    const key = {
+      issHash,
+      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      n: "0xabcdef",
+      e: "0x010001",
+    };
+
+    const nonExistentKey = {
+      issHash,
+      kid: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+      n: "0xabcdef",
+      e: "0x010001",
+    };
+  
+    keys[nextIndex] = [key.issHash, key.kid, key.n, key.e];
+  
+    const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "bytes", "bytes"]);
+  
+    await oidcKeyRegistry.addKey(key);
+    
+    const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
+    
+    const isValid = await oidcKeyRegistry.verifyKey(nonExistentKey, proof);
+    expect(isValid).to.be.false;
+  });
 });

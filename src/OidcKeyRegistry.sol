@@ -59,6 +59,11 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     revert("Key not found");
   }
 
+  function verifyKey(Key memory key, bytes32[] memory proof) public view returns (bool) {
+    bytes32 leaf = _hashKey(key);
+    return MerkleProof.verify(proof, merkleRoot, leaf);
+  }
+
   function _updateMerkleRoot() private {
     bytes32[MAX_KEYS] memory leaves;
     for (uint8 i = 0; i < MAX_KEYS; i++) {
