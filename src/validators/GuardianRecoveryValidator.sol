@@ -20,7 +20,6 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   struct RecoveryRequest {
     bytes32 hashedCredentialId;
     bytes32[2] rawPublicKey;
-    bytes32 hashedOriginDomain;
     uint256 timestamp;
   }
 
@@ -45,7 +44,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
 
   mapping(address account => Guardian[]) public accountGuardians;
   mapping(address guardian => address[]) public guardedAccounts;
-  mapping(address account => RecoveryRequest) public pendingRecoveryData;
+  mapping(bytes32 hashedOriginDomain => mapping(address account => RecoveryRequest)) public pendingRecoveryData;
 
   WebAuthValidator public immutable webAuthValidator;
 
@@ -181,30 +180,29 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     bytes32[2] memory rawPublicKey,
     bytes32 hashedOriginDomain
   ) external onlyGuardianOf(accountToRecover) {
-    pendingRecoveryData[accountToRecover] = RecoveryRequest(
+    pendingRecoveryData[hashedOriginDomain][accountToRecover] = RecoveryRequest(
       hashedCredentialId,
       rawPublicKey,
-      hashedOriginDomain,
       block.timestamp
     );
     emit RecoveryInitiated(accountToRecover, hashedOriginDomain, hashedCredentialId, msg.sender);
   }
 
   /// @notice This method allows to discard currently pending recovery
-  function discardRecovery() external {
-    _discardRecovery();
+  function discardRecovery(bytes32 hashedOriginDomain) external {
+    _discardRecovery(hashedOriginDomain);
     emit RecoveryDiscarded(msg.sender);
   }
 
   /// @notice This method allows to finish currently pending recovery
-  function finishRecovery() internal {
-    _discardRecovery();
+  function finishRecovery(bytes32 hashedOriginDomain) internal {
+    _discardRecovery(hashedOriginDomain);
     emit RecoveryFinished(msg.sender);
   }
 
   /// @notice This method allows to discard currently pending recovery
-  function _discardRecovery() internal {
-    delete pendingRecoveryData[msg.sender];
+  function _discardRecovery(bytes32 hashedOriginDomain) internal {
+    delete pendingRecoveryData[hashedOriginDomain][msg.sender];
   }
 
   /// @inheritdoc IModuleValidator
@@ -237,13 +235,13 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
       (bytes, bytes32[2], string)
     );
 
-    RecoveryRequest storage storedData = pendingRecoveryData[msg.sender];
+    bytes32 hashedOriginDomain = keccak256(abi.encode(originDomain));
+    RecoveryRequest storage storedData = pendingRecoveryData[hashedOriginDomain][msg.sender];
 
     if (
       keccak256(credentialId) != storedData.hashedCredentialId ||
       rawPublicKey[0] != storedData.rawPublicKey[0] ||
-      rawPublicKey[1] != storedData.rawPublicKey[1] ||
-      keccak256(abi.encode(originDomain)) != storedData.hashedOriginDomain
+      rawPublicKey[1] != storedData.rawPublicKey[1]
     ) {
       return false;
     }
@@ -254,7 +252,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
       storedData.timestamp + REQUEST_VALIDITY_TIME
     );
 
-    finishRecovery();
+    finishRecovery(hashedOriginDomain);
     return true;
   }
 
@@ -283,5 +281,16 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   /// @return Array of accounts guarded by the guardian
   function guardianOf(address guardian) public view returns (address[] memory) {
     return guardedAccounts[guardian];
+  }
+
+  /// @notice Returns public key associated with ongoing recovery
+  /// @param hashedOriginDomain Hash of origin domain of the new passkey
+  /// @param accountAddress Address of account for which given recovery is initiated
+  /// @return Array of public key pair registered for current recovery
+  function getRecoveryPublicKey(
+    bytes32 hashedOriginDomain,
+    address accountAddress
+  ) external view returns (bytes32[2] memory) {
+    return pendingRecoveryData[hashedOriginDomain][accountAddress].rawPublicKey;
   }
 }
