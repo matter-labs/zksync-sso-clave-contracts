@@ -51,7 +51,7 @@ abstract contract ValidatorManager is IValidatorManager, SelfAuth {
 
   /// @inheritdoc IValidatorManager
   function listModuleValidators() external view override returns (address[] memory validatorList) {
-    validatorList = _moduleValidators().values();
+    validatorList = SsoStorage.validators().values();
   }
 
   // Should not be set to private as it is called from SsoAccount's initialize
@@ -60,7 +60,14 @@ abstract contract ValidatorManager is IValidatorManager, SelfAuth {
       revert Errors.VALIDATOR_ERC165_FAIL(validator);
     }
 
-    if (!_moduleValidators().add(validator)) {
+    // If the module is already installed, it cannot be installed again (even as another type).
+    if (SsoStorage.validationHooks().contains(validator)) {
+      revert Errors.HOOK_ALREADY_EXISTS(validator, true);
+    }
+    if (SsoStorage.executionHooks().contains(validator)) {
+      revert Errors.HOOK_ALREADY_EXISTS(validator, false);
+    }
+    if (!SsoStorage.validators().add(validator)) {
       revert Errors.VALIDATOR_ALREADY_EXISTS(validator);
     }
 
@@ -70,7 +77,7 @@ abstract contract ValidatorManager is IValidatorManager, SelfAuth {
   }
 
   function _removeModuleValidator(address validator) private {
-    if (!_moduleValidators().remove(validator)) {
+    if (!SsoStorage.validators().remove(validator)) {
       revert Errors.VALIDATOR_NOT_FOUND(validator);
     }
 
@@ -78,16 +85,12 @@ abstract contract ValidatorManager is IValidatorManager, SelfAuth {
   }
 
   function _isModuleValidator(address validator) internal view returns (bool) {
-    return _moduleValidators().contains(validator);
+    return SsoStorage.validators().contains(validator);
   }
 
   function _supportsModuleValidator(address validator) private view returns (bool) {
     return
       validator.supportsInterface(type(IModuleValidator).interfaceId) &&
       validator.supportsInterface(type(IModule).interfaceId);
-  }
-
-  function _moduleValidators() private view returns (EnumerableSet.AddressSet storage moduleValidators) {
-    moduleValidators = SsoStorage.layout().moduleValidators;
   }
 }
