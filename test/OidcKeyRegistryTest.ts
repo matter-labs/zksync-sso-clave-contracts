@@ -1,9 +1,11 @@
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { ContractFixtures, getProvider } from "./utils";
-import { Wallet } from "zksync-ethers";
 import { expect } from "chai";
-import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
 import { ethers } from "ethers";
+import { Wallet } from "zksync-ethers";
+
+import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
+import { ContractFixtures, getProvider } from "./utils";
 
 describe("OidcKeyRegistry", function () {
   let fixtures: ContractFixtures;
