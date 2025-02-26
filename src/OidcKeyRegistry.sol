@@ -7,6 +7,10 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   uint8 public constant MAX_KEYS = 8;
+  // Merkle root is used to validate externally provided keys during transaction validation,
+  // as only this storage slot is accessible in the validation step due to EIP-7562 validation rules
+  // (see: https://eips.ethereum.org/EIPS/eip-7562#validation-rules).
+  // This enables key verification without requiring access to the full key registry.
   bytes32 public merkleRoot; // Merkle root should be on slot 1
 
   struct Key {
