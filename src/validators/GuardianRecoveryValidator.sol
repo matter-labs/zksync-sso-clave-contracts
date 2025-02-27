@@ -293,4 +293,15 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   function guardianOf(bytes32 hashedOriginDomain, address guardian) public view returns (address[] memory) {
     return guardedAccounts[hashedOriginDomain][guardian];
   }
+
+  /// @notice Returns public key associated with ongoing recovery
+  /// @param hashedOriginDomain Hash of origin domain of the passkey
+  /// @param accountAddress Address of account for which given recovery is initiated
+  /// @return Array of public key pair registered for current recovery
+  function getRecoveryPublicKey(
+    bytes32 hashedOriginDomain,
+    address accountAddress
+  ) external view returns (bytes32[2] memory) {
+    return pendingRecoveryData[hashedOriginDomain][accountAddress].rawPublicKey;
+  }
 }
