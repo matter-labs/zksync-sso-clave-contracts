@@ -5,9 +5,9 @@ import { IModuleValidator } from "./IModuleValidator.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 
 interface IGuardianRecoveryValidator is IModuleValidator {
-  function proposeValidationKey(address externalAccount) external;
+  function proposeValidationKey(bytes32 hashedOriginDomain, address externalAccount) external;
 
-  function removeValidationKey(address externalAccount) external;
+  function removeValidationKey(bytes32 hashedOriginDomain, address externalAccount) external;
 
   function initRecovery(
     address accountToRecover,
@@ -16,7 +16,7 @@ interface IGuardianRecoveryValidator is IModuleValidator {
     bytes32 hashedOriginDomain
   ) external;
 
-  function addValidationKey(bytes memory key) external returns (bool);
+  function addValidationKey(bytes32 hashedOriginDomain, address accountToGuard) external returns (bool);
 
   function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external returns (bool);
 
