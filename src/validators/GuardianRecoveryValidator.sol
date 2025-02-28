@@ -43,6 +43,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   uint256 public constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
   uint256 public constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
 
+  bytes30 private _gap; // Gap to claim 30 bytes remaining in slot 0 after fields layout of Initializable contract
   WebAuthValidator public webAuthValidator; // Enforced slot 1 in order to be able to access it during validateTransaction step
   mapping(bytes32 hashedOriginDomain => mapping(address account => Guardian[])) public accountGuardians;
   mapping(bytes32 hashedOriginDomain => mapping(address guardian => address[])) public guardedAccounts;
