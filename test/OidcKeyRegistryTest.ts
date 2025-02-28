@@ -5,7 +5,6 @@ import { ethers } from "ethers";
 import { Wallet } from "zksync-ethers";
 
 import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
-import { ContractFixtures, getProvider } from "./utils";
 
 describe("OidcKeyRegistry", function () {
   let fixtures: ContractFixtures;
