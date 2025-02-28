@@ -43,13 +43,17 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   uint256 public constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
 
   mapping(bytes32 hashedOriginDomain => mapping(address account => Guardian[])) public accountGuardians;
+  WebAuthValidator public webAuthValidator; // Enforced slot 1 in order to be able to access it during validateTransaction step
   mapping(bytes32 hashedOriginDomain => mapping(address guardian => address[])) public guardedAccounts;
   mapping(bytes32 hashedOriginDomain => mapping(address account => RecoveryRequest)) public pendingRecoveryData;
 
-  WebAuthValidator public immutable webAuthValidator;
-
   /// @notice The constructor sets the web authn validator for which recovery process can be initiated. Used only for non proxied deployment
   constructor(WebAuthValidator _webAuthValidator) {
+    webAuthValidator = _webAuthValidator;
+  }
+
+  function init(WebAuthValidator _webAuthValidator) external {
+    require(address(webAuthValidator) == address(0), "Contract already initialized");
     webAuthValidator = _webAuthValidator;
   }
 
