@@ -1,8 +1,10 @@
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
-import { ContractFixtures, getProvider } from "./utils";
 import { expect } from "chai";
-import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
 import { ethers } from "ethers";
+import { Wallet } from "zksync-ethers";
+
+import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
+import { ContractFixtures, getProvider } from "./utils";
 
 describe("OidcKeyRegistry", function () {
   let fixtures: ContractFixtures;
@@ -22,7 +24,7 @@ describe("OidcKeyRegistry", function () {
   });
 
   it("should set one key", async () => {
-    let keys = await Promise.all(Array.from({ length: 8 }, (_, i) => oidcKeyRegistry.OIDCKeys(i)));
+    const keys = await Promise.all(Array.from({ length: 8 }, (_, i) => oidcKeyRegistry.OIDCKeys(i)));
     const currentIndex = await oidcKeyRegistry.keyIndex();
     const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
 
@@ -67,7 +69,7 @@ describe("OidcKeyRegistry", function () {
       expect(storedKey.kid).to.equal(newKeys[i].kid);
     }
 
-    let anotherKeyRegistry = await fixtures.deployOidcKeyRegistryContract();
+    const anotherKeyRegistry = await fixtures.deployOidcKeyRegistryContract();
     for (let i = 0; i < 8; i++) {
       await anotherKeyRegistry.addKey(newKeys[i]);
     }
@@ -132,7 +134,7 @@ describe("OidcKeyRegistry", function () {
   });
 
   it("should verify key with merkle proof", async () => {
-    let keys = await Promise.all(Array.from({ length: 8 }, (_, i) => oidcKeyRegistry.OIDCKeys(i)));
+    const keys = await Promise.all(Array.from({ length: 8 }, (_, i) => oidcKeyRegistry.OIDCKeys(i)));
     const currentIndex = await oidcKeyRegistry.keyIndex();
     const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
 
@@ -159,7 +161,7 @@ describe("OidcKeyRegistry", function () {
   });
 
   it("verifyKey should return false when the key is not in the registry", async () => {
-    let keys = await Promise.all(Array.from({ length: 8 }, (_, i) => oidcKeyRegistry.OIDCKeys(i)));
+    const keys = await Promise.all(Array.from({ length: 8 }, (_, i) => oidcKeyRegistry.OIDCKeys(i)));
     const currentIndex = await oidcKeyRegistry.keyIndex();
     const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
 
