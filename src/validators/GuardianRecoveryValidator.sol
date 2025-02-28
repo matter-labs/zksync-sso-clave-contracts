@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { IGuardianRecoveryValidator } from "../interfaces/IGuardianRecoveryValidator.sol";
-import { WebAuthValidator } from "./WebAuthValidator.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { WebAuthValidator } from "./WebAuthValidator.sol";
+import { IGuardianRecoveryValidator } from "../interfaces/IGuardianRecoveryValidator.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 import { BatchCaller, Call } from "../batch/BatchCaller.sol";
 
-contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
+contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
   struct Guardian {
     address addr;
     bool isReady;
@@ -42,18 +43,16 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   uint256 public constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
   uint256 public constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
 
-  mapping(bytes32 hashedOriginDomain => mapping(address account => Guardian[])) public accountGuardians;
   WebAuthValidator public webAuthValidator; // Enforced slot 1 in order to be able to access it during validateTransaction step
+  mapping(bytes32 hashedOriginDomain => mapping(address account => Guardian[])) public accountGuardians;
   mapping(bytes32 hashedOriginDomain => mapping(address guardian => address[])) public guardedAccounts;
   mapping(bytes32 hashedOriginDomain => mapping(address account => RecoveryRequest)) public pendingRecoveryData;
 
-  /// @notice The constructor sets the web authn validator for which recovery process can be initiated. Used only for non proxied deployment
-  constructor(WebAuthValidator _webAuthValidator) {
-    webAuthValidator = _webAuthValidator;
+  constructor() {
+    _disableInitializers();
   }
 
-  function init(WebAuthValidator _webAuthValidator) external {
-    require(address(webAuthValidator) == address(0), "Contract already initialized");
+  function initialize(WebAuthValidator _webAuthValidator) public initializer {
     webAuthValidator = _webAuthValidator;
   }
 
