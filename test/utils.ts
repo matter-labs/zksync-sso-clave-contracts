@@ -125,7 +125,7 @@ export class ContractFixtures {
   async getOidcRecoveryValidator () {
     if (this._oidcRecoveryValidator === undefined) {
       const verifierAddress = zeroAddress;
-      const oidcKeyRegistry = await this.deployOidcKeyRegistryContract();
+      const oidcKeyRegistry = await this.getOidcKeyRegistryContract();
       const contract = await create2("OidcRecoveryValidator", this.wallet, ethersStaticSalt, [await oidcKeyRegistry.getAddress(), verifierAddress]);
       this._oidcRecoveryValidator = OidcRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
@@ -152,7 +152,7 @@ export class ContractFixtures {
   }
 
   private _oicdKeyRegistryContract: OidcKeyRegistry;
-  async deployOidcKeyRegistryContract() {
+  async getOidcKeyRegistryContract() {
     if (!this._oicdKeyRegistryContract) {
       const contract = await create2("OidcKeyRegistry", this.wallet, randomBytes(32));
       this._oicdKeyRegistryContract = OidcKeyRegistry__factory.connect(await contract.getAddress(), this.wallet);

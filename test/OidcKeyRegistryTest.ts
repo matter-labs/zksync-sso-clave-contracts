@@ -13,7 +13,7 @@ describe("OidcKeyRegistry", function () {
 
   this.beforeEach(async () => {
     fixtures = new ContractFixtures();
-    oidcKeyRegistry = await fixtures.deployOidcKeyRegistryContract();
+    oidcKeyRegistry = await fixtures.getOidcKeyRegistryContract();
   });
 
   it("should return empty key when fetching a non-existent key", async () => {
@@ -70,7 +70,7 @@ describe("OidcKeyRegistry", function () {
       expect(storedKey.kid).to.equal(newKeys[i].kid);
     }
     
-    let anotherKeyRegistry = await fixtures.deployOidcKeyRegistryContract();
+    let anotherKeyRegistry = await fixtures.getOidcKeyRegistryContract();
     for (let i = 0; i < 8; i++) {
       await anotherKeyRegistry.addKey(newKeys[i]);
     }
