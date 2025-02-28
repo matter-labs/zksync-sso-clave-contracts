@@ -18,27 +18,27 @@ abstract contract OwnerManager is IOwnerManager, SelfAuth {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   /// @inheritdoc IOwnerManager
-  function k1AddOwner(address addr) external override onlySelf {
-    _k1AddOwner(addr);
+  function addK1Owner(address addr) external override onlySelf {
+    _addK1Owner(addr);
   }
 
   /// @inheritdoc IOwnerManager
-  function k1RemoveOwner(address addr) external override onlySelf {
-    _k1RemoveOwner(addr);
+  function removeK1Owner(address addr) external override onlySelf {
+    _removeK1Owner(addr);
   }
 
   /// @inheritdoc IOwnerManager
-  function k1IsOwner(address addr) external view override returns (bool) {
-    return _k1IsOwner(addr);
+  function isK1Owner(address addr) external view override returns (bool) {
+    return _isK1Owner(addr);
   }
 
   /// @inheritdoc IOwnerManager
-  function k1ListOwners() external view override returns (address[] memory k1OwnerList) {
+  function listK1Owners() external view override returns (address[] memory k1OwnerList) {
     k1OwnerList = _k1Owners().values();
   }
 
   // Should not be set to private as it is called from SsoAccount's initialize
-  function _k1AddOwner(address addr) internal {
+  function _addK1Owner(address addr) internal {
     if (!_k1Owners().add(addr)) {
       revert Errors.OWNER_ALREADY_EXISTS(addr);
     }
@@ -46,7 +46,7 @@ abstract contract OwnerManager is IOwnerManager, SelfAuth {
     emit K1OwnerAdded(addr);
   }
 
-  function _k1RemoveOwner(address addr) private {
+  function _removeK1Owner(address addr) private {
     if (!_k1Owners().remove(addr)) {
       revert Errors.OWNER_NOT_FOUND(addr);
     }
@@ -54,7 +54,7 @@ abstract contract OwnerManager is IOwnerManager, SelfAuth {
     emit K1OwnerRemoved(addr);
   }
 
-  function _k1IsOwner(address addr) internal view returns (bool) {
+  function _isK1Owner(address addr) internal view returns (bool) {
     return _k1Owners().contains(addr);
   }
 

@@ -33,7 +33,7 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.
     if (signature.length == 65) {
       (address signer, ECDSA.RecoverError err) = ECDSA.tryRecover(hash, signature);
       return
-        signer == address(0) || err != ECDSA.RecoverError.NoError || !_k1IsOwner(signer) ? bytes4(0) : _ERC1271_MAGIC;
+        signer == address(0) || err != ECDSA.RecoverError.NoError || !_isK1Owner(signer) ? bytes4(0) : _ERC1271_MAGIC;
     }
 
     (bytes memory decodedSignature, address validator) = SignatureDecoder.decodeSignatureNoHookData(signature);
