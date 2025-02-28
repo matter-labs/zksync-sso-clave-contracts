@@ -16,6 +16,7 @@ describe("OidcRecoveryValidator", function () {
   let keyRegistry: OidcKeyRegistry;
   let webauthn: WebAuthValidator;
   let ownerWallet: Wallet;
+  let proofInputs: JwtTxValidationInputs;
 
   cacheBeforeEach(async () => {
     ownerWallet = new Wallet(Wallet.createRandom().privateKey, provider);
@@ -86,6 +87,61 @@ describe("OidcRecoveryValidator", function () {
       await expect(
         oidcValidator.connect(otherWallet).addValidationKey(encodedData)
       ).to.be.revertedWith("oidc_digest already registered in other account");
+    });
+  });
+
+  describe("encodePubKeyForCircom", () => {
+    it("should match TypeScript reference implementation", async function () {
+      // Test value (example RSA modulus)
+      const testValue = 123456789123456789123456789123456789123456789123456789123456789123456789123456789n;
+      
+      // Get reference result
+      const expectedChunks = referenceSerialize(testValue);
+      
+      // Convert bigint to bytes for Solidity function
+      const bytes = ethers.toBeArray(testValue);
+      
+      // Call Solidity implementation
+      const actualChunks = await oidcValidator.encodePubKeyForCircom(bytes);
+      
+      // Compare results
+      for (let i = 0; i < 17; i++) {
+        expect(actualChunks[i].toString()).to.equal(
+          expectedChunks[i],
+          `Chunk ${i} mismatch`
+        );
+      }
+    });
+
+    it("should handle max values", async function () {
+      // Create a value with all bits set to 1 for max value testing
+      const maxBits = 121n * 17n; // Total bits we're encoding
+      const testValue = (1n << maxBits) - 1n;
+      
+      const expectedChunks = referenceSerialize(testValue);
+      const bytes = ethers.toBeArray(testValue);
+      const actualChunks = await oidcValidator.encodePubKeyForCircom(bytes);
+      
+      for (let i = 0; i < 17; i++) {
+        expect(actualChunks[i].toString()).to.equal(
+          expectedChunks[i],
+          `Max value chunk ${i} mismatch`
+        );
+      }
+    });
+
+    it("should handle zero value", async function () {
+      const testValue = 0n;
+      const expectedChunks = referenceSerialize(testValue);
+      const bytes = ethers.toBeArray(testValue);
+      const actualChunks = await oidcValidator.encodePubKeyForCircom(bytes);
+      
+      for (let i = 0; i < 17; i++) {
+        expect(actualChunks[i].toString()).to.equal(
+          expectedChunks[i],
+          `Zero value chunk ${i} mismatch`
+        );
+      }
     });
   });
 });

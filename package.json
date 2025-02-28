@@ -87,6 +87,7 @@
   },
   "packageManager": "pnpm@9.11.0",
   "dependencies": {
-    "@openzeppelin/merkle-tree": "^1.0.8"
+    "@openzeppelin/merkle-tree": "^1.0.8",
+    "zksync-sso-circuits": "workspace:*"
   }
 }
