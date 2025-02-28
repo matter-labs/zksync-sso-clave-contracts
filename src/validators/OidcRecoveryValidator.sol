@@ -67,9 +67,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bool isNew = accountData[msg.sender].oidcDigest.length == 0;
     accountData[msg.sender] = oidcData;
 
-    // if (digestIndex[oidcData.oidcDigest] != address(0)) {
-    //   revert("oidc_digest already registered in other account");
-    // }
+    if (digestIndex[oidcData.oidcDigest] != address(0)) {
+      revert("oidc_digest already registered in other account");
+    }
 
     digestIndex[oidcData.oidcDigest] = msg.sender;
 
