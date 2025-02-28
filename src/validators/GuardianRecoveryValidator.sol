@@ -36,8 +36,16 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     bytes32 indexed hashedCredentialId,
     address guardian
   );
-  event RecoveryFinished(address indexed account);
-  event RecoveryDiscarded(address indexed account);
+  event RecoveryFinished(
+    address indexed account,
+    bytes32 indexed hashedOriginDomain,
+    bytes32 indexed hashedCredentialId
+  );
+  event RecoveryDiscarded(
+    address indexed account,
+    bytes32 indexed hashedOriginDomain,
+    bytes32 indexed hashedCredentialId
+  );
 
   uint256 public constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
   uint256 public constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
@@ -199,15 +207,23 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   /// @notice This method allows to discard currently pending recovery
   /// @param hashedOriginDomain Hash of origin domain
   function discardRecovery(bytes32 hashedOriginDomain) external {
+    emit RecoveryDiscarded(
+      msg.sender,
+      hashedOriginDomain,
+      pendingRecoveryData[hashedOriginDomain][msg.sender].hashedCredentialId
+    );
     _discardRecovery(hashedOriginDomain);
-    emit RecoveryDiscarded(msg.sender);
   }
 
   /// @notice This method allows to finish currently pending recovery
   /// @param hashedOriginDomain Hash of origin domain
   function finishRecovery(bytes32 hashedOriginDomain) internal {
+    emit RecoveryFinished(
+      msg.sender,
+      hashedOriginDomain,
+      pendingRecoveryData[hashedOriginDomain][msg.sender].hashedCredentialId
+    );
     _discardRecovery(hashedOriginDomain);
-    emit RecoveryFinished(msg.sender);
   }
 
   /// @notice This method allows to discard currently pending recovery
@@ -245,14 +261,15 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
       (bytes, bytes32[2], string)
     );
 
-    bytes32 hashedOriginDomain = keccak256(abi.encode(originDomain));
+    bytes32 hashedOriginDomain = keccak256(abi.encodePacked(originDomain));
     RecoveryRequest storage storedData = pendingRecoveryData[hashedOriginDomain][msg.sender];
 
-    if (
-      keccak256(credentialId) != storedData.hashedCredentialId ||
-      rawPublicKey[0] != storedData.rawPublicKey[0] ||
-      rawPublicKey[1] != storedData.rawPublicKey[1]
-    ) {
+    bytes32 hashedCredentialIdFromTx = keccak256(credentialId);
+    if (hashedCredentialIdFromTx != storedData.hashedCredentialId) {
+      return false;
+    }
+
+    if (rawPublicKey[0] != storedData.rawPublicKey[0] || rawPublicKey[1] != storedData.rawPublicKey[1]) {
       return false;
     }
     // Verify request is in valid time range
@@ -294,14 +311,14 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     return guardedAccounts[hashedOriginDomain][guardian];
   }
 
-  /// @notice Returns public key associated with ongoing recovery
-  /// @param hashedOriginDomain Hash of origin domain of the passkey
-  /// @param accountAddress Address of account for which given recovery is initiated
-  /// @return Array of public key pair registered for current recovery
-  function getRecoveryPublicKey(
+  /// @notice Returns the pending recovery data for an account and origin domain
+  /// @param hashedOriginDomain Hash of the origin domain
+  /// @param account Address of the account
+  /// @return The full RecoveryRequest struct containing hashedCredentialId, rawPublicKey, and timestamp
+  function getPendingRecoveryData(
     bytes32 hashedOriginDomain,
-    address accountAddress
-  ) external view returns (bytes32[2] memory) {
-    return pendingRecoveryData[hashedOriginDomain][accountAddress].rawPublicKey;
+    address account
+  ) public view returns (RecoveryRequest memory) {
+    return pendingRecoveryData[hashedOriginDomain][account];
   }
 }

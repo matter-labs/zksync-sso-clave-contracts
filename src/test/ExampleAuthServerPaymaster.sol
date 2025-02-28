@@ -28,6 +28,7 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
   bytes4 constant GUARDIAN_RECOVERY_PROPOSE_KEY_SELECTOR = GuardianRecoveryValidator.proposeValidationKey.selector;
   bytes4 constant GUARDIAN_RECOVERY_DISCARD_RECOVERY_SELECTOR = GuardianRecoveryValidator.discardRecovery.selector;
   bytes4 constant GUARDIAN_RECOVERY_REMOVE_KEY_SELECTOR = GuardianRecoveryValidator.removeValidationKey.selector;
+  bytes4 constant GUARDIAN_RECOVERY_INIT_RECOVERY_SELECTOR = GuardianRecoveryValidator.initRecovery.selector;
   bytes4 constant WEB_AUTH_VALIDATOR_REMOVE_KEY_SELECTOR = WebAuthValidator.removeValidationKey.selector;
   bytes4 constant WEB_AUTH_VALIDATOR_ADD_KEY_SELECTOR = WebAuthValidator.addValidationKey.selector;
 
@@ -88,7 +89,8 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
         methodSelector == GUARDIAN_RECOVERY_ADD_KEY_SELECTOR ||
           methodSelector == GUARDIAN_RECOVERY_PROPOSE_KEY_SELECTOR ||
           methodSelector == GUARDIAN_RECOVERY_DISCARD_RECOVERY_SELECTOR ||
-          methodSelector == GUARDIAN_RECOVERY_REMOVE_KEY_SELECTOR,
+          methodSelector == GUARDIAN_RECOVERY_REMOVE_KEY_SELECTOR ||
+          methodSelector == GUARDIAN_RECOVERY_INIT_RECOVERY_SELECTOR,
         "Unsupported method"
       );
     }
