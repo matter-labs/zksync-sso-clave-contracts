@@ -64,7 +64,7 @@ contract SsoAccount is
       _addModuleValidator(validatorAddr, initData);
     }
     for (uint256 i = 0; i < initialK1Owners.length; ++i) {
-      _k1AddOwner(initialK1Owners[i]);
+      _addK1Owner(initialK1Owners[i]);
     }
   }
 
@@ -203,7 +203,7 @@ contract SsoAccount is
     if (_transaction.signature.length == 65) {
       (address signer, ECDSA.RecoverError err) = ECDSA.tryRecover(_signedHash, _transaction.signature);
       return
-        signer == address(0) || err != ECDSA.RecoverError.NoError || !_k1IsOwner(signer)
+        signer == address(0) || err != ECDSA.RecoverError.NoError || !_isK1Owner(signer)
           ? bytes4(0)
           : ACCOUNT_VALIDATION_SUCCESS_MAGIC;
     }
