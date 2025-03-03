@@ -69,11 +69,11 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     upperKeyHalf[originDomain][msg.sender] = key32[1];
 
     // we're returning true if this was a new key, false for update
-    bool keyExists = uint256(initialLowerHalf) == 0 && uint256(initialUpperHalf) == 0;
+    bool keyIsNew = uint256(initialLowerHalf) == 0 && uint256(initialUpperHalf) == 0;
 
     emit PasskeyCreated(msg.sender, originDomain);
 
-    return keyExists;
+    return keyIsNew;
   }
 
   /// @notice Validates a WebAuthn signature
@@ -108,7 +108,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     );
 
     // prevent signature replay https://yondon.blog/2019/01/01/how-not-to-use-ecdsa/
-    if (rs[0] == 0 || rs[0] > HIGH_R_MAX || rs[1] == 0 || rs[1] > LOW_S_MAX) {
+    if (uint256(rs[0]) == 0 || rs[0] > HIGH_R_MAX || uint256(rs[1]) == 0 || rs[1] > LOW_S_MAX) {
       return false;
     }
 
@@ -182,19 +182,5 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     bytes memory fatSignature
   ) private pure returns (bytes memory authenticatorData, string memory clientDataSuffix, bytes32[2] memory rs) {
     (authenticatorData, clientDataSuffix, rs) = abi.decode(fatSignature, (bytes, string, bytes32[2]));
-  }
-
-  /// @notice Verifies a message using the P256 curve.
-  /// @dev Useful for testing the P256 precompile
-  /// @param message The sha256 hash of the authenticator hash and hashed client data
-  /// @param rs The signature to validate (r, s) from the signed message
-  /// @param pubKey The public key to validate the signature against (x, y)
-  /// @return valid true if the signature is valid
-  function rawVerify(
-    bytes32 message,
-    bytes32[2] calldata rs,
-    bytes32[2] calldata pubKey
-  ) internal view returns (bool valid) {
-    valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
   }
 }
