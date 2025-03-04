@@ -60,7 +60,6 @@ describe("Basic tests", function () {
 
     const deployTx = await aaFactoryContract.deployProxySsoAccount(
       randomSalt,
-      "id" + randomBytes(32).toString(),
       [],
       [fixtures.wallet.address],
     );
