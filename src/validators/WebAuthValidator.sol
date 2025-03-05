@@ -24,6 +24,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   /// https://github.com/matter-labs/era-contracts/blob/main/system-contracts/contracts/precompiles/P256Verify.yul
   address private constant P256_VERIFIER = address(0x100);
 
+  error NOT_KEY_OWNER(address account);
+
   // check for secure validation: bit 0 = 1 (user present), bit 2 = 1 (user verified)
   bytes1 private constant AUTH_DATA_MASK = 0x05;
   bytes32 private constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
@@ -33,18 +35,17 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   event PasskeyRemoved(address indexed keyOwner, string originDomain, bytes credentialId);
 
   mapping(string originDomain => mapping(bytes credentialId => mapping(address accountAddress => bytes32[2] publicKey)))
-    public publicKeyByDomainByIdByAddress;
+    public publicKeys;
 
   function getAccountKey(
     string calldata originDomain,
     bytes calldata credentialId,
     address accountAddress
   ) external view returns (bytes32[2] memory) {
-    return publicKeyByDomainByIdByAddress[originDomain][credentialId][accountAddress];
+    return publicKeys[originDomain][credentialId][accountAddress];
   }
 
-  mapping(string originDomain => mapping(bytes credentialId => address accountAddress))
-    public accountAddressByDomainById;
+  mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public registeredAddress;
 
   struct PasskeyId {
     string domain;
@@ -71,20 +72,16 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     PasskeyId[] memory passkeyIds = abi.decode(data, (PasskeyId[]));
     for (uint256 i = 0; i < passkeyIds.length; i++) {
       PasskeyId memory passkeyId = passkeyIds[i];
-      _removeValidationKey(passkeyId.credentialId, passkeyId.domain);
+      removeValidationKey(passkeyId.credentialId, passkeyId.domain);
     }
   }
 
-  function removeValidationKey(bytes calldata credentialId, string calldata domain) external {
-    return _removeValidationKey(credentialId, domain);
-  }
-
-  function _removeValidationKey(bytes memory credentialId, string memory domain) internal {
-    if (accountAddressByDomainById[domain][credentialId] != msg.sender) {
-      return;
+  function removeValidationKey(bytes memory credentialId, string memory domain) public {
+    if (registeredAddress[domain][credentialId] != msg.sender) {
+      revert NOT_KEY_OWNER(registeredAddress[domain][credentialId]);
     }
-    accountAddressByDomainById[domain][credentialId] = address(0);
-    publicKeyByDomainByIdByAddress[domain][credentialId][msg.sender] = [bytes32(0), bytes32(0)];
+    registeredAddress[domain][credentialId] = address(0);
+    publicKeys[domain][credentialId][msg.sender] = [bytes32(0), bytes32(0)];
 
     emit PasskeyRemoved(msg.sender, domain, credentialId);
   }
@@ -99,12 +96,12 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     bytes32[2] memory rawPublicKey,
     string memory originDomain
   ) public returns (bool) {
-    bytes32[2] memory initialAccountKey = publicKeyByDomainByIdByAddress[originDomain][credentialId][msg.sender];
+    bytes32[2] memory initialAccountKey = publicKeys[originDomain][credentialId][msg.sender];
     if (uint256(initialAccountKey[0]) != 0 || uint256(initialAccountKey[1]) != 0) {
       // only allow adding new keys, no overwrites/updates
       return false;
     }
-    if (accountAddressByDomainById[originDomain][credentialId] != address(0)) {
+    if (registeredAddress[originDomain][credentialId] != address(0)) {
       // this key already exists on the domain for an existing account
       return false;
     }
@@ -113,8 +110,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       return false;
     }
 
-    publicKeyByDomainByIdByAddress[originDomain][credentialId][msg.sender] = rawPublicKey;
-    accountAddressByDomainById[originDomain][credentialId] = msg.sender;
+    publicKeys[originDomain][credentialId][msg.sender] = rawPublicKey;
+    registeredAddress[originDomain][credentialId] = msg.sender;
 
     emit PasskeyCreated(msg.sender, originDomain, credentialId);
 
@@ -186,7 +183,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     // the origin determines which key to validate against
     // as passkeys are linked to domains, so the storage mapping reflects that
     string memory origin = root.at('"origin"').value().decodeString();
-    bytes32[2] memory publicKey = publicKeyByDomainByIdByAddress[origin][credentialId][msg.sender];
+    bytes32[2] memory publicKey = publicKeys[origin][credentialId][msg.sender];
     if (uint256(publicKey[0]) == 0 && uint256(publicKey[1]) == 0) {
       // no key found!
       return false;

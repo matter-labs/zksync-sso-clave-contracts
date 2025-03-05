@@ -371,7 +371,7 @@ async function verifyKeyStorage(
   expect(storedPublicKey[0]).to.eq(publicKeys[0], `lower key ${error}`);
   expect(storedPublicKey[1]).to.eq(publicKeys[1], `upper key ${error}`);
 
-  const accountAddress = await passkeyValidator.accountAddressByDomainById(domain, credentialId);
+  const accountAddress = await passkeyValidator.registeredAddress(domain, credentialId);
   if (publicKeys[0] == ZEROKEY && publicKeys[1] == ZEROKEY) {
     expect(accountAddress).to.eq(ZeroAddress, `key ownership matches for ${error}`);
   } else {
@@ -586,7 +586,7 @@ describe("Passkey validation", function () {
       assert(keyReceipt?.status == 1, "key was saved");
       logInfo(`gas used to save a passkey: ${keyReceipt.gasUsed.toString()}`);
 
-      const accountAddress = await passkeyValidator.accountAddressByDomainById("http://localhost:5173", credentialId);
+      const accountAddress = await passkeyValidator.registeredAddress("http://localhost:5173", credentialId);
       assert(accountAddress == wallet.address, "saved account address");
     });
 
@@ -658,7 +658,7 @@ describe("Passkey validation", function () {
       const zeroKey = new Uint8Array(32).fill(0);
       await verifyKeyStorage(passkeyValidator, keyDomain, [toHex(zeroKey), toHex(zeroKey)], credentialId, wallet, "key removed");
 
-      const accountAddress = await passkeyValidator.accountAddressByDomainById(keyDomain, credentialId);
+      const accountAddress = await passkeyValidator.registeredAddress(keyDomain, credentialId);
       assert(accountAddress == ZeroAddress, "removed account address");
     });
 
