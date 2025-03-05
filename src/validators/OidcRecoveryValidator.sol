@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "hardhat/console.sol";
 
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
@@ -82,62 +83,6 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     emit OidcKeyUpdated(msg.sender, oidcData.iss, isNew);
     return isNew;
-  }
-
-  /// @notice Encodes a bytes value into 17 chunks of 121 bits each
-  /// @param value The bytes to encode
-  /// @return chunks Array of 17 uint256, each containing 121 bits of the input
-  function encodePubKeyForCircom(bytes memory value) public pure returns (uint256[] memory chunks) {
-    chunks = new uint256[](17);
-    uint256 mask = (1 << 121) - 1; // 121 bits mask
-
-    assembly {
-      let valuePtr := add(value, 32) // Skip length prefix of bytes
-      let bitsRead := 0
-      let currentWord := mload(valuePtr)
-      let nextWord := mload(add(valuePtr, 32))
-
-      // Process all 17 chunks
-      for {
-        let i := 0
-      } lt(i, 17) {
-        i := add(i, 1)
-      } {
-        // Calculate position in the chunks array
-        let chunkPtr := add(chunks, mul(add(i, 1), 32))
-
-        // If we've read more than 256 bits, move to next word
-        if gt(bitsRead, 256) {
-          valuePtr := add(valuePtr, 32)
-          currentWord := nextWord
-          nextWord := mload(add(valuePtr, 32))
-          bitsRead := sub(bitsRead, 256)
-        }
-
-        // Extract 121 bits across word boundary if needed
-        let chunk
-        switch gt(add(bitsRead, 121), 256)
-        case 0 {
-          // Bits are within current word
-          chunk := and(shr(bitsRead, currentWord), mask)
-        }
-        case 1 {
-          // Bits span across two words
-          let remainingBits := sub(256, bitsRead)
-          chunk := or(
-            shl(sub(121, remainingBits), and(shr(bitsRead), currentWord), mask),
-            shr(sub(256, sub(121, remainingBits)), nextWord)
-          )
-          chunk := and(chunk, mask)
-        }
-
-        // Store the chunk
-        mstore(chunkPtr, chunk)
-        bitsRead := add(bitsRead, 121)
-      }
-    }
-
-    return chunks;
   }
 
   /// @notice Validates a transaction to add a new passkey for the user.
