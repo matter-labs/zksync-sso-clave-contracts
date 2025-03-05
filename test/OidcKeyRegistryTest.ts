@@ -1,17 +1,16 @@
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
-import { ContractFixtures, getProvider } from "./utils";
+import { base64ToCircomBigInt, ContractFixtures, getProvider } from "./utils";
 import { expect } from "chai";
 import { ethers } from "ethers";
 import { Wallet } from "zksync-ethers";
 
 import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
-import { CircomBigInt } from "zksync-sso-circuits";
 
 describe("OidcKeyRegistry", function () {
   let fixtures: ContractFixtures;
   let oidcKeyRegistry: OidcKeyRegistry;
   const JWK_MODULUS_64 = "y8TPCPz2Fp0OhBxsxu6d_7erT9f9XJ7mx7ZJPkkeZRxhdnKtg327D4IGYsC4fLAfpkC8qN58sZGkwRTNs-i7yaoD5_8nupq1tPYvnt38ddVghG9vws-2MvxfPQ9m2uxBEdRHmels8prEYGCH6oFKcuWVsNOt4l_OPoJRl4uiuiwd6trZik2GqDD_M6bn21_w6AD_jmbzN4mh8Od4vkA1Z9lKb3Qesksxdog-LWHsljN8ieiz1NhbG7M-GsIlzu-typJfud3tSJ1QHb-E_dEfoZ1iYK7pMcojb5ylMkaCj5QySRdJESq9ngqVRDjF4nX8DK5RQUS7AkrpHiwqyW0Csw"
-  const JWK_MODULUS = CircomBigInt.fromBase64(JWK_MODULUS_64).serialize();
+  const JWK_MODULUS = base64ToCircomBigInt(JWK_MODULUS_64);
 
   this.beforeEach(async () => {
     fixtures = new ContractFixtures();
