@@ -249,7 +249,7 @@ describe("GuardianRecoveryValidator", function () {
           await expect(sut(externalUserWallet)).to.be.reverted;
         });
       });
-      //FIXME
+      // FIXME
       describe.skip("And has active recovery process and trying to execute", () => {
         let newKey: string;
         let accountId: string;

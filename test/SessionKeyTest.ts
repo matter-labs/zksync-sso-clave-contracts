@@ -6,8 +6,8 @@ import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
 
 import type { ERC20 } from "../typechain-types";
-import { SsoBeacon__factory, SsoAccount__factory, SessionKeyValidator__factory, TestPaymaster__factory } from "../typechain-types";
-import type { IPaymasterFlow, SsoBeacon, TestPaymaster } from "../typechain-types"
+import type { IPaymasterFlow, SsoBeacon, TestPaymaster } from "../typechain-types";
+import { SessionKeyValidator__factory, SsoAccount__factory, SsoBeacon__factory, TestPaymaster__factory } from "../typechain-types";
 import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
 import { ContractFixtures, getProvider, logInfo } from "./utils";
 
@@ -85,21 +85,21 @@ async function getTimestamp() {
 function getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
   return limit == null
     ? {
-      limitType: LimitType.Unlimited,
-      limit: 0,
-      period: 0,
-    }
-    : limit.period == null
-      ? {
-        limitType: LimitType.Lifetime,
-        limit: limit.limit,
+        limitType: LimitType.Unlimited,
+        limit: 0,
         period: 0,
       }
+    : limit.period == null
+      ? {
+          limitType: LimitType.Lifetime,
+          limit: limit.limit,
+          period: 0,
+        }
       : {
-        limitType: LimitType.Allowance,
-        limit: limit.limit,
-        period: limit.period,
-      };
+          limitType: LimitType.Allowance,
+          limit: limit.limit,
+          period: limit.period,
+        };
 }
 
 class SessionTester {
@@ -123,7 +123,7 @@ class SessionTester {
               this.session,
               this.aaTransaction.periodIds
                 ? this.aaTransaction.periodIds
-                : await this.periodIds(this.aaTransaction.to!, this.aaTransaction.data?.slice(0, 10))
+                : await this.periodIds(this.aaTransaction.to!, this.aaTransaction.data?.slice(0, 10)),
             ],
           ),
         ],
@@ -271,17 +271,19 @@ class SessionTester {
       gasPrice: await provider.getGasPrice(),
       customData: {
         gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-        customSignature: periodIds ? abiCoder.encode(
-          ["bytes", "address", "bytes"],
-          [
-            ethers.zeroPadValue("0x1b", 65),
-            await fixtures.getSessionKeyModuleAddress(),
-            abiCoder.encode(
-              [sessionSpecAbi, "uint64[]"],
-              [this.session, periodIds],
-            ),
-          ],
-        ) : undefined,
+        customSignature: periodIds
+          ? abiCoder.encode(
+            ["bytes", "address", "bytes"],
+            [
+              ethers.zeroPadValue("0x1b", 65),
+              await fixtures.getSessionKeyModuleAddress(),
+              abiCoder.encode(
+                [sessionSpecAbi, "uint64[]"],
+                [this.session, periodIds],
+              ),
+            ],
+          )
+          : undefined,
       },
       gasLimit: 0n,
     };
@@ -341,14 +343,14 @@ describe("SessionKeyModule tests", function () {
     const randomSalt = randomBytes(32);
     const bytecodeHash = await factoryContract.beaconProxyBytecodeHash();
     const factoryAddress = await factoryContract.getAddress();
-    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args) ;
-    let tester = new SessionTester(standardCreate2Address, await fixtures.getSessionKeyModuleAddress());
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args);
+    const tester = new SessionTester(standardCreate2Address, await fixtures.getSessionKeyModuleAddress());
     const initialSession = tester.getSession({
-        transferPolicies: [{
-          target: transferSessionTarget,
-          maxValuePerUse: parseEther("0.01"),
-        }],
-      });
+      transferPolicies: [{
+        target: transferSessionTarget,
+        maxValuePerUse: parseEther("0.01"),
+      }],
+    });
     const initSessionData = abiCoder.encode(sessionKeyModuleContract.interface.getFunction("createSession").inputs, [initialSession]);
 
     const sessionKeyPayload = abiCoder.encode(["address", "bytes"], [sessionKeyModuleAddress, initSessionData]);
@@ -406,7 +408,6 @@ describe("SessionKeyModule tests", function () {
         value: parseEther("0.02"),
       });
     });
-
   });
 
   describe("ERC20 transfer limit tests", function () {
@@ -643,13 +644,13 @@ describe("SessionKeyModule tests", function () {
           paymaster: await paymaster.getAddress(),
           paymasterInput: paymasterFlow.interface.encodeFunctionData("approvalBased", [await erc20.getAddress(), 1000, "0x"]),
         },
-        periodIds: [0, 0]
+        periodIds: [0, 0],
       });
     });
 
     it("should create a different session that allows paying fees with ERC20", async () => {
       await tester.createSession({
-        feeLimit: { limit: 0, },
+        feeLimit: { limit: 0 },
         transferPolicies: [{
           target: sessionTarget,
           maxValuePerUse: parseEther("0.01"),
@@ -669,7 +670,7 @@ describe("SessionKeyModule tests", function () {
               index: 1,
               limit: { limit: 1000 },
             },
-          ]
+          ],
         }],
       });
     });
@@ -686,7 +687,7 @@ describe("SessionKeyModule tests", function () {
           paymaster: await paymaster.getAddress(),
           paymasterInput: paymasterFlow.interface.encodeFunctionData("approvalBased", [await erc20.getAddress(), 1000, "0x"]),
         },
-        periodIds: [0, 0, 0, 0]
+        periodIds: [0, 0, 0, 0],
       });
       const newPaymasterBalance = await erc20.balanceOf(await paymaster.getAddress());
       expect(newPaymasterBalance).to.equal(oldPaymasterBalance + 1000n, "paymaster should have received the approved amount");
@@ -711,18 +712,18 @@ describe("SessionKeyModule tests", function () {
       const createdSessions = await sessionKeyModuleContract.queryFilter(sessionKeyModuleContract.filters.SessionCreated(proxyAccountAddress));
       const revokedSessions = await sessionKeyModuleContract.queryFilter(sessionKeyModuleContract.filters.SessionRevoked(proxyAccountAddress));
       const activeSessions = createdSessions
-        .map(event => event.args.sessionHash)
-        .filter(hash => revokedSessions.every(revoked => revoked.args.sessionHash != hash));
+        .map((event) => event.args.sessionHash)
+        .filter((hash) => revokedSessions.every((revoked) => revoked.args.sessionHash != hash));
       await tester.sendAaTx(
         await sessionKeyModuleContract.getAddress(),
-        sessionKeyModuleContract.interface.encodeFunctionData("revokeKeys", [activeSessions])
+        sessionKeyModuleContract.interface.encodeFunctionData("revokeKeys", [activeSessions]),
       );
     });
 
     it("should uninstall the module", async () => {
       await tester.sendAaTx(proxyAccountAddress, ssoAbi.encodeFunctionData("removeModuleValidator", [
         sessionModuleAddress,
-        abiCoder.encode(["bytes32[]"], [[]])
+        abiCoder.encode(["bytes32[]"], [[]]),
       ]));
     });
 
@@ -735,5 +736,4 @@ describe("SessionKeyModule tests", function () {
       await tester.sendAaTx(proxyAccountAddress, ssoAbi.encodeFunctionData("unlinkModuleValidator", [sessionModuleAddress, "0x"]));
     });
   });
-
 });

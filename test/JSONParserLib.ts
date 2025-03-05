@@ -1,14 +1,15 @@
-import { readFileSync, readdirSync } from "fs";
+import { expect } from "chai";
+import { readdirSync, readFileSync } from "fs";
+import { describe } from "mocha";
 import { join } from "path";
+
 import { JSONParserLibTest, JSONParserLibTest__factory } from "../typechain-types";
 import { create2, ethersStaticSalt, getWallet, LOCAL_RICH_WALLETS } from "./utils";
-import { expect } from "chai";
-import { describe } from "mocha";
 
 const SKIPPED = [
   "n_string_unescaped_ctrl_char.json",
   "n_string_unescaped_newline.json",
-  "n_string_unescaped_tab.json"
+  "n_string_unescaped_tab.json",
 ];
 
 describe("JSONParserLib tests", function () {

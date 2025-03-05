@@ -1,6 +1,6 @@
+import { ethers } from "ethers";
 import { task } from "hardhat/config";
 import { Wallet } from "zksync-ethers";
-import { ethers } from "ethers";
 
 // TODO: add support for constructor args
 task("upgrade", "Upgrades ZKsync SSO contracts")
@@ -38,4 +38,4 @@ task("upgrade", "Upgrades ZKsync SSO contracts")
     const tx = await proxy.upgradeTo(await newImpl.getAddress());
     await tx.wait();
     console.log("Proxy upgraded successfully");
-});
+  });

@@ -49,12 +49,12 @@ describe("Basic tests", function () {
     const args = await aaFactoryContract.getEncodedBeacon();
     const deployedBeaconAddress = new ethers.AbiCoder().encode(["address"], [await fixtures.getBeaconAddress()]);
     expect(args, "the beacon address").to.equal(deployedBeaconAddress, "the deployment beacon");
-    
+
     const randomSalt = randomBytes(32);
-    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args) ;
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args);
 
     const preDeployAccountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
-    expect(preDeployAccountCode , "expected deploy location").to.equal("0x", "nothing deployed here (yet)");
+    expect(preDeployAccountCode, "expected deploy location").to.equal("0x", "nothing deployed here (yet)");
 
     const deployTx = await aaFactoryContract.deployProxySsoAccount(
       randomSalt,

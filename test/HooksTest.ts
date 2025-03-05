@@ -3,10 +3,10 @@ import { ethers, parseEther, randomBytes } from "ethers";
 import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
-import { create2 } from "./utils";
 
+import type { SsoAccount, TestExecutionHook, TestValidationHook } from "../typechain-types";
 import { SsoAccount__factory, TestExecutionHook__factory, TestValidationHook__factory } from "../typechain-types";
-import type { TestExecutionHook, TestValidationHook, SsoAccount } from "../typechain-types";
+import { create2 } from "./utils";
 import { ContractFixtures, getProvider } from "./utils";
 
 const ssoAccountAbi = SsoAccount__factory.createInterface();
@@ -192,7 +192,7 @@ describe("Hook tests", function () {
       // pre execution reverts
       let aaTx = {
         ...await aaTxTemplate(),
-        to: ZeroAddress
+        to: ZeroAddress,
       };
 
       let signedTx = await smartAccount.signTransaction(aaTx);
@@ -201,7 +201,7 @@ describe("Hook tests", function () {
       // post execution reverts
       aaTx = {
         ...await aaTxTemplate(),
-        to: proxyAccountAddress
+        to: proxyAccountAddress,
       };
 
       signedTx = await smartAccount.signTransaction(aaTx);
