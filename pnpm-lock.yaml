@@ -11,6 +11,9 @@ importers:
       '@openzeppelin/merkle-tree':
         specifier: ^1.0.8
         version: 1.0.8
+      zksync-sso-circuits:
+        specifier: workspace:*
+        version: link:../packages/circuits
     devDependencies:
       '@commitlint/cli':
         specifier: 19.5.0
