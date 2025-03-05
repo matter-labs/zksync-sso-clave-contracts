@@ -11,12 +11,16 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   // as only this storage slot is accessible in the validation step due to EIP-7562 validation rules
   // (see: https://eips.ethereum.org/EIPS/eip-7562#validation-rules).
   // This enables key verification without requiring access to the full key registry.
-  bytes32 public merkleRoot; // Merkle root should be on slot 1
+  // Merkle root should be on slot 1
+  bytes32 public merkleRoot;
+  // Number of 128-bit chunks needed to represent RSA public key modulus in the ZK circuit
+  // This matches the Circom circuit's bigint configuration for RSA verification
+  uint8 public constant CIRCOM_BIGINT_CHUNKS = 17;
 
   struct Key {
     bytes32 issHash; // Issuer
     bytes32 kid; // Key ID
-    bytes n; // RSA modulus
+    uint256[CIRCOM_BIGINT_CHUNKS] n; // RSA modulus
     bytes e; // RSA exponent
   }
 
