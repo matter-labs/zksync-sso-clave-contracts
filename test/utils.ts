@@ -481,36 +481,12 @@ export function cacheBeforeEach(initializer: AsyncFunc): void {
   });
 }
 
-export function base64UrlDecode(base64UrlString: string) {
-  // 1. Replace URL-unsafe characters with standard base64 characters
-  let base64 = base64UrlString.replaceAll("-", "+").replaceAll("_", "/");
-
-  // 2. Add padding if necessary (atob() requires correctly padded input)
-  while (base64.length % 4) {
-    base64 += "=";
-  }
-
-  // 3. Decode the base64 string
-  const binaryString = atob(base64);
-
-  // 4. Convert the binary string to a Uint8Array
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-
-  return bytes;
-}
-
 export const base64ToCircomBigInt = (data: string): string[] => {
-  const decoded = base64UrlDecode(data);
-  const vec = Array.from(decoded);
-  const parts = vec.reverse().map((byte, i) => {
-    return BigInt(byte) << 8n * BigInt(i);
-  });
-
-  const num = parts.reduce((a, b) => a + b);
+  const vec = Buffer.from(data, "base64");
+  let num = 0n;
+  for (let i = 0; i < vec.length; i++) {
+    num += BigInt(vec[i]) << BigInt(8 * i);
+  }
   const res: string[] = [];
   const msk = (1n << BigInt(CIRCOM_BIGINT_N)) - 1n;
   for (let i = 0; i < CIRCOM_BIGINT_K; ++i) {
