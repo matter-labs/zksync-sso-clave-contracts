@@ -34,6 +34,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     ZkProof zkProof;
     OidcKeyRegistry.Key key;
     bytes32[] merkleProof;
+    bytes expectedIss;
   }
 
   mapping(address => OidcData) public accountData;
@@ -104,10 +105,11 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     OidcData memory oidcData = accountData[msg.sender];
     require(
       keyRegistryContract.verifyKey(oidcSignature.key, oidcSignature.merkleProof),
-      "OidcRecoveryValidator: invalid key"
+      "OidcRecoveryValidator: invalid oidc key"
     );
+    require(keccak256(oidcData.iss) == keccak256(oidcSignature.expectedIss), "OidcRecoveryValidator: invalid iss");
 
-    return false;
+    return true;
   }
 
   /// @notice Unimplemented because signature validation is not required.
