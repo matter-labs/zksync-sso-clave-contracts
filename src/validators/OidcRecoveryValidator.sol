@@ -5,6 +5,7 @@ import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/li
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
+import { WebAuthValidator } from "./WebAuthValidator.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
@@ -104,9 +105,19 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bytes calldata signature,
     Transaction calldata transaction
   ) external view returns (bool) {
+    require(transaction.to <= type(uint160).max, "OidcRecoveryValidator: Transaction.to overflow");
     require(
       address(uint160(transaction.to)) == webAuthValidator,
       "OidcRecoveryValidator: invalid webauthn validator address"
+    );
+
+    require(transaction.data.length >= 4, "Only function calls are supported");
+    bytes4 selector = bytes4(transaction.data[:4]);
+
+    // Check for calling "addValidationKey" method by anyone on WebAuthValidator contract
+    require(
+      selector == WebAuthValidator.addValidationKey.selector,
+      "OidcRecoveryValidator: Unauthorized function call"
     );
 
     OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);

@@ -1,3 +1,4 @@
+import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { expect } from "chai";
 import { randomBytes } from "crypto";
 import { ethers } from "ethers";
@@ -6,7 +7,6 @@ import { Provider, SmartAccount, Wallet } from "zksync-ethers";
 
 import { AAFactory, OidcKeyRegistry, OidcRecoveryValidator, WebAuthValidator } from "../typechain-types";
 import { base64ToCircomBigInt, cacheBeforeEach, ContractFixtures, getProvider } from "./utils";
-import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 
 describe("OidcRecoveryValidator", function () {
   let fixtures: ContractFixtures;
@@ -138,19 +138,20 @@ describe("OidcRecoveryValidator", function () {
           pA: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
           pB: [
             [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
-            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))]
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
           ],
-          pC: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))]
+          pC: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
         },
         key: key,
-        merkleProof: proof
+        merkleProof: proof,
       };
 
       const encodedSignature = ethers.AbiCoder.defaultAbiCoder().encode(
         ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof)"],
-        [signature]
+        [signature],
       );
 
+      const data = webAuthValidator.interface.encodeFunctionData("addValidationKey", ["0x"]);
       const transaction = {
         txType: 0n,
         from: BigInt(ownerWallet.address),
@@ -163,18 +164,18 @@ describe("OidcRecoveryValidator", function () {
         nonce: 0n,
         value: 0n,
         reserved: [0n, 0n, 0n, 0n],
-        data: "0x",
+        data,
         signature: "0x01",
         factoryDeps: [],
         paymasterInput: "0x",
-        reservedDynamic: "0x"
+        reservedDynamic: "0x",
       };
 
       // Should not revert
       await oidcValidator.connect(ownerWallet).validateTransaction(
         ethers.hexlify(randomBytes(32)),
         encodedSignature,
-        transaction
+        transaction,
       );
     });
 
@@ -223,19 +224,20 @@ describe("OidcRecoveryValidator", function () {
           pA: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
           pB: [
             [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
-            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))]
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
           ],
-          pC: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))]
+          pC: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
         },
         key: key,
-        merkleProof: proof
+        merkleProof: proof,
       };
 
       const encodedSignature = ethers.AbiCoder.defaultAbiCoder().encode(
         ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof)"],
-        [signature]
+        [signature],
       );
 
+      const data = webAuthValidator.interface.encodeFunctionData("addValidationKey", ["0x"]);
       const transaction = {
         txType: 0n,
         from: BigInt(ownerWallet.address),
@@ -248,19 +250,19 @@ describe("OidcRecoveryValidator", function () {
         nonce: 0n,
         value: 0n,
         reserved: [0n, 0n, 0n, 0n],
-        data: "0x",
+        data,
         signature: "0x01",
         factoryDeps: [],
         paymasterInput: "0x",
-        reservedDynamic: "0x"
+        reservedDynamic: "0x",
       };
 
       await expect(
         oidcValidator.validateTransaction(
           ethers.hexlify(randomBytes(32)),
           encodedSignature,
-          transaction
-        )
+          transaction,
+        ),
       ).to.be.revertedWith("OidcRecoveryValidator: invalid oidc key");
     });
 
@@ -311,18 +313,20 @@ describe("OidcRecoveryValidator", function () {
           pA: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
           pB: [
             [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
-            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))]
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
           ],
-          pC: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))]
+          pC: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
         },
         key: key,
-        merkleProof: proof
+        merkleProof: proof,
       };
 
       const encodedSignature = ethers.AbiCoder.defaultAbiCoder().encode(
         ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof)"],
-        [signature]
+        [signature],
       );
+
+      const data = webAuthValidator.interface.encodeFunctionData("addValidationKey", ["0x"]);
 
       const transaction = {
         txType: 0n,
@@ -336,20 +340,197 @@ describe("OidcRecoveryValidator", function () {
         nonce: 0n,
         value: 0n,
         reserved: [0n, 0n, 0n, 0n],
-        data: "0x",
+        data,
         signature: "0x01",
         factoryDeps: [],
         paymasterInput: "0x",
-        reservedDynamic: "0x"
+        reservedDynamic: "0x",
       };
 
       await expect(
         oidcValidator.connect(ownerWallet).validateTransaction(
           ethers.hexlify(randomBytes(32)),
           encodedSignature,
-          transaction
-        )
+          transaction,
+        ),
       ).to.be.revertedWith("OidcRecoveryValidator: invalid webauthn validator address");
+    });
+
+    it("should revert with invalid transaction data", async function () {
+      const issuer = "https://example.com";
+      const issHash = await keyRegistry.hashIssuer(issuer);
+
+      const key = {
+        issHash,
+        kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        n: JWK_MODULUS,
+        e: "0x010001",
+      };
+
+      // Add key to registry
+      await keyRegistry.addKey(key);
+
+      const keys = Array.from({ length: 8 }, () => [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        Array(17).fill("0"),
+        "0x",
+      ]);
+
+      const currentIndex = await keyRegistry.keyIndex();
+      const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
+      keys[nextIndex] = [key.issHash, key.kid, key.n, key.e];
+
+      const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
+      const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
+
+      const aud = "test-client-id";
+      const oidcData = {
+        oidcDigest: ethers.hexlify(randomBytes(32)),
+        iss: ethers.toUtf8Bytes(issuer),
+        aud: ethers.toUtf8Bytes(aud),
+      };
+
+      const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["tuple(bytes32 oidcDigest, bytes iss, bytes aud)"],
+        [oidcData],
+      );
+
+      await oidcValidator.connect(ownerWallet).addValidationKey(encodedData);
+
+      const signature = {
+        zkProof: {
+          pA: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+          pB: [
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+          ],
+          pC: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+        },
+        key: key,
+        merkleProof: proof,
+      };
+
+      const encodedSignature = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof)"],
+        [signature],
+      );
+
+      const transaction = {
+        txType: 0n,
+        from: BigInt(ownerWallet.address),
+        to: BigInt(await webAuthValidator.getAddress()),
+        gasLimit: 0n,
+        gasPerPubdataByteLimit: 0n,
+        maxFeePerGas: 0n,
+        maxPriorityFeePerGas: 0n,
+        paymaster: 0n,
+        nonce: 0n,
+        value: 0n,
+        reserved: [0n, 0n, 0n, 0n],
+        data: "0x",
+        signature: "0x01",
+        factoryDeps: [],
+        paymasterInput: "0x",
+        reservedDynamic: "0x",
+      };
+
+      await expect(
+        oidcValidator.connect(ownerWallet).validateTransaction(
+          ethers.hexlify(randomBytes(32)),
+          encodedSignature,
+          transaction,
+        ),
+      ).to.be.revertedWith("Only function calls are supported");
+    });
+
+    it("should revert with invalid transaction function selector", async function () {
+      const issuer = "https://example.com";
+      const issHash = await keyRegistry.hashIssuer(issuer);
+
+      const key = {
+        issHash,
+        kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        n: JWK_MODULUS,
+        e: "0x010001",
+      };
+
+      // Add key to registry
+      await keyRegistry.addKey(key);
+
+      const keys = Array.from({ length: 8 }, () => [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        Array(17).fill("0"),
+        "0x",
+      ]);
+
+      const currentIndex = await keyRegistry.keyIndex();
+      const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
+      keys[nextIndex] = [key.issHash, key.kid, key.n, key.e];
+
+      const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
+      const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
+
+      const aud = "test-client-id";
+      const oidcData = {
+        oidcDigest: ethers.hexlify(randomBytes(32)),
+        iss: ethers.toUtf8Bytes(issuer),
+        aud: ethers.toUtf8Bytes(aud),
+      };
+
+      const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["tuple(bytes32 oidcDigest, bytes iss, bytes aud)"],
+        [oidcData],
+      );
+
+      await oidcValidator.connect(ownerWallet).addValidationKey(encodedData);
+
+      const signature = {
+        zkProof: {
+          pA: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+          pB: [
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+          ],
+          pC: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+        },
+        key: key,
+        merkleProof: proof,
+      };
+
+      const encodedSignature = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof)"],
+        [signature],
+      );
+
+      const data = webAuthValidator.interface.encodeFunctionData("validateSignature", [ethers.hexlify(randomBytes(32)), "0x"]);
+      const transaction = {
+        txType: 0n,
+        from: BigInt(ownerWallet.address),
+        to: BigInt(await webAuthValidator.getAddress()),
+        gasLimit: 0n,
+        gasPerPubdataByteLimit: 0n,
+        maxFeePerGas: 0n,
+        maxPriorityFeePerGas: 0n,
+        paymaster: 0n,
+        nonce: 0n,
+        value: 0n,
+        reserved: [0n, 0n, 0n, 0n],
+        data,
+        signature: "0x01",
+        factoryDeps: [],
+        paymasterInput: "0x",
+        reservedDynamic: "0x",
+      };
+
+      await expect(
+        oidcValidator.connect(ownerWallet).validateTransaction(
+          ethers.hexlify(randomBytes(32)),
+          encodedSignature,
+          transaction,
+        ),
+      ).to.be.revertedWith("OidcRecoveryValidator: Unauthorized function call");
     });
   });
 });
