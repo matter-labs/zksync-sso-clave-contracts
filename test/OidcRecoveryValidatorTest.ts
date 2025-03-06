@@ -11,7 +11,6 @@ import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 describe("OidcRecoveryValidator", function () {
   let fixtures: ContractFixtures;
   const provider = getProvider();
-  let oidcValidatorAddr: string;
   let factory: AAFactory;
   let oidcValidator: OidcRecoveryValidator;
   let keyRegistry: OidcKeyRegistry;
@@ -25,7 +24,6 @@ describe("OidcRecoveryValidator", function () {
     ownerWallet = new Wallet(Wallet.createRandom().privateKey, provider);
     oidcValidator = await fixtures.getOidcRecoveryValidator();
     keyRegistry = await fixtures.getOidcKeyRegistryContract();
-    oidcValidatorAddr = await oidcValidator.getAddress();
     factory = await fixtures.getAaFactory();
 
     // Fund the test wallet
@@ -120,10 +118,11 @@ describe("OidcRecoveryValidator", function () {
       const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
       const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
 
+      const aud = "test-client-id";
       const oidcData = {
         oidcDigest: ethers.hexlify(randomBytes(32)),
         iss: ethers.toUtf8Bytes(issuer),
-        aud: ethers.toUtf8Bytes("test-client-id"),
+        aud: ethers.toUtf8Bytes(aud),
       };
 
       const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -144,11 +143,12 @@ describe("OidcRecoveryValidator", function () {
         },
         key: key,
         merkleProof: proof,
-        expectedIss: ethers.toUtf8Bytes(issuer)
+        expectedIss: ethers.toUtf8Bytes(issuer),
+        expectedAud: ethers.toUtf8Bytes(aud),
       };
 
       const encodedSignature = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof, bytes expectedIss)"],
+        ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof, bytes expectedIss, bytes expectedAud)"],
         [signature]
       );
 
@@ -205,10 +205,11 @@ describe("OidcRecoveryValidator", function () {
       const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
       const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
 
+      const aud = "test-client-id";
       const oidcData = {
         oidcDigest: ethers.hexlify(randomBytes(32)),
         iss: ethers.toUtf8Bytes(issuer),
-        aud: ethers.toUtf8Bytes("test-client-id"),
+        aud: ethers.toUtf8Bytes(aud),
       };
 
       const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -229,11 +230,12 @@ describe("OidcRecoveryValidator", function () {
         },
         key: key,
         merkleProof: proof,
-        expectedIss: ethers.toUtf8Bytes(issuer)
+        expectedIss: ethers.toUtf8Bytes(issuer),
+        expectedAud: ethers.toUtf8Bytes(aud),
       };
 
       const encodedSignature = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof, bytes expectedIss)"],
+        ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof, bytes expectedIss, bytes expectedAud)"],
         [signature]
       );
 
@@ -292,10 +294,11 @@ describe("OidcRecoveryValidator", function () {
       const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
       const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
 
+      const aud = "test-client-id";
       const oidcData = {
         oidcDigest: ethers.hexlify(randomBytes(32)),
         iss: ethers.toUtf8Bytes(issuer),
-        aud: ethers.toUtf8Bytes("test-client-id"),
+        aud: ethers.toUtf8Bytes(aud),
       };
 
       const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -316,11 +319,12 @@ describe("OidcRecoveryValidator", function () {
         },
         key: key,
         merkleProof: proof,
-        expectedIss: ethers.toUtf8Bytes("https://incorrect-issuer.com")
+        expectedIss: ethers.toUtf8Bytes("https://incorrect-issuer.com"),
+        expectedAud: ethers.toUtf8Bytes(aud),
       };
 
       const encodedSignature = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof, bytes expectedIss)"],
+        ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof, bytes expectedIss, bytes expectedAud)"],
         [signature]
       );
 
@@ -350,6 +354,96 @@ describe("OidcRecoveryValidator", function () {
           transaction
         )
       ).to.be.revertedWith("OidcRecoveryValidator: invalid iss");
+    });
+
+    it("should revert if aud is incorrect", async function () {
+      const issuer = "https://example.com";
+      const issHash = await keyRegistry.hashIssuer(issuer);
+
+      const key = {
+        issHash,
+        kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        n: JWK_MODULUS,
+        e: "0x010001",
+      };
+
+      // Add key to registry
+      await keyRegistry.addKey(key);
+
+      const keys = Array.from({ length: 8 }, () => [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        Array(17).fill("0"),
+        "0x",
+      ]);
+
+      const currentIndex = await keyRegistry.keyIndex();
+      const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
+      keys[nextIndex] = [key.issHash, key.kid, key.n, key.e];
+
+      const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
+      const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
+
+      const aud = "test-client-id";
+      const oidcData = {
+        oidcDigest: ethers.hexlify(randomBytes(32)),
+        iss: ethers.toUtf8Bytes(issuer),
+        aud: ethers.toUtf8Bytes(aud),
+      };
+
+      const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["tuple(bytes32 oidcDigest, bytes iss, bytes aud)"],
+        [oidcData],
+      );
+
+      await oidcValidator.connect(ownerWallet).addValidationKey(encodedData);
+
+      const signature = {
+        zkProof: {
+          pA: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+          pB: [
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))]
+          ],
+          pC: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))]
+        },
+        key: key,
+        merkleProof: proof,
+        expectedIss: ethers.toUtf8Bytes(issuer),
+        expectedAud: ethers.toUtf8Bytes("another-client-id"),
+      };
+
+      const encodedSignature = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof, bytes expectedIss, bytes expectedAud)"],
+        [signature]
+      );
+
+      const transaction = {
+        txType: 0n,
+        from: BigInt(ownerWallet.address),
+        to: BigInt(ownerWallet.address),
+        gasLimit: 0n,
+        gasPerPubdataByteLimit: 0n,
+        maxFeePerGas: 0n,
+        maxPriorityFeePerGas: 0n,
+        paymaster: 0n,
+        nonce: 0n,
+        value: 0n,
+        reserved: [0n, 0n, 0n, 0n],
+        data: "0x",
+        signature: "0x01",
+        factoryDeps: [],
+        paymasterInput: "0x",
+        reservedDynamic: "0x"
+      };
+
+      await expect(
+        oidcValidator.connect(ownerWallet).validateTransaction(
+          ethers.hexlify(randomBytes(32)),
+          encodedSignature,
+          transaction
+        )
+      ).to.be.revertedWith("OidcRecoveryValidator: invalid aud");
     });
   });
 });
