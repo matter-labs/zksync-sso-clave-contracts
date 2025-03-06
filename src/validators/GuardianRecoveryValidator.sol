@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { EnumerableMapUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
 import { EnumerableSetUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import { WebAuthValidator } from "./WebAuthValidator.sol";
 import { IGuardianRecoveryValidator } from "../interfaces/IGuardianRecoveryValidator.sol";
@@ -15,7 +14,6 @@ import { BatchCaller, Call } from "../batch/BatchCaller.sol";
 
 contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
-  using EnumerableMapUpgradeable for EnumerableMapUpgradeable.Bytes32ToBytes32Map;
 
   struct Guardian {
     address addr;
