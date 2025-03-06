@@ -162,14 +162,13 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     index++;
     publicInputs[index] = uint8(bytes1(signedHash >> 248));
 
-    bool isValid = verifierContract.verifyProof(
-      oidcSignature.zkProof.pA,
-      oidcSignature.zkProof.pB,
-      oidcSignature.zkProof.pC,
-      publicInputs
-    );
-
-    return isValid;
+    return
+      verifierContract.verifyProof(
+        oidcSignature.zkProof.pA,
+        oidcSignature.zkProof.pB,
+        oidcSignature.zkProof.pC,
+        publicInputs
+      );
   }
 
   /// @notice Unimplemented because signature validation is not required.
