@@ -140,7 +140,8 @@ export class ContractFixtures {
     if (this._oidcRecoveryValidator === undefined) {
       const verifier = await this.getJOidcVerifier();
       const oidcKeyRegistry = await this.getOidcKeyRegistryContract();
-      const contract = await create2("OidcRecoveryValidator", this.wallet, ethersStaticSalt, [await oidcKeyRegistry.getAddress(), await verifier.getAddress()]);
+      const webAuthValidator = await this.getWebAuthnVerifierContract();
+      const contract = await create2("OidcRecoveryValidator", this.wallet, ethersStaticSalt, [await oidcKeyRegistry.getAddress(), await verifier.getAddress(), await webAuthValidator.getAddress()]);
       this._oidcRecoveryValidator = OidcRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
 

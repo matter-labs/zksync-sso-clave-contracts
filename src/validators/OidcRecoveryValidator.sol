@@ -45,14 +45,16 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
   address public keyRegistry;
   address public verifier;
+  address public webAuthValidator;
 
-  constructor(address _keyRegistry, address _verifier) {
-    initialize(_keyRegistry, _verifier);
+  constructor(address _keyRegistry, address _verifier, address _webAuthValidator) {
+    initialize(_keyRegistry, _verifier, _webAuthValidator);
   }
 
-  function initialize(address _keyRegistry, address _verifier) public initializer {
+  function initialize(address _keyRegistry, address _verifier, address _webAuthValidator) public initializer {
     keyRegistry = _keyRegistry;
     verifier = _verifier;
+    webAuthValidator = _webAuthValidator;
   }
 
   /// @notice Runs on module install
@@ -102,6 +104,11 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bytes calldata signature,
     Transaction calldata transaction
   ) external view returns (bool) {
+    require(
+      address(uint160(transaction.to)) == webAuthValidator,
+      "OidcRecoveryValidator: invalid webauthn validator address"
+    );
+
     OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);
     Groth16Verifier verifierContract = Groth16Verifier(verifier);
     OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
@@ -143,7 +150,6 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     publicInputs[index] = uint248(bytes31(signedHash));
     index++;
     publicInputs[index] = uint8(bytes1(signedHash >> 248));
-    index++;
 
     bool isValid = verifierContract.verifyProof(
       oidcSignature.zkProof.pA,
