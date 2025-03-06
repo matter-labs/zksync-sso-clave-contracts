@@ -6,6 +6,7 @@ import { Provider, SmartAccount, Wallet } from "zksync-ethers";
 
 import { AAFactory, OidcKeyRegistry, OidcRecoveryValidator, WebAuthValidator } from "../typechain-types";
 import { base64ToCircomBigInt, cacheBeforeEach, ContractFixtures, getProvider } from "./utils";
+import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 
 describe("OidcRecoveryValidator", function () {
   const fixtures = new ContractFixtures();
@@ -14,13 +15,13 @@ describe("OidcRecoveryValidator", function () {
   let factory: AAFactory;
   let oidcValidator: OidcRecoveryValidator;
   let keyRegistry: OidcKeyRegistry;
+  let webAuthValidator: WebAuthValidator;
   let ownerWallet: Wallet;
   const JWK_MODULUS_64 = "y8TPCPz2Fp0OhBxsxu6d_7erT9f9XJ7mx7ZJPkkeZRxhdnKtg327D4IGYsC4fLAfpkC8qN58sZGkwRTNs-i7yaoD5_8nupq1tPYvnt38ddVghG9vws-2MvxfPQ9m2uxBEdRHmels8prEYGCH6oFKcuWVsNOt4l_OPoJRl4uiuiwd6trZik2GqDD_M6bn21_w6AD_jmbzN4mh8Od4vkA1Z9lKb3Qesksxdog-LWHsljN8ieiz1NhbG7M-GsIlzu-typJfud3tSJ1QHb-E_dEfoZ1iYK7pMcojb5ylMkaCj5QySRdJESq9ngqVRDjF4nX8DK5RQUS7AkrpHiwqyW0Csw";
   const JWK_MODULUS = base64ToCircomBigInt(JWK_MODULUS_64);
 
-  cacheBeforeEach(async () => {
+  this.beforeEach(async () => {
     ownerWallet = new Wallet(Wallet.createRandom().privateKey, provider);
-
     oidcValidator = await fixtures.getOidcRecoveryValidator();
     keyRegistry = await fixtures.getOidcKeyRegistryContract();
     oidcValidatorAddr = await oidcValidator.getAddress();
@@ -86,6 +87,153 @@ describe("OidcRecoveryValidator", function () {
       await expect(
         oidcValidator.connect(otherWallet).addValidationKey(encodedData),
       ).to.be.revertedWith("oidc_digest already registered in other account");
+    });
+  });
+
+  describe("validateTransaction", () => {
+    it("should validate oidc key", async function () {
+      const issuer = "https://example.com";
+      const issHash = await keyRegistry.hashIssuer(issuer);
+
+      const key = {
+        issHash,
+        kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        n: JWK_MODULUS,
+        e: "0x010001",
+      };
+
+      // Add key to registry
+      await keyRegistry.addKey(key);
+
+      const keys = Array.from({ length: 8 }, () => [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        Array(17).fill("0"),
+        "0x",
+      ]);
+
+      const currentIndex = await keyRegistry.keyIndex();
+      const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
+      keys[nextIndex] = [key.issHash, key.kid, key.n, key.e];
+
+      const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
+      const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
+
+      const signature = {
+        zkProof: {
+          pA: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+          pB: [
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))]
+          ],
+          pC: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))]
+        },
+        key: key,
+        merkleProof: proof
+      };
+
+      const encodedSignature = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof)"],
+        [signature]
+      );
+
+      const transaction = {
+        txType: 0n,
+        from: BigInt(ownerWallet.address),
+        to: BigInt(ownerWallet.address),
+        gasLimit: 0n,
+        gasPerPubdataByteLimit: 0n,
+        maxFeePerGas: 0n,
+        maxPriorityFeePerGas: 0n,
+        paymaster: 0n,
+        nonce: 0n,
+        value: 0n,
+        reserved: [0n, 0n, 0n, 0n],
+        data: "0x",
+        signature: "0x01",
+        factoryDeps: [],
+        paymasterInput: "0x",
+        reservedDynamic: "0x"
+      };
+
+      // Should not revert
+      await oidcValidator.validateTransaction(
+        ethers.hexlify(randomBytes(32)),
+        encodedSignature,
+        transaction
+      );
+    });
+
+    it("should revert if oidc key is not registered", async function () {
+      const issuer = "https://another-example.com";
+      const issHash = await keyRegistry.hashIssuer(issuer);
+
+      // Do not add key to registry
+      const key = {
+        issHash,
+        kid: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+        n: JWK_MODULUS,
+        e: "0x010001",
+      };
+
+      const keys = Array.from({ length: 8 }, () => [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        Array(17).fill("0"),
+        "0x",
+      ]);
+
+      const currentIndex = await keyRegistry.keyIndex();
+      const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
+      keys[nextIndex] = [key.issHash, key.kid, key.n, key.e];
+
+      const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
+      const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
+
+      const signature = {
+        zkProof: {
+          pA: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+          pB: [
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))],
+            [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))]
+          ],
+          pC: [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))]
+        },
+        key: key,
+        merkleProof: proof
+      };
+
+      const encodedSignature = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["tuple(tuple(bytes32[2] pA, bytes32[2][2] pB, bytes32[2] pC) zkProof, tuple(bytes32 issHash, bytes32 kid, uint256[17] n, bytes e) key, bytes32[] merkleProof)"],
+        [signature]
+      );
+
+      const transaction = {
+        txType: 0n,
+        from: BigInt(ownerWallet.address),
+        to: BigInt(ownerWallet.address),
+        gasLimit: 0n,
+        gasPerPubdataByteLimit: 0n,
+        maxFeePerGas: 0n,
+        maxPriorityFeePerGas: 0n,
+        paymaster: 0n,
+        nonce: 0n,
+        value: 0n,
+        reserved: [0n, 0n, 0n, 0n],
+        data: "0x",
+        signature: "0x01",
+        factoryDeps: [],
+        paymasterInput: "0x",
+        reservedDynamic: "0x"
+      };
+
+      await expect(
+        oidcValidator.validateTransaction(
+          ethers.hexlify(randomBytes(32)),
+          encodedSignature,
+          transaction
+        )
+      ).to.be.revertedWith("OidcRecoveryValidator: invalid key");
     });
   });
 });
