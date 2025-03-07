@@ -42,6 +42,7 @@ library Errors {
   error SESSION_CALL_POLICY_VIOLATED(address target, bytes4 selector);
   error SESSION_TRANSFER_POLICY_VIOLATED(address target);
   error SESSION_MAX_VALUE_EXCEEDED(uint256 usedValue, uint256 maxValuePerUse);
+  error SESSION_INVALID_NONCE_KEY(uint192 provided, uint192 expected);
 
   // Misc
   error BATCH_MSG_VALUE_MISMATCH(uint256 actualValue, uint256 expectedValue);
