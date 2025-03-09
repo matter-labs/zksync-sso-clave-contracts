@@ -42,8 +42,8 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     uint[151] pubInputs;
   }
 
-  mapping(address => OidcData) public accountData;
-  mapping(bytes32 => address) public digestIndex;
+  mapping(address => OidcData) accountData;
+  mapping(bytes32 => address) digestIndex;
 
   address public keyRegistry;
   address public verifier;
@@ -186,12 +186,25 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
       interfaceId == type(IModule).interfaceId;
   }
 
-  function addressFor(bytes32 digest) public view returns (address) {
+  function addressForDigest(bytes32 digest) public view returns (address) {
     address addr = digestIndex[digest];
     if (addr == address(0)) {
       revert("Address not found for given digest.");
     }
 
     return digestIndex[digest];
+  }
+
+  function oidcDataForAddress(address account) public view returns (OidcData[] memory) {
+    OidcData memory data = accountData[account];
+    OidcData[] memory array;
+
+    if (data.oidcDigest == bytes32(0)) {
+      return array;
+    }
+
+    array = new OidcData[](1);
+    array[0] = data;
+    return array;
   }
 }
