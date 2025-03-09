@@ -39,6 +39,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     ZkProof zkProof;
     OidcKeyRegistry.Key key;
     bytes32[] merkleProof;
+    uint[151] pubInputs;
   }
 
   mapping(address => OidcData) public accountData;
