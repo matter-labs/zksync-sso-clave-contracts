@@ -1,6 +1,7 @@
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { expect } from "chai";
 import { ethers } from "ethers";
+import { pad } from "viem";
 import { Wallet } from "zksync-ethers";
 
 import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
@@ -11,6 +12,8 @@ describe("OidcKeyRegistry", function () {
   let oidcKeyRegistry: OidcKeyRegistry;
   const JWK_MODULUS_64 = "y8TPCPz2Fp0OhBxsxu6d_7erT9f9XJ7mx7ZJPkkeZRxhdnKtg327D4IGYsC4fLAfpkC8qN58sZGkwRTNs-i7yaoD5_8nupq1tPYvnt38ddVghG9vws-2MvxfPQ9m2uxBEdRHmels8prEYGCH6oFKcuWVsNOt4l_OPoJRl4uiuiwd6trZik2GqDD_M6bn21_w6AD_jmbzN4mh8Od4vkA1Z9lKb3Qesksxdog-LWHsljN8ieiz1NhbG7M-GsIlzu-typJfud3tSJ1QHb-E_dEfoZ1iYK7pMcojb5ylMkaCj5QySRdJESq9ngqVRDjF4nX8DK5RQUS7AkrpHiwqyW0Csw";
   const JWK_MODULUS = base64ToCircomBigInt(JWK_MODULUS_64);
+  const JWK_MODULUS_2_64 = "0qTcwnqUqJqsyu57JAC4IOAgTuMrccabAKKj5T93F68NoCk4kAax0oJhDArisYpiLrQ__YJJ9HFm3TKkuiPZeb1xqSSXAnIZVo8UigTLQDQLCTq3O-aD5EyQTOhOHWxJBZcpyLO-dZVuOIbv8fNMcXpNCioHVHO04gI_mvaw8ZzbU_j8ZeHSPk4wTBNfmH4l0mYRDhoQHLkZxxvc2V71ppBPYbnX-4t6h7XcuTkLJKBxfrR43G5nNzDuFsIbBnS2fjVLEv_1LYj9G5Q5XwiCFS0BON-oqQNzRWF53nkf91bMm2TaROg21KKJbZqfEjUhCVlMDFmBW-MNv69-C19PZQ";
+  const JWK_MODULUS_2 = base64ToCircomBigInt(JWK_MODULUS_2_64);
 
   this.beforeEach(async () => {
     fixtures = new ContractFixtures();
@@ -211,5 +214,57 @@ describe("OidcKeyRegistry", function () {
 
     const isValid = await oidcKeyRegistry.verifyKey(nonExistentKey, proof);
     expect(isValid).to.be.false;
+  });
+
+  it.only("should set two google keys", async () => {
+    const keys = Array.from({ length: 8 }, () => [
+      "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "0x0000000000000000000000000000000000000000000000000000000000000000",
+      Array(17).fill("0"),
+      "0x",
+    ]);
+
+    const currentIndex = await oidcKeyRegistry.keyIndex();
+    const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
+
+    const issuer = "https://google.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+
+    const key1 = {
+      issHash,
+      kid: pad("0x763f7c4cd26a1eb2b1b39a88f4434d1f4d9a368b"),
+      n: JWK_MODULUS,
+      e: "0x010001",
+    };
+
+    const key2 = {
+      issHash,
+      kid: pad("0x25f8211713788b6145474b5029b0141bd5b3de9c"),
+      n: JWK_MODULUS_2,
+      e: "0x010001",
+    };
+
+    keys[1] = [key1.issHash, key1.kid, key1.n, key1.e];
+    keys[0] = [key2.issHash, key2.kid, key2.n, key2.e];
+
+    const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
+    const root = tree.root;
+
+    await oidcKeyRegistry.addKey(key1);
+    await oidcKeyRegistry.addKey(key2);
+
+    const storedKey1 = await oidcKeyRegistry.getKey(issHash, key1.kid);
+    expect(storedKey1.kid).to.equal(key1.kid);
+    const expectedN1 = key1.n.map((n) => BigInt(n));
+    expect(storedKey1.n).to.deep.equal(expectedN1);
+    expect(storedKey1.e).to.equal(key1.e);
+
+    const storedKey2 = await oidcKeyRegistry.getKey(issHash, key2.kid);
+    expect(storedKey2.kid).to.equal(key2.kid);
+    const expectedN2 = key2.n.map((n) => BigInt(n));
+    expect(storedKey2.n).to.deep.equal(expectedN2);
+    expect(storedKey2.e).to.equal(key2.e);
+
+    expect(await oidcKeyRegistry.merkleRoot()).to.equal(root);
   });
 });

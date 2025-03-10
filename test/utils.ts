@@ -20,6 +20,7 @@ import type {
   AccountProxy,
   ERC20,
   ExampleAuthServerPaymaster,
+  Groth16Verifier,
   GuardianRecoveryValidator,
   OidcKeyRegistry,
   OidcRecoveryValidator,
@@ -33,6 +34,7 @@ import {
   AccountProxy__factory,
   ERC20__factory,
   ExampleAuthServerPaymaster__factory,
+  Groth16Verifier__factory,
   GuardianRecoveryValidator__factory,
   OidcKeyRegistry__factory,
   OidcRecoveryValidator__factory,
@@ -124,12 +126,22 @@ export class ContractFixtures {
     return this._guardianRecoveryValidator;
   }
 
+  private _oidcVerifier: Groth16Verifier;
+  async getJOidcVerifier() {
+    if (!this._oidcVerifier) {
+      const contract = await create2("Groth16Verifier", this.wallet, ethersStaticSalt);
+      this._oidcVerifier = Groth16Verifier__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._oidcVerifier;
+  }
+
   private _oidcRecoveryValidator: OidcRecoveryValidator;
   async getOidcRecoveryValidator() {
     if (this._oidcRecoveryValidator === undefined) {
-      const verifierAddress = zeroAddress;
+      const verifier = await this.getJOidcVerifier();
       const oidcKeyRegistry = await this.getOidcKeyRegistryContract();
-      const contract = await create2("OidcRecoveryValidator", this.wallet, ethersStaticSalt, [await oidcKeyRegistry.getAddress(), verifierAddress]);
+      const webAuthValidator = await this.getWebAuthnVerifierContract();
+      const contract = await create2("OidcRecoveryValidator", this.wallet, ethersStaticSalt, [await oidcKeyRegistry.getAddress(), await verifier.getAddress(), await webAuthValidator.getAddress()]);
       this._oidcRecoveryValidator = OidcRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
 
@@ -482,7 +494,7 @@ export function cacheBeforeEach(initializer: AsyncFunc): void {
 }
 
 export const base64ToCircomBigInt = (data: string): string[] => {
-  const vec = Buffer.from(data, "base64");
+  const vec = Buffer.from(data, "base64url");
   let num = 0n;
   for (let i = 0; i < vec.length; i++) {
     num += BigInt(vec[i]) << BigInt(8 * i);

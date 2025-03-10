@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "hardhat/console.sol";
 
 contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   uint8 public constant MAX_KEYS = 8;
@@ -66,6 +67,10 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       }
     }
     revert("Key not found");
+  }
+
+  function getKeys() public view returns (Key[MAX_KEYS] memory) {
+    return OIDCKeys;
   }
 
   function verifyKey(Key memory key, bytes32[] memory proof) public view returns (bool) {

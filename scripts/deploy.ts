@@ -87,11 +87,21 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const guardianInterface = new ethers.Interface((await hre.artifacts.readArtifact(GUARDIAN_RECOVERY_NAME)).abi);
       const recovery = await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [webauth, factory], guardianInterface.encodeFunctionData("initialize", [webauth, factory]));
       const oidcKeyRegistryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_KEY_REGISTRY_NAME)).abi);
-      const oidcKeyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, !cmd.noProxy, [], oidcKeyRegistryInterface.encodeFunctionData("initialize", []));
+      const oidcKeyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, false, [], oidcKeyRegistryInterface.encodeFunctionData("initialize", [])); // TODO: Add proxy
       const oidcRecoveryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_RECOVERY_NAME)).abi);
       const oidcVerifier = await deploy(OIDC_VERIFIER_NAME, deployer, false, []);
-      const oidcRecovery = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier]));
+      const oidcRecovery = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier, webauth], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier, webauth]));
       const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions, recovery, oidcRecovery]);
+
+      console.log(JSON.stringify({
+        oidcKeyRegistry: oidcKeyRegistry,
+        session: sessions,
+        passkey: webauth,
+        recovery: recovery,
+        recoveryOidc: oidcRecovery,
+        accountFactory: factory,
+        accountPaymaster: paymaster,
+      }, null, 2));
 
       await fundPaymaster(paymaster, cmd.fund);
     } else {
