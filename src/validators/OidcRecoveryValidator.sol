@@ -160,34 +160,21 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     index++;
 
     // Add tx hash split into two 31-byte chunks (fields)
-    publicInputs[index] = uint248(bytes31(signedHash));
+    publicInputs[index] = _reverse(uint256(signedHash) >> 8) >> 8;
     index++;
-    publicInputs[index] = uint8(bytes1(signedHash >> 248));
+    publicInputs[index] = (uint256(signedHash) << 248) >> 248;
 
-    console.logString("after public inputs");
-    for (uint8 i = 0; i < publicInputs.length; i++) {
-      console.logUint(i);
-      uint256 expected = oidcSignature.pubInputs[i];
-      console.logUint(expected);
-      uint256 value = publicInputs[i];
-      console.logUint(value);
+    bool isValid = verifierContract.verifyProof(
+      oidcSignature.zkProof.pA,
+      oidcSignature.zkProof.pB,
+      oidcSignature.zkProof.pC,
+      publicInputs
+    );
 
-      if (value != expected) {
-        console.logString("publicInputs mismatch");
-        console.logUint(expected);
-        console.logUint(value);
-        console.logUint(i);
-        revert("OidcRecoveryValidator: public inputs mismatch");
-      }
-    }
+    console.logString("isValid");
+    console.logBool(isValid);
 
-    return
-      verifierContract.verifyProof(
-        oidcSignature.zkProof.pA,
-        oidcSignature.zkProof.pB,
-        oidcSignature.zkProof.pC,
-        publicInputs
-      );
+    return isValid;
   }
 
   /// @notice Unimplemented because signature validation is not required.
@@ -224,5 +211,32 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     array = new OidcData[](1);
     array[0] = data;
     return array;
+  }
+
+  function _reverse(uint256 input) internal pure returns (uint256 v) {
+    v = input;
+
+    // swap bytes
+    v =
+      ((v & 0xFF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00) >> 8) |
+      ((v & 0x00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF) << 8);
+
+    // swap 2-byte long pairs
+    v =
+      ((v & 0xFFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000) >> 16) |
+      ((v & 0x0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF) << 16);
+
+    // swap 4-byte long pairs
+    v =
+      ((v & 0xFFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000) >> 32) |
+      ((v & 0x00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF) << 32);
+
+    // swap 8-byte long pairs
+    v =
+      ((v & 0xFFFFFFFFFFFFFFFF0000000000000000FFFFFFFFFFFFFFFF0000000000000000) >> 64) |
+      ((v & 0x0000000000000000FFFFFFFFFFFFFFFF0000000000000000FFFFFFFFFFFFFFFF) << 64);
+
+    // swap 16-byte long pairs
+    v = (v >> 128) | (v << 128);
   }
 }
