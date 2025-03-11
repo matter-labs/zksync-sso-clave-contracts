@@ -212,6 +212,8 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     return array;
   }
 
+  // Reverse byte order
+  // Algorithm taken from https://graphics.stanford.edu/%7Eseander/bithacks.html#ReverseParallel
   function _reverse(uint256 input) internal pure returns (uint256 v) {
     v = input;
 
