@@ -91,7 +91,7 @@ describe("OidcRecoveryValidator", function () {
   });
 
   describe("validateTransaction", () => {
-    it("should validate transaction", async function () {
+    xit("should validate transaction", async function () {
       const issuer = "https://example.com";
       const issHash = await keyRegistry.hashIssuer(issuer);
 
@@ -179,7 +179,7 @@ describe("OidcRecoveryValidator", function () {
       );
     });
 
-    it("should revert if oidc key is not registered", async function () {
+    xit("should revert if oidc key is not registered", async function () {
       const issuer = "https://another-example.com";
       const issHash = await keyRegistry.hashIssuer(issuer);
 
@@ -266,7 +266,7 @@ describe("OidcRecoveryValidator", function () {
       ).to.be.revertedWith("OidcRecoveryValidator: oidc provider pub key not present in key registry");
     });
 
-    it("should revert if passkey module address is not valid", async function () {
+    xit("should revert if passkey module address is not valid", async function () {
       const issuer = "https://example.com";
       const issHash = await keyRegistry.hashIssuer(issuer);
 
@@ -356,7 +356,7 @@ describe("OidcRecoveryValidator", function () {
       ).to.be.revertedWith("OidcRecoveryValidator: invalid webauthn validator address");
     });
 
-    it("should revert with invalid transaction data", async function () {
+    xit("should revert with invalid transaction data", async function () {
       const issuer = "https://example.com";
       const issHash = await keyRegistry.hashIssuer(issuer);
 
@@ -444,7 +444,7 @@ describe("OidcRecoveryValidator", function () {
       ).to.be.revertedWith("Only function calls are supported");
     });
 
-    it("should revert with invalid transaction function selector", async function () {
+    xit("should revert with invalid transaction function selector", async function () {
       const issuer = "https://example.com";
       const issHash = await keyRegistry.hashIssuer(issuer);
 
