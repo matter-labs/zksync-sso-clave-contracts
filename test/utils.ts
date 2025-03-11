@@ -11,7 +11,7 @@ import { readFileSync } from "fs";
 import { promises } from "fs";
 import * as hre from "hardhat";
 import { AsyncFunc } from "mocha";
-import { Address, isHex, toHex, zeroAddress } from "viem";
+import { Address, isHex, toHex } from "viem";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
 
@@ -115,17 +115,6 @@ export class ContractFixtures {
     return isHex(contractAddress) ? contractAddress : toHex(contractAddress);
   }
 
-  private _guardianRecoveryValidator: GuardianRecoveryValidator;
-  async getGuardianRecoveryValidator() {
-    if (this._guardianRecoveryValidator === undefined) {
-      const webAuthVerifier = await this.getWebAuthnVerifierContract();
-      const aaFactoryAddress = await this.getAaFactoryAddress();
-      const contract = await create2("GuardianRecoveryValidator", this.wallet, ethersStaticSalt, [await webAuthVerifier.getAddress(), aaFactoryAddress]);
-      this._guardianRecoveryValidator = GuardianRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
-    }
-    return this._guardianRecoveryValidator;
-  }
-
   private _oidcVerifier: Groth16Verifier;
   async getJOidcVerifier() {
     if (!this._oidcVerifier) {
@@ -146,6 +135,22 @@ export class ContractFixtures {
     }
 
     return this._oidcRecoveryValidator;
+  }
+
+  private _guardianRecoveryValidator: GuardianRecoveryValidator;
+  async getGuardianRecoveryValidator() {
+    if (this._guardianRecoveryValidator === undefined) {
+      const webAuthVerifier = await this.getWebAuthnVerifierContract();
+      const contract = await create2("GuardianRecoveryValidator", this.wallet, ethersStaticSalt, []);
+      const proxyContract = await create2("TransparentProxy", this.wallet, ethersStaticSalt, [
+        await contract.getAddress(),
+        contract.interface.encodeFunctionData(
+          "initialize",
+          [await webAuthVerifier.getAddress()],
+        )]);
+      this._guardianRecoveryValidator = GuardianRecoveryValidator__factory.connect(await proxyContract.getAddress(), this.wallet);
+    }
+    return this._guardianRecoveryValidator;
   }
 
   private _accountImplContract: SsoAccount;
@@ -193,7 +198,7 @@ export class ContractFixtures {
     aaFactoryAddress: string,
     sessionKeyValidatorAddress: string,
     guardianRecoveryValidatorAddress: string,
-    oidcRecoveryValidatorAddress: string,
+    webAuthValidatorAddress: string,
   ): Promise<ExampleAuthServerPaymaster> {
     const contract = await create2(
       "ExampleAuthServerPaymaster",
@@ -203,7 +208,7 @@ export class ContractFixtures {
         aaFactoryAddress,
         sessionKeyValidatorAddress,
         guardianRecoveryValidatorAddress,
-        oidcRecoveryValidatorAddress,
+        webAuthValidatorAddress,
       ],
     );
     const paymasterAddress = ExampleAuthServerPaymaster__factory.connect(await contract.getAddress(), this.wallet);
@@ -446,6 +451,7 @@ export class RecordedResponse {
     this.b64SignedChallenge = responseData.response.response.signature;
     this.passkeyBytes = convertObjArrayToUint8Array(responseData.authenticator.credentialPublicKey);
     this.expectedOrigin = responseData.expectedOrigin;
+    this.credentialId = responseData.authenticator.credentialID;
   }
 
   getXyPublicKeys() {
@@ -466,6 +472,8 @@ export class RecordedResponse {
   readonly passkeyBytes: Uint8Array;
   // the domain linked the passkey that needs to be validated
   readonly expectedOrigin: string;
+  // the unique id encoded in the client data
+  readonly credentialId: string;
 }
 
 const SNAPSHOTS: SnapshotRestorer[] = [];

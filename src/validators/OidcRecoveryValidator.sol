@@ -98,14 +98,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   ///      - Calls the verifier contract to validate the zk proof.
   ///      - If the proof is valid, the transaction is approved, allowing `WebAuthValidator` to add the passkey.
   /// @param signedHash The hash of the transaction data that was signed.
-  /// @param signature The signature to be verified, interpreted as an `OidcSignature`.
   /// @param transaction The transaction data being validated.
   /// @return true if the transaction is valid and authorized, false otherwise.
-  function validateTransaction(
-    bytes32 signedHash,
-    bytes calldata signature,
-    Transaction calldata transaction
-  ) external view returns (bool) {
+  function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external view returns (bool) {
     require(transaction.to <= type(uint160).max, "OidcRecoveryValidator: Transaction.to overflow");
     require(
       address(uint160(transaction.to)) == webAuthValidator,
@@ -123,7 +118,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);
     Groth16Verifier verifierContract = Groth16Verifier(verifier);
-    OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
+    OidcSignature memory oidcSignature = abi.decode(transaction.signature, (OidcSignature));
     OidcData memory oidcData = accountData[msg.sender];
     OidcKeyRegistry.Key memory key = oidcSignature.key;
     require(

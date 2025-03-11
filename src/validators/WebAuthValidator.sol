@@ -10,6 +10,7 @@ import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Base64 } from "solady/src/utils/Base64.sol";
 import { JSONParserLib } from "solady/src/utils/JSONParserLib.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 /// @title WebAuthValidator
 /// @author Matter Labs
@@ -19,74 +20,119 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   using JSONParserLib for JSONParserLib.Item;
   using JSONParserLib for string;
 
+  /// @dev P256Verify precompile implementation, as defined in RIP-7212, is found at
+  /// https://github.com/matter-labs/era-contracts/blob/main/system-contracts/contracts/precompiles/P256Verify.yul
   address private constant P256_VERIFIER = address(0x100);
+
+  error NOT_KEY_OWNER(address account);
+
+  // check for secure validation: bit 0 = 1 (user present), bit 2 = 1 (user verified)
   bytes1 private constant AUTH_DATA_MASK = 0x05;
   bytes32 private constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
   bytes32 private constant HIGH_R_MAX = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
 
-  event PasskeyCreated(address indexed keyOwner, string originDomain);
+  event PasskeyCreated(address indexed keyOwner, string originDomain, bytes credentialId);
+  event PasskeyRemoved(address indexed keyOwner, string originDomain, bytes credentialId);
 
-  // The layout is unusual due to EIP-7562 storage read restrictions for validation phase.
-  mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
-  mapping(string originDomain => mapping(address accountAddress => bytes32)) public upperKeyHalf;
+  mapping(string originDomain => mapping(bytes credentialId => mapping(address accountAddress => bytes32[2] publicKey)))
+    public publicKeys;
+
+  function getAccountKey(
+    string calldata originDomain,
+    bytes calldata credentialId,
+    address accountAddress
+  ) external view returns (bytes32[2] memory) {
+    return publicKeys[originDomain][credentialId][accountAddress];
+  }
+
+  mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public registeredAddress;
+
+  struct PasskeyId {
+    string domain;
+    bytes credentialId;
+  }
 
   /// @notice Runs on module install
   /// @param data ABI-encoded WebAuthn passkey to add immediately, or empty if not needed
   function onInstall(bytes calldata data) external override {
     if (data.length > 0) {
-      require(addValidationKey(data), "WebAuthValidator: key already exists");
+      (bytes memory credentialId, bytes32[2] memory rawPublicKey, string memory originDomain) = abi.decode(
+        data,
+        (bytes, bytes32[2], string)
+      );
+      if (!addValidationKey(credentialId, rawPublicKey, originDomain)) {
+        revert Errors.WEBAUTHN_KEY_EXISTS();
+      }
     }
   }
 
   /// @notice Runs on module uninstall
   /// @param data ABI-encoded array of origin domains to remove keys for
   function onUninstall(bytes calldata data) external override {
-    string[] memory domains = abi.decode(data, (string[]));
-    for (uint256 i = 0; i < domains.length; i++) {
-      string memory domain = domains[i];
-      lowerKeyHalf[domain][msg.sender] = 0x0;
-      upperKeyHalf[domain][msg.sender] = 0x0;
+    PasskeyId[] memory passkeyIds = abi.decode(data, (PasskeyId[]));
+    for (uint256 i = 0; i < passkeyIds.length; i++) {
+      PasskeyId memory passkeyId = passkeyIds[i];
+      removeValidationKey(passkeyId.credentialId, passkeyId.domain);
     }
   }
 
+  function removeValidationKey(bytes memory credentialId, string memory domain) public {
+    if (registeredAddress[domain][credentialId] != msg.sender) {
+      revert NOT_KEY_OWNER(registeredAddress[domain][credentialId]);
+    }
+    registeredAddress[domain][credentialId] = address(0);
+    publicKeys[domain][credentialId][msg.sender] = [bytes32(0), bytes32(0)];
+
+    emit PasskeyRemoved(msg.sender, domain, credentialId);
+  }
+
   /// @notice Adds a WebAuthn passkey for the caller
-  /// @param key ABI-encoded WebAuthn public key to add
-  /// @return true if the key was added, false if it was updated
-  function addValidationKey(bytes calldata key) public returns (bool) {
-    (bytes32[2] memory key32, string memory originDomain) = abi.decode(key, (bytes32[2], string));
-    bytes32 initialLowerHalf = lowerKeyHalf[originDomain][msg.sender];
-    bytes32 initialUpperHalf = upperKeyHalf[originDomain][msg.sender];
+  /// @param credentialId unique public identifier for the key
+  /// @param rawPublicKey ABI-encoded WebAuthn public key to add
+  /// @param originDomain the domain this associated with
+  /// @return true if the key was added, false if one already exists
+  function addValidationKey(
+    bytes memory credentialId,
+    bytes32[2] memory rawPublicKey,
+    string memory originDomain
+  ) public returns (bool) {
+    bytes32[2] memory initialAccountKey = publicKeys[originDomain][credentialId][msg.sender];
+    if (uint256(initialAccountKey[0]) != 0 || uint256(initialAccountKey[1]) != 0) {
+      // only allow adding new keys, no overwrites/updates
+      return false;
+    }
+    if (registeredAddress[originDomain][credentialId] != address(0)) {
+      // this key already exists on the domain for an existing account
+      return false;
+    }
+    if (rawPublicKey[0] == 0 && rawPublicKey[1] == 0) {
+      // empty keys aren't valid
+      return false;
+    }
 
-    // we might want to support multiple passkeys per domain
-    lowerKeyHalf[originDomain][msg.sender] = key32[0];
-    upperKeyHalf[originDomain][msg.sender] = key32[1];
+    publicKeys[originDomain][credentialId][msg.sender] = rawPublicKey;
+    registeredAddress[originDomain][credentialId] = msg.sender;
 
-    // we're returning true if this was a new key, false for update
-    bool keyExists = initialLowerHalf == 0 && initialUpperHalf == 0;
+    emit PasskeyCreated(msg.sender, originDomain, credentialId);
 
-    emit PasskeyCreated(msg.sender, originDomain);
-
-    return keyExists;
+    return true;
   }
 
   /// @notice Validates a WebAuthn signature
   /// @param signedHash The hash of the signed message
   /// @param signature The signature to validate
   /// @return true if the signature is valid
-  function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+  function validateSignature(bytes32 signedHash, bytes calldata signature) external view returns (bool) {
     return webAuthVerify(signedHash, signature);
   }
 
   /// @notice Validates a transaction signed with a passkey
   /// @dev Does not validate the transaction signature field, which is expected to be different due to the modular format
   /// @param signedHash The hash of the signed transaction
-  /// @param signature The signature to validate
+  /// @param transaction The transaction to validate
   /// @return true if the signature is valid
-  function validateTransaction(
-    bytes32 signedHash,
-    bytes calldata signature,
-    Transaction calldata
-  ) external view returns (bool) {
+  function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external view returns (bool) {
+    (bytes memory signature, , ) = abi.decode(transaction.signature, (bytes, address, bytes));
     return webAuthVerify(signedHash, signature);
   }
 
@@ -99,21 +145,26 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   /// @param fatSignature The signature to validate (authenticator data, client data, [r, s])
   /// @return true if the signature is valid
   function webAuthVerify(bytes32 transactionHash, bytes memory fatSignature) internal view returns (bool) {
-    (bytes memory authenticatorData, string memory clientDataJSON, bytes32[2] memory rs) = _decodeFatSignature(
-      fatSignature
-    );
+    (
+      bytes memory authenticatorData,
+      string memory clientDataJSON,
+      bytes32[2] memory rs,
+      bytes memory credentialId
+    ) = _decodeFatSignature(fatSignature);
 
-    if (rs[0] <= 0 || rs[0] > HIGH_R_MAX || rs[1] <= 0 || rs[1] > LOW_S_MAX) {
+    // prevent signature replay https://yondon.blog/2019/01/01/how-not-to-use-ecdsa/
+    if (uint256(rs[0]) == 0 || rs[0] > HIGH_R_MAX || uint256(rs[1]) == 0 || rs[1] > LOW_S_MAX) {
       return false;
     }
 
-    // check if the flags are set
+    // https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#attestedcredentialdata
     if (authenticatorData[32] & AUTH_DATA_MASK != AUTH_DATA_MASK) {
       return false;
     }
 
-    // parse out the important fields (type, challenge, origin, crossOrigin): https://goo.gl/yabPex
+    // parse out the required fields (type, challenge, crossOrigin): https://goo.gl/yabPex
     JSONParserLib.Item memory root = JSONParserLib.parse(clientDataJSON);
+    // challenge should contain the transaction hash, ensuring that the transaction is signed
     string memory challenge = root.at('"challenge"').value().decodeString();
     bytes memory challengeData = Base64.decode(challenge);
     if (challengeData.length != 32) {
@@ -123,20 +174,25 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       return false;
     }
 
+    // type ensures the signature was created from a validation request
     string memory type_ = root.at('"type"').value().decodeString();
     if (!Strings.equal("webauthn.get", type_)) {
       return false;
     }
 
+    // the origin determines which key to validate against
+    // as passkeys are linked to domains, so the storage mapping reflects that
     string memory origin = root.at('"origin"').value().decodeString();
-    bytes32[2] memory pubkey;
-    pubkey[0] = lowerKeyHalf[origin][msg.sender];
-    pubkey[1] = upperKeyHalf[origin][msg.sender];
-    // This really only validates the origin is set
-    if (pubkey[0] == 0 || pubkey[1] == 0) {
+    bytes32[2] memory publicKey = publicKeys[origin][credentialId][msg.sender];
+    if (uint256(publicKey[0]) == 0 && uint256(publicKey[1]) == 0) {
+      // no key found!
       return false;
     }
 
+    // cross-origin validation is optional, but explicitly not supported.
+    // cross-origin requests would be from embedding the auth request
+    // from another domain. The current SSO setup uses a pop-up instead of
+    // an i-frame, so we're rejecting these until the implemention supports it
     JSONParserLib.Item memory crossOriginItem = root.at('"crossOrigin"');
     if (!crossOriginItem.isUndefined()) {
       string memory crossOrigin = crossOriginItem.value();
@@ -146,11 +202,11 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     }
 
     bytes32 message = _createMessage(authenticatorData, bytes(clientDataJSON));
-    return callVerifier(P256_VERIFIER, message, rs, pubkey);
+    return callVerifier(P256_VERIFIER, message, rs, publicKey);
   }
 
   /// @inheritdoc IERC165
-  function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
+  function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
     return
       interfaceId == type(IERC165).interfaceId ||
       interfaceId == type(IModuleValidator).interfaceId ||
@@ -167,21 +223,19 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
 
   function _decodeFatSignature(
     bytes memory fatSignature
-  ) private pure returns (bytes memory authenticatorData, string memory clientDataSuffix, bytes32[2] memory rs) {
-    (authenticatorData, clientDataSuffix, rs) = abi.decode(fatSignature, (bytes, string, bytes32[2]));
-  }
-
-  /// @notice Verifies a message using the P256 curve.
-  /// @dev Useful for testing the P256 precompile
-  /// @param message The sha256 hash of the authenticator hash and hashed client data
-  /// @param rs The signature to validate (r, s) from the signed message
-  /// @param pubKey The public key to validate the signature against (x, y)
-  /// @return valid true if the signature is valid
-  function rawVerify(
-    bytes32 message,
-    bytes32[2] calldata rs,
-    bytes32[2] calldata pubKey
-  ) external view returns (bool valid) {
-    valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
+  )
+    private
+    pure
+    returns (
+      bytes memory authenticatorData,
+      string memory clientDataSuffix,
+      bytes32[2] memory rs,
+      bytes memory credentialId
+    )
+  {
+    (authenticatorData, clientDataSuffix, rs, credentialId) = abi.decode(
+      fatSignature,
+      (bytes, string, bytes32[2], bytes)
+    );
   }
 }

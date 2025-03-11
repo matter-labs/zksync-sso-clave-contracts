@@ -314,13 +314,11 @@ describe("SessionKeyModule tests", function () {
     assert(factoryContract != null, "No AA Factory deployed");
     const guardianRecoveryContract = await fixtures.getGuardianRecoveryValidator();
     assert(guardianRecoveryContract != null, "No Guardian Recovery deployed");
-    const oidcRecoveryContract = await fixtures.getOidcRecoveryValidator();
-    assert(oidcRecoveryContract != null, "No OIDC Recovery deployed");
     const authServerPaymaster = await fixtures.deployExampleAuthServerPaymaster(
       await factoryContract.getAddress(),
       await sessionModuleContract.getAddress(),
       await guardianRecoveryContract.getAddress(),
-      await oidcRecoveryContract.getAddress(),
+      await verifierContract.getAddress(),
     );
     assert(authServerPaymaster != null, "No Auth Server Paymaster deployed");
 
@@ -356,7 +354,6 @@ describe("SessionKeyModule tests", function () {
     const sessionKeyPayload = abiCoder.encode(["address", "bytes"], [sessionKeyModuleAddress, initSessionData]);
     const deployTx = await factoryContract.deployProxySsoAccount(
       randomSalt,
-      "session-key-test-id-" + randomBytes(32).toString(),
       [sessionKeyPayload],
       [fixtures.wallet.address],
     );
@@ -374,7 +371,7 @@ describe("SessionKeyModule tests", function () {
     expect(initState.status).to.equal(1, "initial session should be active");
 
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
-    assert(await account.k1IsOwner(fixtures.wallet.address));
+    assert(await account.isK1Owner(fixtures.wallet.address));
     assert(!await account.isHook(sessionKeyModuleAddress), "session key module should not be an execution hook");
     assert(await account.isModuleValidator(sessionKeyModuleAddress), "session key module should be a validator");
   });

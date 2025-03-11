@@ -3,7 +3,6 @@ pragma solidity ^0.8.24;
 
 import { IERC1271Upgradeable } from "@openzeppelin/contracts-upgradeable/interfaces/IERC1271Upgradeable.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
@@ -32,9 +31,9 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.
    */
   function isValidSignature(bytes32 hash, bytes memory signature) external view override returns (bytes4 magicValue) {
     if (signature.length == 65) {
-      (address signer, ECDSA.RecoverError error) = ECDSA.tryRecover(hash, signature);
+      (address signer, ECDSA.RecoverError err) = ECDSA.tryRecover(hash, signature);
       return
-        signer == address(0) || error != ECDSA.RecoverError.NoError || !_k1IsOwner(signer) ? bytes4(0) : _ERC1271_MAGIC;
+        signer == address(0) || err != ECDSA.RecoverError.NoError || !_isK1Owner(signer) ? bytes4(0) : _ERC1271_MAGIC;
     }
 
     (bytes memory decodedSignature, address validator) = SignatureDecoder.decodeSignatureNoHookData(signature);

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { ITimestampAsserter } from "../interfaces/ITimestampAsserter.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 /// @title Timestamp asserter locator
 /// @author Matter Labs
@@ -22,6 +23,6 @@ library TimestampAsserterLocator {
     if (block.chainid == 324) {
       return ITimestampAsserter(address(0x958F70e4Fd676c9CeAaFe5c48cB78CDD08b4880d));
     }
-    revert("Timestamp asserter is not deployed on this network");
+    revert Errors.NO_TIMESTAMP_ASSERTER(block.chainid);
   }
 }

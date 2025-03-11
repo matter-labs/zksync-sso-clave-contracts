@@ -1,6 +1,7 @@
 import "@nomicfoundation/hardhat-toolbox";
 
 import { ethers } from "ethers";
+import { writeFileSync } from "fs";
 import { task } from "hardhat/config";
 import { Wallet } from "zksync-ethers";
 
@@ -36,6 +37,60 @@ async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any
   return proxyAddress;
 }
 
+async function fundPaymaster(deployer: Wallet, paymaster: string, fund?: string | number) {
+  if (fund && fund != 0) {
+    console.log("Funding paymaster with", fund, "ETH...");
+    await (
+      await deployer.sendTransaction({
+        to: paymaster,
+        value: ethers.parseEther(fund.toString()),
+      })
+    ).wait();
+    console.log("Paymaster funded\n");
+  } else {
+    console.log("--fund flag not provided, skipping funding paymaster\n");
+  }
+}
+
+function getDeployer(hre, cmd) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { LOCAL_RICH_WALLETS, getProvider } = require("../test/utils");
+  console.log("Deploying to:", hre.network.name);
+  const provider = getProvider();
+
+  if (hre.network.name == "inMemoryNode" || hre.network.name == "dockerizedNode") {
+    console.log("Using local rich wallet");
+    cmd.fund = "1";
+    return new Wallet(LOCAL_RICH_WALLETS[0].privateKey, provider);
+  } else {
+    if (!process.env.WALLET_PRIVATE_KEY) throw "Wallet private key wasn't found in .env file!";
+    return new Wallet(process.env.WALLET_PRIVATE_KEY, provider);
+  }
+}
+
+function getArgs(cmd) {
+  if (cmd.only == BEACON_NAME) {
+    if (!cmd.implementation) {
+      throw "Account implementation (--implementation <value>) address must be provided to deploy beacon";
+    }
+    return [cmd.implementation];
+  }
+  if (cmd.only == FACTORY_NAME) {
+    if (!cmd.implementation) {
+      throw "Beacon (--beacon <value>) address must be provided to deploy factory";
+    }
+    return [cmd.implementation];
+  }
+  if (cmd.only == PAYMASTER_NAME) {
+    if (!cmd.factory || !cmd.sessions) {
+      throw "Factory (--factory <value>) and SessionModule (--sessions <value>) addresses must be provided to deploy paymaster";
+    }
+    return [cmd.factory, cmd.sessions];
+  }
+
+  throw `Unsupported '${cmd.only}' contract name. Use: ${BEACON_NAME}, ${FACTORY_NAME}, ${PAYMASTER_NAME}`;
+}
+
 task("deploy", "Deploys ZKsync SSO contracts")
   .addOptionalParam("only", "name of a specific contract to deploy")
   .addFlag("noProxy", "do not deploy transparent proxies for factory and modules")
@@ -44,94 +99,37 @@ task("deploy", "Deploys ZKsync SSO contracts")
   .addOptionalParam("sessions", "address of the sessions module to use in the paymaster")
   .addOptionalParam("beacon", "address of the beacon to use in the factory")
   .addOptionalParam("fund", "amount of ETH to send to the paymaster", "0")
+  .addOptionalParam("file", "where to save all contract locations (it not using only)")
   .setAction(async (cmd, hre) => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { LOCAL_RICH_WALLETS, getProvider } = require("../test/utils");
-    console.log("Deploying to:", hre.network.name);
-    const provider = getProvider();
-
-    let privateKey: string;
-    if (hre.network.name == "inMemoryNode" || hre.network.name == "dockerizedNode") {
-      console.log("Using local rich wallet");
-      privateKey = LOCAL_RICH_WALLETS[0].privateKey;
-      cmd.fund = "1";
-    } else {
-      if (!process.env.WALLET_PRIVATE_KEY) throw "Wallet private key wasn't found in .env file!";
-      privateKey = process.env.WALLET_PRIVATE_KEY;
-    }
-
-    const deployer = new Wallet(privateKey, provider);
-    console.log("Deployer address:", deployer.address);
-
-    async function fundPaymaster(paymaster: string, fund?: string | number) {
-      if (fund && fund != 0) {
-        console.log("Funding paymaster with", fund, "ETH...");
-        await (
-          await deployer.sendTransaction({
-            to: paymaster,
-            value: ethers.parseEther(cmd.fund),
-          })
-        ).wait();
-        console.log("Paymaster funded\n");
-      } else {
-        console.log("--fund flag not provided, skipping funding paymaster\n");
-      }
-    }
-
+    const deployer = getDeployer(hre, cmd);
     if (!cmd.only) {
-      const webauth = await deploy(WEBAUTH_NAME, deployer, !cmd.noProxy);
-      const sessions = await deploy(SESSIONS_NAME, deployer, !cmd.noProxy);
+      const passkey = await deploy(WEBAUTH_NAME, deployer, !cmd.noProxy);
+      const session = await deploy(SESSIONS_NAME, deployer, !cmd.noProxy);
       const implementation = await deploy(ACCOUNT_IMPL_NAME, deployer, false);
       const beacon = await deploy(BEACON_NAME, deployer, false, [implementation]);
-      const factory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon]);
+      const accountFactory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon]);
       const guardianInterface = new ethers.Interface((await hre.artifacts.readArtifact(GUARDIAN_RECOVERY_NAME)).abi);
-      const recovery = await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [webauth, factory], guardianInterface.encodeFunctionData("initialize", [webauth, factory]));
+      const recovery = await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [], guardianInterface.encodeFunctionData(
+        "initialize(address)",
+        [passkey],
+      ));
       const oidcKeyRegistryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_KEY_REGISTRY_NAME)).abi);
       const oidcKeyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, false, [], oidcKeyRegistryInterface.encodeFunctionData("initialize", [])); // TODO: Add proxy
       const oidcRecoveryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_RECOVERY_NAME)).abi);
       const oidcVerifier = await deploy(OIDC_VERIFIER_NAME, deployer, false, []);
-      const oidcRecovery = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier, webauth], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier, webauth]));
-      const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions, recovery, oidcRecovery]);
-
-      console.log(JSON.stringify({
-        oidcKeyRegistry: oidcKeyRegistry,
-        session: sessions,
-        passkey: webauth,
-        recovery: recovery,
-        recoveryOidc: oidcRecovery,
-        accountFactory: factory,
-        accountPaymaster: paymaster,
-      }, null, 2));
-
-      await fundPaymaster(paymaster, cmd.fund);
+      const oidcRecovery = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier, passkey], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier, passkey]));
+      const accountPaymaster = await deploy(PAYMASTER_NAME, deployer, false, [accountFactory, session, recovery, passkey, oidcRecovery]);
+      await fundPaymaster(deployer, accountPaymaster, cmd.fund);
+      if (cmd.file) {
+        writeFileSync(cmd.file, JSON.stringify({ session, passkey, accountFactory, accountPaymaster, oidcRecovery }));
+      }
     } else {
-      let args: any[] = [];
+      const args = getArgs(cmd);
 
-      if (cmd.only == BEACON_NAME) {
-        if (!cmd.implementation) {
-          throw "Account implementation (--implementation <value>) address must be provided to deploy beacon";
-        }
-        args = [cmd.implementation];
-      }
-      if (cmd.only == FACTORY_NAME) {
-        if (!cmd.implementation) {
-          throw "Beacon (--beacon <value>) address must be provided to deploy factory";
-        }
-        args = [cmd.implementation];
-      }
-      if (cmd.only == PAYMASTER_NAME) {
-        if (!cmd.factory || !cmd.sessions) {
-          throw "Factory (--factory <value>) and SessionModule (--sessions <value>) addresses must be provided to deploy paymaster";
-        }
-        args = [cmd.factory, cmd.sessions];
-      }
-      if (cmd.only == OIDC_KEY_REGISTRY_NAME) {
-        args = [];
-      }
       const deployedContract = await deploy(cmd.only, deployer, false, args);
 
       if (cmd.only == PAYMASTER_NAME) {
-        await fundPaymaster(deployedContract, cmd.fund);
+        await fundPaymaster(deployer, deployedContract, cmd.fund);
       }
     }
   });

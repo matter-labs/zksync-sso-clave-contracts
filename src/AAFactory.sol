@@ -4,39 +4,27 @@ pragma solidity ^0.8.24;
 import { DEPLOYER_SYSTEM_CONTRACT } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 import { IContractDeployer } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IContractDeployer.sol";
 import { SystemContractsCaller } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
-import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
+import { Errors } from "./libraries/Errors.sol";
 
 /// @title AAFactory
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract is used to deploy SSO accounts as beacon proxies.
 contract AAFactory {
-  using Strings for string;
-
   /// @notice Emitted when a new account is successfully created.
   /// @param accountAddress The address of the newly created account.
   /// @param uniqueAccountId A unique identifier for the account.
-  event AccountCreated(address indexed accountAddress, string uniqueAccountId);
+  event AccountCreated(address indexed accountAddress, bytes32 uniqueAccountId);
 
   /// @dev The bytecode hash of the beacon proxy, used for deploying proxy accounts.
   bytes32 public immutable beaconProxyBytecodeHash;
+  /// @dev The address of the SsoBeacon contract used for the SSO accounts' beacon proxies.
   address public immutable beacon;
 
   /// @notice A mapping from unique account IDs to their corresponding deployed account addresses.
-  mapping(string => address) public accountMappings;
-
-  /// @notice A mapping from account addresses to their corresponding unique account IDs.
-  mapping(address => string) public accountIds;
-
-  /// @notice A mapping that marks account IDs as being used for recovery.
-  /// @dev This is used to prevent the same account ID from being used for recovery, deployment and future uses.
-  mapping(string => address) public recoveryAccountIds;
-
-  error AccountAlreadyRegistered(string uniqueAccountId, address accountAddress);
-  error AccountNotRegistered(string uniqueAccountId, address accountAddress);
-  error AccountUsedForRecovery(string uniqueAccountId, address accountAddress);
+  mapping(bytes32 accountId => address deployedAccount) public accountMappings;
 
   /// @notice Constructor that initializes the factory with a beacon proxy bytecode hash and implementation contract address.
   /// @param _beaconProxyBytecodeHash The bytecode hash of the beacon proxy.
@@ -51,137 +39,43 @@ contract AAFactory {
   }
 
   /// @notice Deploys a new SSO account as a beacon proxy with the specified parameters.
-  /// @dev Uses `create2` to deploy a proxy account, allowing for deterministic addresses based on the provided salt.
-  /// @param _salt The salt used for the `create2` deployment to make the address deterministic.
-  /// @param _uniqueAccountId A unique identifier for the new account.
-  /// @param _initialValidators An array of initial validators for the new account.
-  /// @param _initialK1Owners An array of initial owners of the K1 key for the new account.
+  /// @dev Uses `create2` to deploy a proxy account, allowing for deterministic addresses based on the provided unique id.
+  /// @param uniqueId Use to generate a unique account id and deterministic address calculation (create2 salt).
+  /// @param initialValidators An array of initial validators for the new account.
+  /// @param initialK1Owners An array of initial owners of the K1 key for the new account.
   /// @return accountAddress The address of the newly deployed SSO account.
   function deployProxySsoAccount(
-    bytes32 _salt,
-    string calldata _uniqueAccountId,
-    bytes[] calldata _initialValidators,
-    address[] calldata _initialK1Owners
+    bytes32 uniqueId,
+    bytes[] calldata initialValidators,
+    address[] calldata initialK1Owners
   ) external returns (address accountAddress) {
-    (bool success, bytes memory returnData) = SystemContractsCaller.systemCallWithReturndata(
+    bytes32 uniqueAccountId = keccak256(abi.encodePacked(uniqueId, msg.sender));
+    address existingAccountAddress = accountMappings[uniqueAccountId];
+    if (existingAccountAddress != address(0)) {
+      revert Errors.ACCOUNT_ALREADY_EXISTS(existingAccountAddress);
+    }
+
+    bytes memory returnData = SystemContractsCaller.systemCallWithPropagatedRevert(
       uint32(gasleft()),
       address(DEPLOYER_SYSTEM_CONTRACT),
       uint128(0),
       abi.encodeCall(
         DEPLOYER_SYSTEM_CONTRACT.create2Account,
-        (_salt, beaconProxyBytecodeHash, abi.encode(beacon), IContractDeployer.AccountAbstractionVersion.Version1)
+        (
+          uniqueAccountId,
+          beaconProxyBytecodeHash,
+          abi.encode(beacon),
+          IContractDeployer.AccountAbstractionVersion.Version1
+        )
       )
     );
-    require(success, "Deployment failed");
     (accountAddress) = abi.decode(returnData, (address));
 
-    // Check if the account is already registered
-    // Note: this check is done at this point, to use `accountAddress` to process the error message.
-    require(
-      accountMappings[_uniqueAccountId] == address(0),
-      AccountAlreadyRegistered(_uniqueAccountId, accountAddress)
-    );
-    require(accountIds[accountAddress].equal(""), AccountAlreadyRegistered(_uniqueAccountId, accountAddress));
-    require(
-      recoveryAccountIds[_uniqueAccountId] == address(0),
-      AccountUsedForRecovery(_uniqueAccountId, accountAddress)
-    );
+    accountMappings[uniqueAccountId] = accountAddress;
 
-    // Initialize the newly deployed account with validators, hooks and K1 owners.
-    ISsoAccount(accountAddress).initialize(_initialValidators, _initialK1Owners);
+    // Initialize the newly deployed account with validators and K1 owners.
+    ISsoAccount(accountAddress).initialize(initialValidators, initialK1Owners);
 
-    _registerAccount(_uniqueAccountId, accountAddress);
-
-    emit AccountCreated(accountAddress, _uniqueAccountId);
-  }
-
-  /// @notice Registers an account with a given account ID.
-  /// @dev Can only be called by the account's validators.
-  /// @param _uniqueAccountId The unique identifier for the account.
-  /// @param _accountAddress The address of the account to register.
-  function registerAccount(
-    string calldata _uniqueAccountId,
-    address _accountAddress
-  ) external onlyAccountValidator(_accountAddress) {
-    require(
-      accountMappings[_uniqueAccountId] == address(0),
-      AccountAlreadyRegistered(_uniqueAccountId, _accountAddress)
-    );
-    require(accountIds[_accountAddress].equal(""), AccountAlreadyRegistered(_uniqueAccountId, _accountAddress));
-    require(
-      recoveryAccountIds[_uniqueAccountId] == address(0),
-      AccountUsedForRecovery(_uniqueAccountId, _accountAddress)
-    );
-
-    _registerAccount(_uniqueAccountId, _accountAddress);
-  }
-
-  function _registerAccount(string calldata _uniqueAccountId, address _accountAddress) internal {
-    accountMappings[_uniqueAccountId] = _accountAddress;
-    accountIds[_accountAddress] = _uniqueAccountId;
-  }
-
-  /// @notice Unregisters an account from the factory.
-  /// @dev Can only be called by the account's validators.
-  /// @param _uniqueAccountId The unique identifier for the account.
-  /// @param _accountAddress The address of the account to unregister.
-  function unregisterAccount(
-    string memory _uniqueAccountId,
-    address _accountAddress
-  ) external onlyAccountValidator(_accountAddress) {
-    require(
-      accountMappings[_uniqueAccountId] == _accountAddress,
-      AccountNotRegistered(_uniqueAccountId, _accountAddress)
-    );
-    require(
-      accountIds[_accountAddress].equal(_uniqueAccountId),
-      AccountNotRegistered(_uniqueAccountId, _accountAddress)
-    );
-
-    accountMappings[_uniqueAccountId] = address(0);
-    accountIds[_accountAddress] = "";
-  }
-
-  /// @notice Updates the account mapping for a given account ID during recovery.
-  /// @dev Can only be called by the account's validators.
-  /// @param _uniqueAccountId The unique identifier for the account.
-  /// @param _accountAddress The address of the account to update the mapping for.
-  function registerRecoveryBlockedAccount(
-    string calldata _uniqueAccountId,
-    address _accountAddress
-  ) external onlyAccountValidator(_accountAddress) {
-    require(
-      accountMappings[_uniqueAccountId] == address(0),
-      AccountAlreadyRegistered(_uniqueAccountId, _accountAddress)
-    );
-    require(
-      recoveryAccountIds[_uniqueAccountId] == address(0),
-      AccountUsedForRecovery(_uniqueAccountId, _accountAddress)
-    );
-
-    recoveryAccountIds[_uniqueAccountId] = _accountAddress;
-  }
-
-  /// @notice Unregisters a recovery blocked account from the factory.
-  /// @dev Can only be called by the account's validators.
-  /// @param _uniqueAccountId The unique identifier for the account.
-  /// @param _accountAddress The address of the account to unregister.
-  function unregisterRecoveryBlockedAccount(
-    string calldata _uniqueAccountId,
-    address _accountAddress
-  ) external onlyAccountValidator(_accountAddress) {
-    require(
-      recoveryAccountIds[_uniqueAccountId] == _accountAddress,
-      AccountNotRegistered(_uniqueAccountId, _accountAddress)
-    );
-
-    recoveryAccountIds[_uniqueAccountId] = address(0);
-  }
-
-  /// @notice Modifier that checks if the caller is a validator for the given account.
-  /// @param _accountAddress The address of the account to check the validator for.
-  modifier onlyAccountValidator(address _accountAddress) {
-    require(ISsoAccount(_accountAddress).isModuleValidator(msg.sender), "Unauthorized validator");
-    _;
+    emit AccountCreated(accountAddress, uniqueAccountId);
   }
 }

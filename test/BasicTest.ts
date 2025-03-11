@@ -1,7 +1,8 @@
 import { assert, expect } from "chai";
-import { ethers, parseEther, randomBytes } from "ethers";
+import { concat, ethers, keccak256, parseEther, randomBytes } from "ethers";
 import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
+import { toBytes } from "viem";
 import { SmartAccount, utils } from "zksync-ethers";
 
 import { SsoAccount__factory } from "../typechain-types";
@@ -51,14 +52,14 @@ describe("Basic tests", function () {
     expect(args, "the beacon address").to.equal(deployedBeaconAddress, "the deployment beacon");
 
     const randomSalt = randomBytes(32);
-    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args);
+    const uniqueSalt = keccak256(concat([randomSalt, toBytes(fixtures.wallet.address)]));
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, uniqueSalt, args);
 
     const preDeployAccountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
     expect(preDeployAccountCode, "expected deploy location").to.equal("0x", "nothing deployed here (yet)");
 
     const deployTx = await aaFactoryContract.deployProxySsoAccount(
       randomSalt,
-      "id" + randomBytes(32).toString(),
       [],
       [fixtures.wallet.address],
     );
@@ -72,7 +73,7 @@ describe("Basic tests", function () {
     expect(proxyAccountAddress, "the proxy account location").to.equal(standardCreate2Address, "be what create2 returns");
 
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
-    assert(await account.k1IsOwner(fixtures.wallet.address));
+    assert(await account.isK1Owner(fixtures.wallet.address));
   });
 
   it("should execute a simple transfer of ETH", async () => {
@@ -140,7 +141,7 @@ describe("Basic tests", function () {
       to: proxyAccountAddress,
       data: account.interface.encodeFunctionData("batchCall", [calls]),
       value: value * 2n,
-      gasLimit: 300_000n,
+      gasLimit: 600_000n,
     };
     // TODO: fix gas estimation
     // aaTx.gasLimit = await provider.estimateGas(aaTx);

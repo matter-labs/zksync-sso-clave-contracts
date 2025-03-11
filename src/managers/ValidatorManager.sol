@@ -5,7 +5,7 @@ import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC16
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/ExcessivelySafeCall.sol";
 
-import { Auth } from "../auth/Auth.sol";
+import { SelfAuth } from "../auth/SelfAuth.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
@@ -18,7 +18,7 @@ import { IModule } from "../interfaces/IModule.sol";
  * @dev Validators are stored in an enumerable set
  * @author https://getclave.io
  */
-abstract contract ValidatorManager is IValidatorManager, Auth {
+abstract contract ValidatorManager is IValidatorManager, SelfAuth {
   using EnumerableSet for EnumerableSet.AddressSet;
   // Interface helper library
   using ERC165Checker for address;
@@ -51,37 +51,46 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
 
   /// @inheritdoc IValidatorManager
   function listModuleValidators() external view override returns (address[] memory validatorList) {
-    validatorList = _moduleValidators().values();
+    validatorList = SsoStorage.validators().values();
   }
 
+  // Should not be set to private as it is called from SsoAccount's initialize
   function _addModuleValidator(address validator, bytes memory initData) internal {
     if (!_supportsModuleValidator(validator)) {
       revert Errors.VALIDATOR_ERC165_FAIL(validator);
     }
 
-    require(_moduleValidators().add(validator), "Validator already exists");
+    // If the module is already installed, it cannot be installed again (even as another type).
+    if (SsoStorage.validationHooks().contains(validator)) {
+      revert Errors.HOOK_ALREADY_EXISTS(validator, true);
+    }
+    if (SsoStorage.executionHooks().contains(validator)) {
+      revert Errors.HOOK_ALREADY_EXISTS(validator, false);
+    }
+    if (!SsoStorage.validators().add(validator)) {
+      revert Errors.VALIDATOR_ALREADY_EXISTS(validator);
+    }
+
     IModule(validator).onInstall(initData);
 
     emit ValidatorAdded(validator);
   }
 
-  function _removeModuleValidator(address validator) internal {
-    require(_moduleValidators().remove(validator), "Validator not found");
+  function _removeModuleValidator(address validator) private {
+    if (!SsoStorage.validators().remove(validator)) {
+      revert Errors.VALIDATOR_NOT_FOUND(validator);
+    }
 
     emit ValidatorRemoved(validator);
   }
 
   function _isModuleValidator(address validator) internal view returns (bool) {
-    return _moduleValidators().contains(validator);
+    return SsoStorage.validators().contains(validator);
   }
 
   function _supportsModuleValidator(address validator) private view returns (bool) {
     return
       validator.supportsInterface(type(IModuleValidator).interfaceId) &&
       validator.supportsInterface(type(IModule).interfaceId);
-  }
-
-  function _moduleValidators() private view returns (EnumerableSet.AddressSet storage moduleValidators) {
-    moduleValidators = SsoStorage.layout().moduleValidators;
   }
 }

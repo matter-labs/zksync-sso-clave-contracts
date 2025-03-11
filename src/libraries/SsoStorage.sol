@@ -4,28 +4,19 @@ pragma solidity ^0.8.24;
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 library SsoStorage {
-  //keccak256('zksync-sso.contracts.SsoStorage')-1
+  // keccak256('zksync-sso.contracts.SsoStorage') - 1
   bytes32 private constant SSO_STORAGE_SLOT = 0x996e49e905bb2c30d677a2ad554e4b964a479b19a0509deafafca5126b88ba23;
 
   struct Layout {
-    // ┌───────────────────┐
-    // │   Ownership Data  │
+    // Ownership Data
     EnumerableSet.AddressSet k1Owners;
-    uint256[50] __gap_0;
-    // └───────────────────┘
-
-    // ┌───────────────────┐
-    // │     Validation    │
+    // Validation
     EnumerableSet.AddressSet moduleValidators;
-    uint256[50] __gap_2;
-    // └───────────────────┘
-
-    // ┌───────────────────┐
-    // │       Hooks       │
+    // Hooks
     EnumerableSet.AddressSet validationHooks;
     EnumerableSet.AddressSet executionHooks;
-    uint256[50] __gap_4;
-    // └───────────────────┘
+    // Storage slots reserved for future upgrades
+    uint256[256] __RESERVED;
   }
 
   function layout() internal pure returns (Layout storage l) {
@@ -33,5 +24,17 @@ library SsoStorage {
     assembly {
       l.slot := slot
     }
+  }
+
+  function validators() internal view returns (EnumerableSet.AddressSet storage) {
+    return layout().moduleValidators;
+  }
+
+  function validationHooks() internal view returns (EnumerableSet.AddressSet storage) {
+    return layout().validationHooks;
+  }
+
+  function executionHooks() internal view returns (EnumerableSet.AddressSet storage) {
+    return layout().executionHooks;
   }
 }
