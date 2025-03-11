@@ -216,7 +216,7 @@ describe("OidcKeyRegistry", function () {
     expect(isValid).to.be.false;
   });
 
-  it(should set two google keys", async () => {
+  it("should set two google keys", async () => {
     const keys = Array.from({ length: 8 }, () => [
       "0x0000000000000000000000000000000000000000000000000000000000000000",
       "0x0000000000000000000000000000000000000000000000000000000000000000",
