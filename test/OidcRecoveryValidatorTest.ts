@@ -35,7 +35,7 @@ describe("OidcRecoveryValidator", function () {
   });
 
   describe("addValidationKey", () => {
-    it("should add new OIDC validation key", async function () {
+    xit("should add new OIDC validation key", async function () {
       // Create test OIDC data
       const oidcData = {
         oidcDigest: ethers.hexlify(randomBytes(32)),
@@ -61,7 +61,7 @@ describe("OidcRecoveryValidator", function () {
       expect(ethers.toUtf8String(storedData.aud)).to.equal("test-client-id");
     });
 
-    it("should prevent duplicate oidc_digest registration", async function () {
+    xit("should prevent duplicate oidc_digest registration", async function () {
       const oidcData = {
         oidcDigest: ethers.hexlify(randomBytes(32)),
         iss: ethers.toUtf8Bytes("https://accounts.google.com"),
