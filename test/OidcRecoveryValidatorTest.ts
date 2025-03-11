@@ -263,7 +263,7 @@ describe("OidcRecoveryValidator", function () {
           encodedSignature,
           transaction,
         ),
-      ).to.be.revertedWith("OidcRecoveryValidator: invalid oidc key");
+      ).to.be.revertedWith("OidcRecoveryValidator: oidc provider pub key not present in key registry");
     });
 
     it("should revert if passkey module address is not valid", async function () {

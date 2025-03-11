@@ -126,7 +126,10 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
     OidcData memory oidcData = accountData[msg.sender];
     OidcKeyRegistry.Key memory key = oidcSignature.key;
-    require(keyRegistryContract.verifyKey(key, oidcSignature.merkleProof), "OidcRecoveryValidator: invalid oidc key");
+    require(
+      keyRegistryContract.verifyKey(key, oidcSignature.merkleProof),
+      "OidcRecoveryValidator: oidc provider pub key not present in key registry"
+    );
 
     // Fill public inputs
     uint8 index = 0;
