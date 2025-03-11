@@ -164,17 +164,17 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     index++;
     publicInputs[index] = (uint256(signedHash) << 248) >> 248;
 
-    bool isValid = verifierContract.verifyProof(
-      oidcSignature.zkProof.pA,
-      oidcSignature.zkProof.pB,
-      oidcSignature.zkProof.pC,
-      publicInputs
+    require(
+      verifierContract.verifyProof(
+        oidcSignature.zkProof.pA,
+        oidcSignature.zkProof.pB,
+        oidcSignature.zkProof.pC,
+        publicInputs
+      ),
+      "OidcRecoveryValidator: zk proof verification failed"
     );
 
-    console.logString("isValid");
-    console.logBool(isValid);
-
-    return isValid;
+    return true;
   }
 
   /// @notice Unimplemented because signature validation is not required.
