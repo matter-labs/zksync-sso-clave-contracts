@@ -162,6 +162,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     index++;
 
     // Add tx hash split into two 31-byte chunks (fields)
+    // Reverse ensures correct little-endian representation
     publicInputs[index] = _reverse(uint256(signedHash) >> 8) >> 8;
     index++;
     publicInputs[index] = (uint256(signedHash) << 248) >> 248;
