@@ -199,6 +199,7 @@ export class ContractFixtures {
     sessionKeyValidatorAddress: string,
     guardianRecoveryValidatorAddress: string,
     webAuthValidatorAddress: string,
+    oidcRecoveryValidatorAddress: string,
   ): Promise<ExampleAuthServerPaymaster> {
     const contract = await create2(
       "ExampleAuthServerPaymaster",
@@ -209,6 +210,7 @@ export class ContractFixtures {
         sessionKeyValidatorAddress,
         guardianRecoveryValidatorAddress,
         webAuthValidatorAddress,
+        oidcRecoveryValidatorAddress
       ],
     );
     const paymasterAddress = ExampleAuthServerPaymaster__factory.connect(await contract.getAddress(), this.wallet);
