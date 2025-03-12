@@ -39,7 +39,6 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     ZkProof zkProof;
     OidcKeyRegistry.Key key;
     bytes32[] merkleProof;
-    uint[151] pubInputs;
   }
 
   mapping(address => OidcData) accountData;
@@ -118,7 +117,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);
     Groth16Verifier verifierContract = Groth16Verifier(verifier);
-    OidcSignature memory oidcSignature = abi.decode(transaction.signature, (OidcSignature));
+
+    (bytes memory signature, , ) = abi.decode(transaction.signature, (bytes, address, bytes));
+    OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
     OidcData memory oidcData = accountData[msg.sender];
     OidcKeyRegistry.Key memory key = oidcSignature.key;
     require(

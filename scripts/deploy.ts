@@ -117,11 +117,19 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const oidcKeyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, false, [], oidcKeyRegistryInterface.encodeFunctionData("initialize", [])); // TODO: Add proxy
       const oidcRecoveryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_RECOVERY_NAME)).abi);
       const oidcVerifier = await deploy(OIDC_VERIFIER_NAME, deployer, false, []);
-      const oidcRecovery = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier, passkey], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier, passkey]));
-      const accountPaymaster = await deploy(PAYMASTER_NAME, deployer, false, [accountFactory, session, recovery, passkey, oidcRecovery]);
+      const recoveryOidc = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier, passkey], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier, passkey]));
+      const accountPaymaster = await deploy(PAYMASTER_NAME, deployer, false, [accountFactory, session, recovery, passkey, recoveryOidc]);
       await fundPaymaster(deployer, accountPaymaster, cmd.fund);
       if (cmd.file) {
-        writeFileSync(cmd.file, JSON.stringify({ session, passkey, accountFactory, accountPaymaster, oidcRecovery }));
+        writeFileSync(cmd.file, JSON.stringify({
+          oidcKeyRegistry,
+          session,
+          passkey,
+          recovery,
+          recoveryOidc,
+          accountFactory,
+          accountPaymaster,
+        }, null, 2));
       }
     } else {
       const args = getArgs(cmd);
