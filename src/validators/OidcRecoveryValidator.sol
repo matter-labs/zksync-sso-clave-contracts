@@ -104,7 +104,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     OidcData memory oidcData = accountData[targetAccount];
     OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(data.issHash, data.kid);
 
-    bytes32 nonce = keccak256(abi.encodePacked(msg.sender, oidcData.recoverNonce));
+    bytes32 nonce = keccak256(abi.encode(msg.sender, oidcData.recoverNonce));
 
     // Fill public inputs
     uint8 index = 0;
@@ -161,9 +161,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
     OidcData memory oidcData = accountData[msg.sender];
 
-    bytes32 passkeyHash = keccak256(
-      abi.encodePacked(oidcSignature.newPasskeyPubKey[0], oidcSignature.newPasskeyPubKey[1])
-    );
+    bytes32 passkeyHash = keccak256(abi.encode(oidcSignature.newPasskeyPubKey[0], oidcSignature.newPasskeyPubKey[1]));
 
     require(oidcData.pendingPasskeyHash == passkeyHash, "OidcRecoveryValidator: Invalid passkey hash");
     require(oidcData.readyToRecover, "OidcRecoveryValidator: Not ready to recover");
