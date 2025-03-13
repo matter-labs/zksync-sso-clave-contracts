@@ -43,10 +43,6 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bytes32 pendingPasskeyHash;
   }
 
-  struct OidcSignature {
-    bytes32[2] newPasskeyPubKey;
-  }
-
   mapping(address => OidcData) accountData;
   mapping(bytes32 => address) digestIndex;
 
@@ -157,11 +153,10 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
       "OidcRecoveryValidator: Unauthorized function call"
     );
 
-    (bytes memory signature, , ) = abi.decode(transaction.signature, (bytes, address, bytes));
-    OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
+    // Decode the key from the transaction data and check against the pending passkey hash
+    (, bytes32[2] memory newPasskeyPubKey, ) = abi.decode(transaction.data[4:], (bytes, bytes32[2], string));
+    bytes32 passkeyHash = keccak256(abi.encode(newPasskeyPubKey[0], newPasskeyPubKey[1]));
     OidcData memory oidcData = accountData[msg.sender];
-
-    bytes32 passkeyHash = keccak256(abi.encode(oidcSignature.newPasskeyPubKey[0], oidcSignature.newPasskeyPubKey[1]));
 
     require(oidcData.pendingPasskeyHash == passkeyHash, "OidcRecoveryValidator: Invalid passkey hash");
     require(oidcData.readyToRecover, "OidcRecoveryValidator: Not ready to recover");
