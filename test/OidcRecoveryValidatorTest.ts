@@ -35,17 +35,20 @@ describe("OidcRecoveryValidator", function () {
   });
 
   describe("addValidationKey", () => {
-    xit("should add new OIDC validation key", async function () {
+    it("should add new OIDC validation key", async function () {
       // Create test OIDC data
       const oidcData = {
         oidcDigest: ethers.hexlify(randomBytes(32)),
         iss: ethers.toUtf8Bytes("https://accounts.google.com"),
         aud: ethers.toUtf8Bytes("test-client-id"),
+        readyToRecover: false,
+        pendingPasskeyHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+        recoverNonce: 0,
       };
 
       // Encode the OIDC data
       const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(bytes32 oidcDigest, bytes iss, bytes aud)"],
+        ["tuple(bytes32 oidcDigest, bytes iss, bytes aud, bool readyToRecover, bytes32 pendingPasskeyHash, uint256 recoverNonce)"],
         [oidcData],
       );
 
@@ -54,11 +57,14 @@ describe("OidcRecoveryValidator", function () {
       await tx.wait();
 
       // Verify the key was added
-      const storedData = await oidcValidator.accountData(ownerWallet.address);
+      const storedData = (await oidcValidator.oidcDataForAddress(ownerWallet.address))[0];
 
       expect(storedData.oidcDigest).to.equal(oidcData.oidcDigest);
       expect(ethers.toUtf8String(storedData.iss)).to.equal("https://accounts.google.com");
       expect(ethers.toUtf8String(storedData.aud)).to.equal("test-client-id");
+      expect(storedData.readyToRecover).to.be.false;
+      expect(storedData.pendingPasskeyHash).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
+      expect(storedData.recoverNonce).to.equal(0);
     });
 
     xit("should prevent duplicate oidc_digest registration", async function () {
