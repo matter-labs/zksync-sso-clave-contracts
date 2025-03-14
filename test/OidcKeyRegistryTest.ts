@@ -224,9 +224,6 @@ describe("OidcKeyRegistry", function () {
       "0x",
     ]);
 
-    const currentIndex = await oidcKeyRegistry.keyIndex();
-    const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
-
     const issuer = "https://google.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
 

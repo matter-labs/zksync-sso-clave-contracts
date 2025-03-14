@@ -2,7 +2,7 @@ import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { expect } from "chai";
 import { randomBytes } from "crypto";
 import { ethers } from "ethers";
-import { parseEther, zeroAddress } from "viem";
+import { pad, parseEther, zeroAddress } from "viem";
 import { Provider, SmartAccount, Wallet } from "zksync-ethers";
 
 import { AAFactory, OidcKeyRegistry, OidcRecoveryValidator, WebAuthValidator } from "../typechain-types";
@@ -16,8 +16,10 @@ describe("OidcRecoveryValidator", function () {
   let keyRegistry: OidcKeyRegistry;
   let webAuthValidator: WebAuthValidator;
   let ownerWallet: Wallet;
+  const testWallet: Wallet = new Wallet("0x447f61a10b23ca123671e0ca8b2bb4f81d3d7485b70be9ec03fe8cdd49b7ec2e", provider);
   const JWK_MODULUS_64 = "y8TPCPz2Fp0OhBxsxu6d_7erT9f9XJ7mx7ZJPkkeZRxhdnKtg327D4IGYsC4fLAfpkC8qN58sZGkwRTNs-i7yaoD5_8nupq1tPYvnt38ddVghG9vws-2MvxfPQ9m2uxBEdRHmels8prEYGCH6oFKcuWVsNOt4l_OPoJRl4uiuiwd6trZik2GqDD_M6bn21_w6AD_jmbzN4mh8Od4vkA1Z9lKb3Qesksxdog-LWHsljN8ieiz1NhbG7M-GsIlzu-typJfud3tSJ1QHb-E_dEfoZ1iYK7pMcojb5ylMkaCj5QySRdJESq9ngqVRDjF4nX8DK5RQUS7AkrpHiwqyW0Csw";
   const JWK_MODULUS = base64ToCircomBigInt(JWK_MODULUS_64);
+  const AUD = "866068535821-e9em0h73pee93q4evoajtnnkldsjhqdk.apps.googleusercontent.com";
 
   this.beforeEach(async () => {
     fixtures = new ContractFixtures();
@@ -31,6 +33,10 @@ describe("OidcRecoveryValidator", function () {
     await (await fixtures.wallet.sendTransaction({
       value: parseEther("0.2"),
       to: ownerWallet.address,
+    })).wait();
+    await (await fixtures.wallet.sendTransaction({
+      value: parseEther("0.2"),
+      to: testWallet.address,
     })).wait();
   });
 
@@ -101,8 +107,54 @@ describe("OidcRecoveryValidator", function () {
   });
 
   describe("startRecovery", () => {
-    xit("should start recovery process", async function () {
+    it("should start recovery process", async function () {
+      const issuer = "https://google.com";
+      const issHash = await keyRegistry.hashIssuer(issuer);
 
+      const key = {
+        issHash,
+        kid: pad("0x763f7c4cd26a1eb2b1b39a88f4434d1f4d9a368b"),
+        n: JWK_MODULUS,
+        e: "0x010001",
+      };
+      await keyRegistry.addKey(key);
+
+      const oidcData = {
+        oidcDigest: "0x1F481CE78887D0D19431F98D0990D76044A3AC70DCEC0E620263707F50A5085D",
+        iss: ethers.toUtf8Bytes(issuer),
+        aud: ethers.toUtf8Bytes(AUD),
+        readyToRecover: false,
+        pendingPasskeyHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+        recoverNonce: 0,
+      };
+
+      const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["tuple(bytes32 oidcDigest, bytes iss, bytes aud, bool readyToRecover, bytes32 pendingPasskeyHash, uint256 recoverNonce)"],
+        [oidcData],
+      );
+
+      await oidcValidator.connect(ownerWallet).addValidationKey(encodedData);
+
+      const keypassPubKey = [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))];
+      const keypassPubKeyHash = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(["bytes32[2]"], [keypassPubKey]));
+
+      const startRecoveryData = {
+        zkProof: {
+          pA: [pad("0x14F02B8CE3A7BC3AE329A6D51E7DFF440578CC8F44D72F25F84AD80978C0E711"), pad("0x248C0907F33A8787B5C1119671499AEBFCB5E0C68D85CE76D703F8E240A7CA61")],
+          pB: [
+            [pad("0x20F743FB8B59CDC480D5D8B018DDD7301B4C9BD3793D83A76BC42846D2A4ACF8"), pad("0x225CA8A2CE71430D35CA0AB7A177C1F3A0CB92EEC76DE9DB0F02FF4A954A2B66")],
+            [pad("0x246FC3E5E6BDC9DE034F6F842D94EF3174624C26309E498354B83117CEC616A6"), pad("0x2C98039374E9BEE6FCA6E3626B44FE625FF937CAEE908DBE6C7BB350A39916D7")],
+          ],
+          pC: [pad("0xDADA9586808649D1EFF72529C59B89B1D93BE71D99776B86718E5BFC36819BA"), pad("0xEE9F2420F4D7D9E69E135D3943AD5A6BF400CDCAC40EAE8D7F05EC79942DA0D")],
+        },
+        issHash,
+        kid: key.kid,
+        pendingPasskeyHash: keypassPubKeyHash,
+      };
+
+      const nonce = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(["bytes32", "bytes32"], [pad("0x0965204BA4e07863e72a367D1EC2e6aBc20765aC"), "0x0000000000000000000000000000000000000000000000000000000000000000"]));
+      console.log("nonce", nonce);
+      await oidcValidator.connect(ownerWallet).startRecovery(startRecoveryData, ownerWallet.address);
     });
   });
 

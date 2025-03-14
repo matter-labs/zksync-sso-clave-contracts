@@ -315,13 +315,13 @@ describe("SessionKeyModule tests", function () {
     const guardianRecoveryContract = await fixtures.getGuardianRecoveryValidator();
     assert(guardianRecoveryContract != null, "No Guardian Recovery deployed");
     const oidcRecoveryContract = await fixtures.getOidcRecoveryValidator();
-    assert(oidcRecoveryContract != null, "No Oidc Recovery deployed")
+    assert(oidcRecoveryContract != null, "No Oidc Recovery deployed");
     const authServerPaymaster = await fixtures.deployExampleAuthServerPaymaster(
       await factoryContract.getAddress(),
       await sessionModuleContract.getAddress(),
       await guardianRecoveryContract.getAddress(),
       await verifierContract.getAddress(),
-      await oidcRecoveryContract.getAddress()
+      await oidcRecoveryContract.getAddress(),
     );
     assert(authServerPaymaster != null, "No Auth Server Paymaster deployed");
 
