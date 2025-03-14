@@ -210,7 +210,7 @@ export class ContractFixtures {
         sessionKeyValidatorAddress,
         guardianRecoveryValidatorAddress,
         webAuthValidatorAddress,
-        oidcRecoveryValidatorAddress
+        oidcRecoveryValidatorAddress,
       ],
     );
     const paymasterAddress = ExampleAuthServerPaymaster__factory.connect(await contract.getAddress(), this.wallet);

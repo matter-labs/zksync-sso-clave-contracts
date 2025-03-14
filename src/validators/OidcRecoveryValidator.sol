@@ -25,6 +25,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bytes32 oidcDigest; // PoseidonHash(sub || aud || iss || salt)
     bytes iss; // Issuer
     bytes aud; // Audience
+    bool readyToRecover;
+    bytes32 pendingPasskeyHash;
+    uint256 recoverNonce;
   }
 
   struct ZkProof {
@@ -33,10 +36,11 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     uint[2] pC;
   }
 
-  struct OidcSignature {
+  struct StartRecoveryData {
     ZkProof zkProof;
-    OidcKeyRegistry.Key key;
-    bytes32[] merkleProof;
+    bytes32 issHash;
+    bytes32 kid;
+    bytes32 pendingPasskeyHash;
   }
 
   mapping(address => OidcData) accountData;
@@ -67,7 +71,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice Runs on module uninstall
   /// @param data unused
   function onUninstall(bytes calldata data) external override {
-    accountData[msg.sender] = OidcData(bytes32(0), bytes(""), bytes(""));
+    accountData[msg.sender] = OidcData(bytes32(0), bytes(""), bytes(""), false, bytes32(0), 0);
   }
 
   /// @notice Adds an `OidcData` for the caller.
@@ -89,41 +93,14 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     return isNew;
   }
 
-  /// @notice Validates a transaction to add a new passkey for the user.
-  /// @dev Ensures the transaction calls `addValidationKey` in `WebAuthValidator` and verifies the zk proof.
-  ///      - Queries `OidcKeyRegistry` for the provider's public key (`pkop`).
-  ///      - Calls the verifier contract to validate the zk proof.
-  ///      - If the proof is valid, the transaction is approved, allowing `WebAuthValidator` to add the passkey.
-  /// @param signedHash The hash of the transaction data that was signed.
-  /// @param transaction The transaction data being validated.
-  /// @return true if the transaction is valid and authorized, false otherwise.
-  function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external view returns (bool) {
-    require(transaction.to <= type(uint160).max, "OidcRecoveryValidator: Transaction.to overflow");
-    require(
-      address(uint160(transaction.to)) == webAuthValidator,
-      "OidcRecoveryValidator: invalid webauthn validator address"
-    );
-
-    require(transaction.data.length >= 4, "Only function calls are supported");
-    bytes4 selector = bytes4(transaction.data[:4]);
-
-    // Check for calling "addValidationKey" method by anyone on WebAuthValidator contract
-    require(
-      selector == WebAuthValidator.addValidationKey.selector,
-      "OidcRecoveryValidator: Unauthorized function call"
-    );
-
+  function startRecovery(StartRecoveryData calldata data, address targetAccount) external {
     OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);
     Groth16Verifier verifierContract = Groth16Verifier(verifier);
 
-    (bytes memory signature, , ) = abi.decode(transaction.signature, (bytes, address, bytes));
-    OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
-    OidcData memory oidcData = accountData[msg.sender];
-    OidcKeyRegistry.Key memory key = oidcSignature.key;
-    require(
-      keyRegistryContract.verifyKey(key, oidcSignature.merkleProof),
-      "OidcRecoveryValidator: oidc provider pub key not present in key registry"
-    );
+    OidcData memory oidcData = accountData[targetAccount];
+    OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(data.issHash, data.kid);
+
+    bytes32 nonce = keccak256(abi.encode(msg.sender, oidcData.recoverNonce));
 
     // Fill public inputs
     uint8 index = 0;
@@ -139,19 +116,54 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     // Add tx hash split into two 31-byte chunks (fields)
     // Reverse ensures correct little-endian representation
-    publicInputs[index] = _reverse(uint256(signedHash) >> 8) >> 8;
+    publicInputs[index] = _reverse(uint256(nonce) >> 8) >> 8;
     index++;
-    publicInputs[index] = (uint256(signedHash) << 248) >> 248;
+    publicInputs[index] = (uint256(nonce) << 248) >> 248;
 
     require(
-      verifierContract.verifyProof(
-        oidcSignature.zkProof.pA,
-        oidcSignature.zkProof.pB,
-        oidcSignature.zkProof.pC,
-        publicInputs
-      ),
+      verifierContract.verifyProof(data.zkProof.pA, data.zkProof.pB, data.zkProof.pC, publicInputs),
       "OidcRecoveryValidator: zk proof verification failed"
     );
+
+    accountData[targetAccount].pendingPasskeyHash = data.pendingPasskeyHash;
+    accountData[targetAccount].recoverNonce++;
+  }
+
+  /// @notice Validates a transaction to add a new passkey for the user.
+  /// @dev Ensures the transaction calls `addValidationKey` in `WebAuthValidator` and verifies the zk proof.
+  ///      - Queries `OidcKeyRegistry` for the provider's public key (`pkop`).
+  ///      - Calls the verifier contract to validate the zk proof.
+  ///      - If the proof is valid, the transaction is approved, allowing `WebAuthValidator` to add the passkey.
+  /// @param signedHash The hash of the transaction data that was signed.
+  /// @param transaction The transaction data being validated.
+  /// @return true if the transaction is valid and authorized, false otherwise.
+  function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external returns (bool) {
+    require(transaction.to <= type(uint160).max, "OidcRecoveryValidator: Transaction.to overflow");
+    require(
+      address(uint160(transaction.to)) == webAuthValidator,
+      "OidcRecoveryValidator: invalid webauthn validator address"
+    );
+
+    require(transaction.data.length >= 4, "Only function calls are supported");
+    bytes4 selector = bytes4(transaction.data[:4]);
+
+    // Check for calling "addValidationKey" method by anyone on WebAuthValidator contract
+    require(
+      selector == WebAuthValidator.addValidationKey.selector,
+      "OidcRecoveryValidator: Unauthorized function call"
+    );
+
+    // Decode the key from the transaction data and check against the pending passkey hash
+    (, bytes32[2] memory newPasskeyPubKey, ) = abi.decode(transaction.data[4:], (bytes, bytes32[2], string));
+    bytes32 passkeyHash = keccak256(abi.encode(newPasskeyPubKey[0], newPasskeyPubKey[1]));
+    OidcData memory oidcData = accountData[msg.sender];
+
+    require(oidcData.pendingPasskeyHash == passkeyHash, "OidcRecoveryValidator: Invalid passkey hash");
+    require(oidcData.readyToRecover, "OidcRecoveryValidator: Not ready to recover");
+
+    // Reset pending passkey hash
+    accountData[msg.sender].pendingPasskeyHash = bytes32(0);
+    accountData[msg.sender].readyToRecover = false;
 
     return true;
   }
