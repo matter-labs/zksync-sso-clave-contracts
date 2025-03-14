@@ -100,6 +100,12 @@ describe("OidcRecoveryValidator", function () {
     });
   });
 
+  describe("startRecovery", () => {
+    xit("should start recovery process", async function () {
+
+    });
+  });
+
   describe("validateTransaction", () => {
     xit("should validate transaction", async function () {
       const issuer = "https://example.com";
