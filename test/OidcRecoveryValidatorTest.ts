@@ -67,15 +67,19 @@ describe("OidcRecoveryValidator", function () {
       expect(storedData.recoverNonce).to.equal(0);
     });
 
-    xit("should prevent duplicate oidc_digest registration", async function () {
+    it("should prevent duplicate oidc_digest registration", async function () {
       const oidcData = {
         oidcDigest: ethers.hexlify(randomBytes(32)),
         iss: ethers.toUtf8Bytes("https://accounts.google.com"),
         aud: ethers.toUtf8Bytes("test-client-id"),
+        readyToRecover: false,
+        pendingPasskeyHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+        recoverNonce: 0,
       };
 
+      // Encode the OIDC data
       const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(bytes32 oidcDigest, bytes iss, bytes aud)"],
+        ["tuple(bytes32 oidcDigest, bytes iss, bytes aud, bool readyToRecover, bytes32 pendingPasskeyHash, uint256 recoverNonce)"],
         [oidcData],
       );
 
