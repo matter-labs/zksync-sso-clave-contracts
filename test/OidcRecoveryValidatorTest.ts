@@ -2,11 +2,11 @@ import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { expect } from "chai";
 import { randomBytes } from "crypto";
 import { ethers } from "ethers";
-import { pad, parseEther, zeroAddress } from "viem";
+import { Hex, pad, parseEther, toHex, zeroAddress } from "viem";
 import { Provider, SmartAccount, Wallet } from "zksync-ethers";
 
 import { AAFactory, OidcKeyRegistry, OidcRecoveryValidator, WebAuthValidator } from "../typechain-types";
-import { base64ToCircomBigInt, cacheBeforeEach, ContractFixtures, getProvider } from "./utils";
+import { base64ToCircomBigInt, cacheBeforeEach, ContractFixtures, getProvider, LOCAL_RICH_WALLETS } from "./utils";
 
 describe("OidcRecoveryValidator", function () {
   let fixtures: ContractFixtures;
@@ -16,8 +16,9 @@ describe("OidcRecoveryValidator", function () {
   let keyRegistry: OidcKeyRegistry;
   let webAuthValidator: WebAuthValidator;
   let ownerWallet: Wallet;
+  const secondWallet: Wallet = new Wallet(LOCAL_RICH_WALLETS[1].privateKey, provider);
   const testWallet: Wallet = new Wallet("0x447f61a10b23ca123671e0ca8b2bb4f81d3d7485b70be9ec03fe8cdd49b7ec2e", provider);
-  const JWK_MODULUS_64 = "y8TPCPz2Fp0OhBxsxu6d_7erT9f9XJ7mx7ZJPkkeZRxhdnKtg327D4IGYsC4fLAfpkC8qN58sZGkwRTNs-i7yaoD5_8nupq1tPYvnt38ddVghG9vws-2MvxfPQ9m2uxBEdRHmels8prEYGCH6oFKcuWVsNOt4l_OPoJRl4uiuiwd6trZik2GqDD_M6bn21_w6AD_jmbzN4mh8Od4vkA1Z9lKb3Qesksxdog-LWHsljN8ieiz1NhbG7M-GsIlzu-typJfud3tSJ1QHb-E_dEfoZ1iYK7pMcojb5ylMkaCj5QySRdJESq9ngqVRDjF4nX8DK5RQUS7AkrpHiwqyW0Csw";
+  const JWK_MODULUS_64 = "305hOVGLdm68E40mUPrxs02vabZGnsqOBEcKQWf4btOP0BWywIwQiRdGDQ3fx5f77HG5ZvZlnvVMkhFCLAGBXT7WeO37fHAKvSgTCN42iMC-x_GjlEuqq3rYP17dDjtiaaRjxQ5BvFgyMnQU5S_xS9m7GHNplVyX-tB53hPprUWzMYPMVBIsFMbN71KdHTF1u5ZqhyUMsIW0CtU-CfBLUF_i9UD8UcbUp0J9Ov7707vKMqve_o2E6ppjs5X8GrPDw2tIqqebPjE49DTK1aww6PiqC93a6o9PNlHm8W2mFx8Dq4MXe5yVIIfAOO0-YmbWc_H1DHlBG2Bu4Z73xOv0lQ";
   const JWK_MODULUS = base64ToCircomBigInt(JWK_MODULUS_64);
   const AUD = "866068535821-e9em0h73pee93q4evoajtnnkldsjhqdk.apps.googleusercontent.com";
 
@@ -107,13 +108,21 @@ describe("OidcRecoveryValidator", function () {
   });
 
   describe("startRecovery", () => {
+    function makeTuple<T>(a: T, b: T): [T, T] {
+      return [a, b];
+    }
+
+    function tuple(a: bigint, b: bigint): [Hex, Hex] {
+      return makeTuple(toHex(a), toHex(b));
+    }
+
     it("should start recovery process", async function () {
       const issuer = "https://google.com";
       const issHash = await keyRegistry.hashIssuer(issuer);
 
       const key = {
         issHash,
-        kid: pad("0x763f7c4cd26a1eb2b1b39a88f4434d1f4d9a368b"),
+        kid: pad("0x914fb9b087180bc0303284500c5f540c6d4f5e2f"),
         n: JWK_MODULUS,
         e: "0x010001",
       };
@@ -140,21 +149,24 @@ describe("OidcRecoveryValidator", function () {
 
       const startRecoveryData = {
         zkProof: {
-          pA: [pad("0x14F02B8CE3A7BC3AE329A6D51E7DFF440578CC8F44D72F25F84AD80978C0E711"), pad("0x248C0907F33A8787B5C1119671499AEBFCB5E0C68D85CE76D703F8E240A7CA61")],
-          pB: [
-            [pad("0x20F743FB8B59CDC480D5D8B018DDD7301B4C9BD3793D83A76BC42846D2A4ACF8"), pad("0x225CA8A2CE71430D35CA0AB7A177C1F3A0CB92EEC76DE9DB0F02FF4A954A2B66")],
-            [pad("0x246FC3E5E6BDC9DE034F6F842D94EF3174624C26309E498354B83117CEC616A6"), pad("0x2C98039374E9BEE6FCA6E3626B44FE625FF937CAEE908DBE6C7BB350A39916D7")],
-          ],
-          pC: [pad("0xDADA9586808649D1EFF72529C59B89B1D93BE71D99776B86718E5BFC36819BA"), pad("0xEE9F2420F4D7D9E69E135D3943AD5A6BF400CDCAC40EAE8D7F05EC79942DA0D")],
+          pA: tuple(16172984678736261064958018006543644663675721049254871031320428491359281707274n, 19682431337788456825193349438229814518020252724069919756952412680705418500225n),
+          pB: makeTuple(
+            tuple(4150567369693550792379557470122636765225925125808212654712117759263853163613n, 4324367369496459256550590895398624150055064944874752252817645707715962332440n),
+            tuple(15155910480833446214566736928531140340900353508329289325257128020116593056943n, 4987027780752140197944134054529005934989743270130418989900064225742700176611n),
+          ),
+          pC: tuple(3219988720289544328950179753252331035111876645844990660209918063379681209091n, 12683682623277827522761038492333188030929656831193042116084774843687392335592n),
         },
         issHash,
         kid: key.kid,
         pendingPasskeyHash: keypassPubKeyHash,
       };
 
-      const nonce = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(["bytes32", "bytes32"], [pad("0x0965204BA4e07863e72a367D1EC2e6aBc20765aC"), "0x0000000000000000000000000000000000000000000000000000000000000000"]));
-      console.log("nonce", nonce);
-      await oidcValidator.connect(ownerWallet).startRecovery(startRecoveryData, ownerWallet.address);
+      await oidcValidator.connect(secondWallet).startRecovery(startRecoveryData, ownerWallet.address, { gasLimit: 20_000_000 });
+
+      const storedData = (await oidcValidator.oidcDataForAddress(ownerWallet.address))[0];
+      expect(storedData.readyToRecover).to.be.true;
+      expect(storedData.pendingPasskeyHash).to.equal(keypassPubKeyHash);
+      expect(storedData.recoverNonce).to.equal(1);
     });
   });
 
@@ -599,6 +611,32 @@ describe("OidcRecoveryValidator", function () {
           transaction,
         ),
       ).to.be.revertedWith("OidcRecoveryValidator: Unauthorized function call");
+    });
+  });
+
+  describe("JWK Modulus", () => {
+    it("should serialize JWK Modulus", async function () {
+      const serialized = base64ToCircomBigInt(JWK_MODULUS_64);
+      const expected = [
+        "2585541717309049811235589644236878997",
+        "2334175582383814190061792373180164921",
+        "1284905435531671747360881595413676266",
+        "1770317779261591924339990404106491201",
+        "2538228099739988780003018058671502474",
+        "738414494651562022581989730690621175",
+        "1007768296435416935062553976399791089",
+        "215756340224652444141957566226647577",
+        "2631530606953591832080390031565656620",
+        "1460212624751936629208657360897879627",
+        "82259690604733637890237910425212428",
+        "504216172224848588982836147323760475",
+        "180434224065375267788699228107952769",
+        "1320075548358615991039194601674281098",
+        "2501293798923147803875127227049325623",
+        "2509960498164270818089470707591578319",
+        "4529187227630243827881885689073914",
+      ];
+      expect(serialized).to.deep.equal(expected);
     });
   });
 });

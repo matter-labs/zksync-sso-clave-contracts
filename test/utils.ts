@@ -504,7 +504,7 @@ export function cacheBeforeEach(initializer: AsyncFunc): void {
 }
 
 export const base64ToCircomBigInt = (data: string): string[] => {
-  const vec = Buffer.from(data, "base64url");
+  const vec = Buffer.from(data, "base64url").reverse();
   let num = 0n;
   for (let i = 0; i < vec.length; i++) {
     num += BigInt(vec[i]) << BigInt(8 * i);

@@ -100,7 +100,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     OidcData memory oidcData = accountData[targetAccount];
     OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(data.issHash, data.kid);
 
-    bytes32 nonce = keccak256(abi.encode(msg.sender, oidcData.recoverNonce));
+    bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce));
 
     // Fill public inputs
     uint8 index = 0;
@@ -116,9 +116,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     // Add tx hash split into two 31-byte chunks (fields)
     // Reverse ensures correct little-endian representation
-    publicInputs[index] = _reverse(uint256(nonce) >> 8) >> 8;
+    publicInputs[index] = _reverse(uint256(senderHash) >> 8) >> 8;
     index++;
-    publicInputs[index] = (uint256(nonce) << 248) >> 248;
+    publicInputs[index] = (uint256(senderHash) << 248) >> 248;
 
     require(
       verifierContract.verifyProof(data.zkProof.pA, data.zkProof.pB, data.zkProof.pC, publicInputs),
@@ -127,6 +127,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     accountData[targetAccount].pendingPasskeyHash = data.pendingPasskeyHash;
     accountData[targetAccount].recoverNonce++;
+    accountData[targetAccount].readyToRecover = true;
   }
 
   /// @notice Validates a transaction to add a new passkey for the user.
