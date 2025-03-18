@@ -20,23 +20,41 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   using JSONParserLib for JSONParserLib.Item;
   using JSONParserLib for string;
 
+  // Order of Layout: Types
+  struct PasskeyId {
+    string domain;
+    bytes credentialId;
+  }
+
+  // Order of Layout: State variables
+  /// @dev Mapping of public keys to the account address that owns them
+  mapping(string originDomain => mapping(bytes credentialId => mapping(address accountAddress => bytes32[2] publicKey)))
+    private publicKeys;
+
   /// @dev P256Verify precompile implementation, as defined in RIP-7212, is found at
   /// https://github.com/matter-labs/era-contracts/blob/main/system-contracts/contracts/precompiles/P256Verify.yul
   address private constant P256_VERIFIER = address(0x100);
 
-  error NOT_KEY_OWNER(address account);
-
-  // check for secure validation: bit 0 = 1 (user present), bit 2 = 1 (user verified)
+  /// @dev check for secure validation: bit 0 = 1 (user present), bit 2 = 1 (user verified)
   bytes1 private constant AUTH_DATA_MASK = 0x05;
   bytes32 private constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
   bytes32 private constant HIGH_R_MAX = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
 
+  // Order of Layout: Events
   event PasskeyCreated(address indexed keyOwner, string originDomain, bytes credentialId);
   event PasskeyRemoved(address indexed keyOwner, string originDomain, bytes credentialId);
 
-  mapping(string originDomain => mapping(bytes credentialId => mapping(address accountAddress => bytes32[2] publicKey)))
-    public publicKeys;
+  // Order of Layout: Errors
+  error NOT_KEY_OWNER(address account);
+  error KEY_EXISTS();
+  error ACCOUNT_EXISTS();
+  error EMPTY_KEY();
 
+  /// @notice This is helper function that returns the whole public key, as of solidity 0.8.24 the auto-generated getters only return half of the key
+  /// @param originDomain the domain this key is associated with (the auth-server)
+  /// @param credentialId the passkey unique identifier
+  /// @param accountAddress the address of the account that owns the key
+  /// @return publicKeys the public key
   function getAccountKey(
     string calldata originDomain,
     bytes calldata credentialId,
@@ -46,11 +64,6 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   }
 
   mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public registeredAddress;
-
-  struct PasskeyId {
-    string domain;
-    bytes credentialId;
-  }
 
   /// @notice Runs on module install
   /// @param data ABI-encoded WebAuthn passkey to add immediately, or empty if not needed
