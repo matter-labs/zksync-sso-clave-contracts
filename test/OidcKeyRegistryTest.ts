@@ -146,7 +146,7 @@ describe("OidcKeyRegistry", function () {
     await expect(oidcKeyRegistry.getKey(firstIssuerHash, nonExistentKid)).to.be.revertedWith("Key not found");
   });
 
-  it("should revert when trying to add too many keys with one issuer", async () => {
+  it("should revert when trying to add too many keys", async () => {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
 
@@ -160,9 +160,9 @@ describe("OidcKeyRegistry", function () {
     await expect(oidcKeyRegistry.addKeys(keys)).to.be.revertedWith("Key count limit exceeded");
   });
 
-  it("should not revert when adding the limit of keys with more than one issuer in a single call", async () => {
+  it("should revert when adding two different issuers", async () => {
     const issuers = ["https://issuer1.com", "https://issuer2.com"];
-    const keysPerIssuer = 8; // Adding the limit for 2 issuers
+    const keysPerIssuer = 4; // Adding the limit for 2 issuers
     const allKeys: { issHash: string; kid: string; n: string[]; e: string }[] = [];
 
     for (const issuer of issuers) {
@@ -176,40 +176,6 @@ describe("OidcKeyRegistry", function () {
       allKeys.push(...keys);
     }
 
-    await oidcKeyRegistry.addKeys(allKeys);
-
-    for (const key of allKeys) {
-      const storedKey = await oidcKeyRegistry.getKey(key.issHash, key.kid);
-      expect(storedKey.kid).to.equal(key.kid);
-    }
-  });
-
-  it("should revert when one of the issuers has too many keys", async () => {
-    const issuers = ["https://issuer1.com", "https://issuer2.com"];
-    const keysPerIssuer = 8; // Adding the limit for 2 issuers
-    const allKeys: { issHash: string; kid: string; n: string[]; e: string }[] = [];
-
-    for (const issuer of issuers) {
-      const issHash = await oidcKeyRegistry.hashIssuer(issuer);
-      const keys = Array.from({ length: keysPerIssuer }, (_, i) => ({
-        issHash,
-        kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}-${issuer}`)),
-        n: JWK_MODULUS,
-        e: "0x010001",
-      }));
-      allKeys.push(...keys);
-    }
-
-    // Add one more key to the first issuer
-    const extraKey = {
-      issHash: allKeys[0].issHash,
-      kid: ethers.keccak256(ethers.toUtf8Bytes(`key${keysPerIssuer + 1}-${issuers[0]}`)),
-      n: JWK_MODULUS,
-      e: "0x010001",
-    };
-    allKeys.push(extraKey);
-
-    await expect(oidcKeyRegistry.addKeys(allKeys)).to.be.revertedWith("Key count limit exceeded");
-
+    await expect(oidcKeyRegistry.addKeys(allKeys)).to.be.revertedWith("Issuer hash mismatch: All keys must have the same issuer");
   });
 });

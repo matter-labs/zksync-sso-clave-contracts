@@ -43,30 +43,13 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   }
 
   function _checkKeyCountLimit(Key[] memory newKeys) private pure {
-    bytes32[] memory issHashes = new bytes32[](newKeys.length);
-    uint8[] memory counts = new uint8[](newKeys.length);
-    uint256 issHashesCount = 0;
-
-    for (uint256 i = 0; i < newKeys.length; i++) {
-      bytes32 issHash = newKeys[i].issHash;
-      bool found = false;
-      uint8 j = 0;
-      while (j < issHashesCount && !found) {
-        if (issHashes[j] == issHash) {
-          counts[j]++;
-          found = true;
-        }
-        j++;
-      }
-      if (!found) {
-        issHashes[issHashesCount] = issHash;
-        counts[issHashesCount] = 1;
-        issHashesCount++;
-      }
+    require(newKeys.length <= MAX_KEYS, "Key count limit exceeded");
+    if (newKeys.length == 0) {
+      return;
     }
-
-    for (uint256 i = 0; i < issHashesCount; i++) {
-      require(counts[i] <= MAX_KEYS, "Key count limit exceeded");
+    bytes32 issHash = newKeys[0].issHash;
+    for (uint8 i = 1; i < newKeys.length; i++) {
+      require(newKeys[i].issHash == issHash, "Issuer hash mismatch: All keys must have the same issuer");
     }
   }
 
