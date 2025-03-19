@@ -26,7 +26,7 @@ describe("OidcKeyRegistry", function () {
     await expect(oidcKeyRegistry.getKey(issHash, nonExistentKid)).to.be.revertedWith("Key not found");
   });
 
-  it("should set one key", async () => {
+  it("should set one key and emit KeyAdded event", async () => {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
 
@@ -37,7 +37,9 @@ describe("OidcKeyRegistry", function () {
       e: "0x010001",
     };
 
-    await oidcKeyRegistry.addKey(key);
+    await expect(oidcKeyRegistry.addKey(key))
+      .to.emit(oidcKeyRegistry, "KeyAdded")
+      .withArgs(issHash, key.kid, 1);
 
     const storedKey = await oidcKeyRegistry.getKey(issHash, key.kid);
     expect(storedKey.kid).to.equal(key.kid);
@@ -46,7 +48,7 @@ describe("OidcKeyRegistry", function () {
     expect(storedKey.e).to.equal(key.e);
   });
 
-  it("should set multiple keys", async () => {
+  it("should set multiple keys and emit KeyAdded events", async () => {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
     const newKeys = Array.from({ length: 8 }, (_, i) => ({
@@ -56,7 +58,12 @@ describe("OidcKeyRegistry", function () {
       e: "0x010001",
     }));
 
-    await oidcKeyRegistry.addKeys(newKeys);
+    // Listen for KeyAdded events for each key
+    for (let i = 0; i < newKeys.length; i++) {
+      await expect(oidcKeyRegistry.addKeys([newKeys[i]]))
+        .to.emit(oidcKeyRegistry, "KeyAdded")
+        .withArgs(issHash, newKeys[i].kid, (i + 1) % 8); // Expecting the index to match the current key index
+    }
 
     for (let i = 0; i < 8; i++) {
       const storedKey = await oidcKeyRegistry.getKey(issHash, newKeys[i].kid);
