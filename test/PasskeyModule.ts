@@ -625,9 +625,7 @@ describe("Passkey validation", function () {
       const nextR1Key = await generateES256R1Key();
       assert(nextR1Key != null, "no second key was generated");
       const [newX, newY] = await getRawPublicKeyFromCrpyto(nextR1Key);
-      const keyUpdated = await passkeyValidator.addValidationKey(credentialId, [newX, newY], keyDomain);
-      const keyUpdatedReceipt = await keyUpdated.wait();
-      assert(keyUpdatedReceipt?.status == 1, "return false instead of revert");
+      await expect(passkeyValidator.addValidationKey(credentialId, [newX, newY], keyDomain)).to.be.revertedWithCustomError(passkeyValidator, "KEY_EXISTS");
       await verifyKeyStorage(passkeyValidator, keyDomain, [toHex(generatedX), toHex(generatedY)], credentialId, wallet, "ensure it was untouched");
 
       const newCredentialId = toHex(randomBytes(64));

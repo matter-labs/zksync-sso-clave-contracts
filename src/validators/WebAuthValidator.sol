@@ -6,17 +6,15 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
-import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Base64 } from "solady/src/utils/Base64.sol";
 import { JSONParserLib } from "solady/src/utils/JSONParserLib.sol";
-import { Errors } from "../libraries/Errors.sol";
 
 /// @title WebAuthValidator
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract allows secure user authentication using WebAuthn public keys.
-contract WebAuthValidator is VerifierCaller, IModuleValidator {
+contract WebAuthValidator is IModuleValidator {
   using JSONParserLib for JSONParserLib.Item;
   using JSONParserLib for string;
 
@@ -73,9 +71,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
         data,
         (bytes, bytes32[2], string)
       );
-      if (!addValidationKey(credentialId, rawPublicKey, originDomain)) {
-        revert Errors.WEBAUTHN_KEY_EXISTS();
-      }
+      addValidationKey(credentialId, rawPublicKey, originDomain);
     }
   }
 
@@ -99,36 +95,33 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     emit PasskeyRemoved(msg.sender, domain, credentialId);
   }
 
-  /// @notice Adds a WebAuthn passkey for the caller
+  /// @notice Adds a WebAuthn passkey for the caller, reverts otherwise
   /// @param credentialId unique public identifier for the key
   /// @param rawPublicKey ABI-encoded WebAuthn public key to add
   /// @param originDomain the domain this associated with
-  /// @return true if the key was added, false if one already exists
   function addValidationKey(
     bytes memory credentialId,
     bytes32[2] memory rawPublicKey,
     string memory originDomain
-  ) public returns (bool) {
+  ) public {
     bytes32[2] memory initialAccountKey = publicKeys[originDomain][credentialId][msg.sender];
     if (uint256(initialAccountKey[0]) != 0 || uint256(initialAccountKey[1]) != 0) {
       // only allow adding new keys, no overwrites/updates
-      return false;
+      revert KEY_EXISTS();
     }
     if (registeredAddress[originDomain][credentialId] != address(0)) {
       // this key already exists on the domain for an existing account
-      return false;
+      revert ACCOUNT_EXISTS();
     }
     if (rawPublicKey[0] == 0 && rawPublicKey[1] == 0) {
       // empty keys aren't valid
-      return false;
+      revert EMPTY_KEY();
     }
 
     publicKeys[originDomain][credentialId][msg.sender] = rawPublicKey;
     registeredAddress[originDomain][credentialId] = msg.sender;
 
     emit PasskeyCreated(msg.sender, originDomain, credentialId);
-
-    return true;
   }
 
   /// @notice Validates a WebAuthn signature
@@ -250,5 +243,45 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       fatSignature,
       (bytes, string, bytes32[2], bytes)
     );
+  }
+
+  /**
+   * @notice Calls the verifier function with given params
+   * @param verifier address     - Address of the verifier contract
+   * @param hash bytes32         - Signed data hash
+   * @param rs bytes32[2]        - Signature array for the r and s values
+   * @param pubKey bytes32[2]    - Public key coordinates array for the x and y values
+   * @return - bool - Return the success of the verification
+   */
+  function callVerifier(
+    address verifier,
+    bytes32 hash,
+    bytes32[2] memory rs,
+    bytes32[2] memory pubKey
+  ) internal view returns (bool) {
+    /**
+     * Prepare the input format
+     * input[  0: 32] = signed data hash
+     * input[ 32: 64] = signature r
+     * input[ 64: 96] = signature s
+     * input[ 96:128] = public key x
+     * input[128:160] = public key y
+     */
+    bytes memory input = abi.encodePacked(hash, rs[0], rs[1], pubKey[0], pubKey[1]);
+
+    // Make a call to verify the signature
+    (bool success, bytes memory data) = verifier.staticcall(input);
+
+    uint256 returnValue;
+    // Return true if the call was successful and the return value is 1
+    if (success && data.length > 0) {
+      assembly {
+        returnValue := mload(add(data, 0x20))
+      }
+      return returnValue == 1;
+    }
+
+    // Otherwise return false for the unsuccessful calls and invalid signatures
+    return false;
   }
 }
