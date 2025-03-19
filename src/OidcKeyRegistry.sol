@@ -53,8 +53,6 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   }
 
   function getKey(bytes32 issHash, bytes32 kid) public view returns (Key memory) {
-    require(issHash != 0, "Invalid issHash");
-    require(kid != 0, "Invalid kid");
     for (uint8 i = 0; i < MAX_KEYS; i++) {
       if (OIDCKeys[issHash][i].kid == kid) {
         return OIDCKeys[issHash][i];
