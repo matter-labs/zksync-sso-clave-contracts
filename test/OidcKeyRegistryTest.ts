@@ -145,4 +145,40 @@ describe("OidcKeyRegistry", function () {
     const firstIssuerHash = await oidcKeyRegistry.hashIssuer(issuers[0]);
     await expect(oidcKeyRegistry.getKey(firstIssuerHash, nonExistentKid)).to.be.revertedWith("Key not found");
   });
+
+  it("should revert when trying to add too many keys with one issuer", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+
+    const keys = Array.from({ length: 9 }, (_, i) => ({
+      issHash,
+      kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}`)),
+      n: JWK_MODULUS,
+      e: "0x010001",
+    }));
+
+    await expect(oidcKeyRegistry.addKeys(keys)).to.be.revertedWith("Key count limit exceeded");
+  });
+
+  it("should not revert when adding the limit of keys with more than one issuer", async () => {
+    const issuers = ["https://issuer1.com", "https://issuer2.com"];
+    const keysPerIssuer = 8; // Adding the limit for 2 issuers
+
+    for (const issuer of issuers) {
+      const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+      const keys = Array.from({ length: keysPerIssuer }, (_, i) => ({
+        issHash,
+        kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}-${issuer}`)),
+        n: JWK_MODULUS,
+        e: "0x010001",
+      }));
+
+      await oidcKeyRegistry.addKeys(keys);
+
+      for (let i = 0; i < keysPerIssuer; i++) {
+        const storedKey = await oidcKeyRegistry.getKey(issHash, keys[i].kid);
+        expect(storedKey.kid).to.equal(keys[i].kid);
+      }
+    }
+  });
 });

@@ -42,7 +42,35 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     addKeys(newKeys);
   }
 
+  function _checkKeyCountLimit(Key[] memory newKeys) private pure {
+    bytes32[] memory uniqueHashes = new bytes32[](newKeys.length);
+    uint8[] memory counts = new uint8[](newKeys.length);
+    uint256 uniqueHashesCount = 0;
+
+    for (uint8 i = 0; i < newKeys.length; i++) {
+      bytes32 issHash = newKeys[i].issHash;
+      bool found = false;
+      uint8 j = 0;
+      while (j < uniqueHashesCount && !found) {
+        if (uniqueHashes[j] == issHash) {
+          counts[j]++;
+          found = true;
+        }
+      }
+      if (!found) {
+        uniqueHashes[uniqueHashesCount] = issHash;
+        counts[uniqueHashesCount] = 1;
+        uniqueHashesCount++;
+      }
+    }
+
+    for (uint8 i = 0; i < uniqueHashesCount; i++) {
+      require(counts[i] <= MAX_KEYS, "Key count limit exceeded");
+    }
+  }
+
   function addKeys(Key[] memory newKeys) public onlyOwner {
+    _checkKeyCountLimit(newKeys);
     for (uint8 i = 0; i < newKeys.length; i++) {
       bytes32 issHash = newKeys[i].issHash;
       uint8 keyIndex = keyIndexes[issHash];
