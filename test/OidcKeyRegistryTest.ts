@@ -183,4 +183,33 @@ describe("OidcKeyRegistry", function () {
       expect(storedKey.kid).to.equal(key.kid);
     }
   });
+
+  it("should revert when one of the issuers has too many keys", async () => {
+    const issuers = ["https://issuer1.com", "https://issuer2.com"];
+    const keysPerIssuer = 8; // Adding the limit for 2 issuers
+    const allKeys: { issHash: string; kid: string; n: string[]; e: string }[] = [];
+
+    for (const issuer of issuers) {
+      const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+      const keys = Array.from({ length: keysPerIssuer }, (_, i) => ({
+        issHash,
+        kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}-${issuer}`)),
+        n: JWK_MODULUS,
+        e: "0x010001",
+      }));
+      allKeys.push(...keys);
+    }
+
+    // Add one more key to the first issuer
+    const extraKey = {
+      issHash: allKeys[0].issHash,
+      kid: ethers.keccak256(ethers.toUtf8Bytes(`key${keysPerIssuer + 1}-${issuers[0]}`)),
+      n: JWK_MODULUS,
+      e: "0x010001",
+    };
+    allKeys.push(extraKey);
+
+    await expect(oidcKeyRegistry.addKeys(allKeys)).to.be.revertedWith("Key count limit exceeded");
+
+  });
 });
