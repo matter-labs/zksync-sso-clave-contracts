@@ -19,8 +19,10 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     bytes e; // RSA exponent
   }
 
-  Key[MAX_KEYS] public OIDCKeys;
-  uint8 public keyIndex;
+  // Mapping of issuer hash to keys
+  mapping(bytes32 => Key[MAX_KEYS]) public OIDCKeys;
+  // Index of the last key added per issuer
+  mapping(bytes32 => uint8) public keyIndexes;
 
   constructor() {
     initialize();
@@ -28,7 +30,6 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
 
   function initialize() public initializer {
     __Ownable_init();
-    keyIndex = MAX_KEYS - 1;
   }
 
   function hashIssuer(string memory iss) public pure returns (bytes32) {
@@ -41,28 +42,38 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     addKeys(newKeys);
   }
 
-  function addKeys(Key[] memory newKeys) public onlyOwner {
-    uint8 nextIndex = keyIndex;
-    for (uint8 i = 0; i < newKeys.length; i++) {
-      nextIndex = (keyIndex + 1 + i) % MAX_KEYS; // Circular buffer
-      OIDCKeys[nextIndex] = newKeys[i];
+  function _checkKeyCountLimit(Key[] memory newKeys) private pure {
+    require(newKeys.length <= MAX_KEYS, "Key count limit exceeded");
+    if (newKeys.length == 0) {
+      return;
     }
+    bytes32 issHash = newKeys[0].issHash;
+    for (uint8 i = 1; i < newKeys.length; i++) {
+      require(newKeys[i].issHash == issHash, "Issuer hash mismatch: All keys must have the same issuer");
+    }
+  }
 
-    keyIndex = nextIndex;
+  function addKeys(Key[] memory newKeys) public onlyOwner {
+    _checkKeyCountLimit(newKeys);
+    for (uint8 i = 0; i < newKeys.length; i++) {
+      bytes32 issHash = newKeys[i].issHash;
+      uint8 keyIndex = keyIndexes[issHash];
+      uint8 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
+      OIDCKeys[issHash][nextIndex] = newKeys[i];
+      keyIndexes[issHash] = nextIndex;
+    }
   }
 
   function getKey(bytes32 issHash, bytes32 kid) public view returns (Key memory) {
-    require(issHash != 0, "Invalid issHash");
-    require(kid != 0, "Invalid kid");
     for (uint8 i = 0; i < MAX_KEYS; i++) {
-      if (OIDCKeys[i].issHash == issHash && OIDCKeys[i].kid == kid) {
-        return OIDCKeys[i];
+      if (OIDCKeys[issHash][i].kid == kid) {
+        return OIDCKeys[issHash][i];
       }
     }
     revert("Key not found");
   }
 
-  function getKeys() public view returns (Key[MAX_KEYS] memory) {
-    return OIDCKeys;
+  function getKeys(bytes32 issHash) public view returns (Key[MAX_KEYS] memory) {
+    return OIDCKeys[issHash];
   }
 }
