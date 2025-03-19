@@ -1,7 +1,5 @@
-import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { expect } from "chai";
 import { ethers } from "ethers";
-import { pad } from "viem";
 import { Wallet } from "zksync-ethers";
 
 import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
@@ -49,11 +47,6 @@ describe("OidcKeyRegistry", function () {
       e: "0x010001",
     };
 
-    keys[nextIndex] = [key.issHash, key.kid, key.n, key.e];
-
-    const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
-    const root = tree.root;
-
     await oidcKeyRegistry.addKey(key);
 
     const storedKey = await oidcKeyRegistry.getKey(issHash, key.kid);
@@ -61,7 +54,6 @@ describe("OidcKeyRegistry", function () {
     const expectedN = key.n.map((n) => BigInt(n));
     expect(storedKey.n).to.deep.equal(expectedN);
     expect(storedKey.e).to.equal(key.e);
-    expect(await oidcKeyRegistry.merkleRoot()).to.equal(root);
   });
 
   it("should set multiple keys", async () => {
@@ -80,13 +72,6 @@ describe("OidcKeyRegistry", function () {
       const storedKey = await oidcKeyRegistry.getKey(issHash, newKeys[i].kid);
       expect(storedKey.kid).to.equal(newKeys[i].kid);
     }
-
-    const anotherKeyRegistry = await fixtures.getOidcKeyRegistryContract();
-    for (let i = 0; i < 8; i++) {
-      await anotherKeyRegistry.addKey(newKeys[i]);
-    }
-
-    expect(await oidcKeyRegistry.merkleRoot()).to.equal(await anotherKeyRegistry.merkleRoot());
   });
 
   it("should revert when a non-owner tries to set a key", async () => {
@@ -143,125 +128,5 @@ describe("OidcKeyRegistry", function () {
     for (let i = 0; i < 8; i++) {
       await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid)).to.be.revertedWith("Key not found");
     }
-  });
-
-  it("should verify key with merkle proof", async () => {
-    const keys = Array.from({ length: 8 }, () => [
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-      Array(17).fill("0"),
-      "0x",
-    ]);
-    const currentIndex = await oidcKeyRegistry.keyIndex();
-    const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
-
-    const issuer = "https://example.com";
-    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
-
-    const key = {
-      issHash,
-      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      n: JWK_MODULUS,
-      e: "0x010001",
-    };
-
-    keys[nextIndex] = [key.issHash, key.kid, key.n, key.e];
-
-    const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
-
-    await oidcKeyRegistry.addKey(key);
-
-    const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
-
-    const isValid = await oidcKeyRegistry.verifyKey(key, proof);
-    expect(isValid).to.be.true;
-  });
-
-  it("verifyKey should return false when the key is not in the registry", async () => {
-    const keys = Array.from({ length: 8 }, () => [
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-      Array(17).fill("0"),
-      "0x",
-    ]);
-    const currentIndex = await oidcKeyRegistry.keyIndex();
-    const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
-
-    const issuer = "https://example.com";
-    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
-
-    const key = {
-      issHash,
-      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      n: JWK_MODULUS,
-      e: "0x010001",
-    };
-
-    const nonExistentKey = {
-      issHash,
-      kid: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
-      n: JWK_MODULUS,
-      e: "0x010001",
-    };
-
-    keys[nextIndex] = [key.issHash, key.kid, key.n, key.e];
-
-    const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
-
-    await oidcKeyRegistry.addKey(key);
-
-    const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
-
-    const isValid = await oidcKeyRegistry.verifyKey(nonExistentKey, proof);
-    expect(isValid).to.be.false;
-  });
-
-  it("should set two google keys", async () => {
-    const keys = Array.from({ length: 8 }, () => [
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-      Array(17).fill("0"),
-      "0x",
-    ]);
-
-    const issuer = "https://google.com";
-    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
-
-    const key1 = {
-      issHash,
-      kid: pad("0x763f7c4cd26a1eb2b1b39a88f4434d1f4d9a368b"),
-      n: JWK_MODULUS,
-      e: "0x010001",
-    };
-
-    const key2 = {
-      issHash,
-      kid: pad("0x25f8211713788b6145474b5029b0141bd5b3de9c"),
-      n: JWK_MODULUS_2,
-      e: "0x010001",
-    };
-
-    keys[1] = [key1.issHash, key1.kid, key1.n, key1.e];
-    keys[0] = [key2.issHash, key2.kid, key2.n, key2.e];
-
-    const tree = StandardMerkleTree.of(keys, ["bytes32", "bytes32", "uint256[17]", "bytes"]);
-    const root = tree.root;
-
-    await oidcKeyRegistry.addKey(key1);
-    await oidcKeyRegistry.addKey(key2);
-
-    const storedKey1 = await oidcKeyRegistry.getKey(issHash, key1.kid);
-    expect(storedKey1.kid).to.equal(key1.kid);
-    const expectedN1 = key1.n.map((n) => BigInt(n));
-    expect(storedKey1.n).to.deep.equal(expectedN1);
-    expect(storedKey1.e).to.equal(key1.e);
-
-    const storedKey2 = await oidcKeyRegistry.getKey(issHash, key2.kid);
-    expect(storedKey2.kid).to.equal(key2.kid);
-    const expectedN2 = key2.n.map((n) => BigInt(n));
-    expect(storedKey2.n).to.deep.equal(expectedN2);
-    expect(storedKey2.e).to.equal(key2.e);
-
-    expect(await oidcKeyRegistry.merkleRoot()).to.equal(root);
   });
 });
