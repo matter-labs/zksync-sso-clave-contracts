@@ -42,7 +42,19 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     addKeys(newKeys);
   }
 
+  function _checkKeyCountLimit(Key[] memory newKeys) private pure {
+    require(newKeys.length <= MAX_KEYS, "Key count limit exceeded");
+    if (newKeys.length == 0) {
+      return;
+    }
+    bytes32 issHash = newKeys[0].issHash;
+    for (uint8 i = 1; i < newKeys.length; i++) {
+      require(newKeys[i].issHash == issHash, "Issuer hash mismatch: All keys must have the same issuer");
+    }
+  }
+
   function addKeys(Key[] memory newKeys) public onlyOwner {
+    _checkKeyCountLimit(newKeys);
     for (uint8 i = 0; i < newKeys.length; i++) {
       bytes32 issHash = newKeys[i].issHash;
       uint8 keyIndex = keyIndexes[issHash];
