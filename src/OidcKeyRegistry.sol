@@ -44,7 +44,19 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     addKeys(newKeys);
   }
 
+  function _checkKeyCountLimit(Key[] memory newKeys) private pure {
+    require(newKeys.length <= MAX_KEYS, "Key count limit exceeded");
+    if (newKeys.length == 0) {
+      return;
+    }
+    bytes32 issHash = newKeys[0].issHash;
+    for (uint8 i = 1; i < newKeys.length; i++) {
+      require(newKeys[i].issHash == issHash, "Issuer hash mismatch: All keys must have the same issuer");
+    }
+  }
+
   function addKeys(Key[] memory newKeys) public onlyOwner {
+    _checkKeyCountLimit(newKeys);
     for (uint8 i = 0; i < newKeys.length; i++) {
       bytes32 issHash = newKeys[i].issHash;
       uint8 keyIndex = keyIndexes[issHash];
@@ -56,8 +68,6 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   }
 
   function getKey(bytes32 issHash, bytes32 kid) public view returns (Key memory) {
-    require(issHash != 0, "Invalid issHash");
-    require(kid != 0, "Invalid kid");
     for (uint8 i = 0; i < MAX_KEYS; i++) {
       if (OIDCKeys[issHash][i].kid == kid) {
         return OIDCKeys[issHash][i];
