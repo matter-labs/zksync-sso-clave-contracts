@@ -58,11 +58,10 @@ describe("OidcKeyRegistry", function () {
       e: "0x010001",
     }));
 
-    // Listen for KeyAdded events for each key
     for (let i = 0; i < newKeys.length; i++) {
       await expect(oidcKeyRegistry.addKeys([newKeys[i]]))
         .to.emit(oidcKeyRegistry, "KeyAdded")
-        .withArgs(issHash, newKeys[i].kid, (i + 1) % 8); // Expecting the index to match the current key index
+        .withArgs(issHash, newKeys[i].kid, (i + 1) % 8);
     }
 
     for (let i = 0; i < 8; i++) {
