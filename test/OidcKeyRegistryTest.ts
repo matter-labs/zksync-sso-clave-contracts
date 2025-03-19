@@ -27,16 +27,6 @@ describe("OidcKeyRegistry", function () {
   });
 
   it("should set one key", async () => {
-    const keys = Array.from({ length: 8 }, () => [
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-      Array(17).fill("0"),
-      "0x",
-    ]);
-
-    const currentIndex = await oidcKeyRegistry.keyIndex();
-    const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
-
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
 
