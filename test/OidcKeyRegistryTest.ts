@@ -119,4 +119,30 @@ describe("OidcKeyRegistry", function () {
       await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid)).to.be.revertedWith("Key not found");
     }
   });
+
+  it("should correctly implement circular key storage with multiple issuers", async () => {
+    const issuers = ["https://issuer1.com", "https://issuer2.com"];
+    const keysPerIssuer = 4;
+
+    for (const issuer of issuers) {
+      const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+      const keys = Array.from({ length: keysPerIssuer }, (_, i) => ({
+        issHash,
+        kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}-${issuer}`)),
+        n: JWK_MODULUS,
+        e: "0x010001",
+      }));
+
+      await oidcKeyRegistry.addKeys(keys);
+
+      for (let i = 0; i < keysPerIssuer; i++) {
+        const storedKey = await oidcKeyRegistry.getKey(issHash, keys[i].kid);
+        expect(storedKey.kid).to.equal(keys[i].kid);
+      }
+    }
+
+    const nonExistentKid = ethers.keccak256(ethers.toUtf8Bytes(`key1-${issuers[1]}`));
+    const firstIssuerHash = await oidcKeyRegistry.hashIssuer(issuers[0]);
+    await expect(oidcKeyRegistry.getKey(firstIssuerHash, nonExistentKid)).to.be.revertedWith("Key not found");
+  });
 });
