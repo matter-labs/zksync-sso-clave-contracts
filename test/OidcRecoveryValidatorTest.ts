@@ -44,19 +44,24 @@ describe("OidcRecoveryValidator", function () {
   describe("addValidationKey", () => {
     it("should add new OIDC validation key", async function () {
       const oidcDigest = ethers.hexlify(randomBytes(32));
+      const iss = "https://issuer.com";
+      const oidcData = {
+        oidcDigest,
+        iss,
+      };
 
       const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["bytes32"],
-        [oidcDigest],
+        ["tuple(bytes32, string)"],
+        [[oidcData.oidcDigest, oidcData.iss]],
       );
 
       const tx = await oidcValidator.connect(ownerWallet).addValidationKey(encodedData);
       await tx.wait();
 
-      // Verify the key was added
       const storedData = (await oidcValidator.oidcDataForAddress(ownerWallet.address))[0];
 
       expect(storedData.oidcDigest).to.equal(oidcDigest);
+      expect(storedData.iss).to.equal(iss);
       expect(storedData.readyToRecover).to.be.false;
       expect(storedData.pendingPasskeyHash).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
       expect(storedData.recoverNonce).to.equal(0);
@@ -64,10 +69,15 @@ describe("OidcRecoveryValidator", function () {
 
     it("should prevent duplicate oidc_digest registration", async function () {
       const oidcDigest = ethers.hexlify(randomBytes(32));
+      const iss = "https://issuer.com";
+      const oidcData = {
+        oidcDigest,
+        iss,
+      };
 
       const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["bytes32"],
-        [oidcDigest],
+        ["tuple(bytes32, string)"],
+        [[oidcData.oidcDigest, oidcData.iss]],
       );
 
       // First registration should succeed
@@ -108,18 +118,15 @@ describe("OidcRecoveryValidator", function () {
       };
       await keyRegistry.addKey(key);
 
+      const oidcDigest = ethers.hexlify(randomBytes(32));
       const oidcData = {
-        oidcDigest: "0x1F481CE78887D0D19431F98D0990D76044A3AC70DCEC0E620263707F50A5085D",
-        iss: ethers.toUtf8Bytes(issuer),
-        aud: ethers.toUtf8Bytes(AUD),
-        readyToRecover: false,
-        pendingPasskeyHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-        recoverNonce: 0,
+        oidcDigest,
+        iss: issuer,
       };
 
       const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(bytes32 oidcDigest, bytes iss, bytes aud, bool readyToRecover, bytes32 pendingPasskeyHash, uint256 recoverNonce)"],
-        [oidcData],
+        ["tuple(bytes32, string)"],
+        [[oidcData.oidcDigest, oidcData.iss]],
       );
 
       await oidcValidator.connect(ownerWallet).addValidationKey(encodedData);
