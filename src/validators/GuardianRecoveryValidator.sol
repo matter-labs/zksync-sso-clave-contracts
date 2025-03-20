@@ -97,12 +97,16 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
       for (uint256 i = 0; i < guardians.length; i++) {
         address guardian = guardians[i];
 
-        EnumerableSetUpgradeable.AddressSet storage accounts = guardedAccounts[hashedOriginDomain][guardian];
-        bool guardedAccountsRemovalSuccessful = accounts.remove(msg.sender);
+        bool wasActiveGuardian = accountGuardianData[hashedOriginDomain][msg.sender][guardian].isReady;
+        if (wasActiveGuardian) {
+          EnumerableSetUpgradeable.AddressSet storage accounts = guardedAccounts[hashedOriginDomain][guardian];
+          bool guardedAccountsRemovalSuccessful = accounts.remove(msg.sender);
 
-        if (!guardedAccountsRemovalSuccessful) {
-          revert AccountNotGuardedByAddress(msg.sender, guardian);
+          if (!guardedAccountsRemovalSuccessful) {
+            revert AccountNotGuardedByAddress(msg.sender, guardian);
+          }
         }
+
         delete accountGuardianData[hashedOriginDomain][msg.sender][guardian];
 
         bool removalSuccessful = accountGuardians[hashedOriginDomain][msg.sender].remove(guardian);
