@@ -252,9 +252,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     //   4. Verifies that the required timelock period has passed since `initRecovery` was called
     //   5. If all the above are true, the recovery is finished
     require(transaction.data.length >= 4, "Only function calls are supported");
-    require(transaction.to <= type(uint160).max, "Overflow");
     // Verify the transaction is a call to WebAuthValidator contract
-    address target = Utils.safeCastToAddress(_transaction.to);
+    address target = Utils.safeCastToAddress(transaction.to);
     if (target != address(webAuthValidator)) {
       return false;
     }
