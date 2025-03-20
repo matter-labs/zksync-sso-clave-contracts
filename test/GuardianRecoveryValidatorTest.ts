@@ -224,7 +224,7 @@ describe("GuardianRecoveryValidator", function () {
       expect(guardian2GuardedAccounts.length).to.equal(0);
     });
 
-    describe.only("And there is a pending recovery", () => {
+    describe("And there is a pending recovery", () => {
       cacheBeforeEach(async () => {
         const key = await generatePassKey("0x1234", keyDomain);
         await guardianValidator.connect(guardian).initRecovery(
