@@ -210,7 +210,7 @@ describe("GuardianRecoveryValidator", function () {
     let guardian2: ethers.Signer;
     cacheBeforeEach(async () => {
       const [guardianWallet, guardianConnected] = await randomWallet();
-      const [guardian2Wallet, guardian2Connected] = await randomWallet();
+      const [guardian2Wallet] = await randomWallet();
       guardian = guardianWallet;
       guardian2 = guardian2Wallet;
       const [user1Wallet, user1Connected] = await randomWallet();
@@ -218,7 +218,7 @@ describe("GuardianRecoveryValidator", function () {
       await user1Connected.proposeValidationKey(hashedOriginDomain, guardian.getAddress());
       await user1Connected.proposeValidationKey(hashedOriginDomain, guardian2.getAddress());
       await guardianConnected.addValidationKey(hashedOriginDomain, user1.getAddress());
-      await guardian2Connected.addValidationKey(hashedOriginDomain, user1.getAddress());
+      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian2.getAddress());
     });
 
     const sut = async () => {
