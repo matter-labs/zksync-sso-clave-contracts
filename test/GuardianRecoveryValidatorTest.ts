@@ -5,7 +5,7 @@ import { ethers, HDNodeWallet, keccak256 } from "ethers";
 import { Address, parseEther, toHex } from "viem";
 import { Provider, SmartAccount, utils, Wallet } from "zksync-ethers";
 
-import { AAFactory, GuardianRecoveryValidator, GuardianRecoveryValidator__factory, SsoAccount, SsoAccount__factory, WebAuthValidator } from "../typechain-types";
+import { GuardianRecoveryValidator, GuardianRecoveryValidator__factory, SsoAccount, SsoAccount__factory, WebAuthValidator } from "../typechain-types";
 import { encodeKeyFromBytes, generateES256R1Key, getRawPublicKeyFromCrpyto } from "./PasskeyModule";
 import { cacheBeforeEach, ContractFixtures, getProvider } from "./utils";
 
@@ -15,7 +15,6 @@ describe("GuardianRecoveryValidator", function () {
   const provider = getProvider();
   const keyDomain = "origin-domain";
   let guardiansValidatorAddr: Address;
-  let factory: AAFactory;
   let ssoAccountInstance: SsoAccount;
   let newGuardianConnectedSsoAccount: SmartAccount;
   let ownerConnectedSsoAccount: SmartAccount;
@@ -33,13 +32,11 @@ describe("GuardianRecoveryValidator", function () {
 
     const accountId = `0x${Buffer.from(ethers.toUtf8Bytes("recovery-key-test-id" + randomBytes(32).toString())).toString("hex")}` as `0x${string}`;
     const generatedKey = await generatePassKey(accountId, keyDomain);
-    const randomSalt = randomBytes(32);
     hashedOriginDomain = generatedKey.hashedOriginDomain;
 
     guardianValidator = (await fixtures.getGuardianRecoveryValidator()).connect(ownerWallet);
     webauthn = (await fixtures.getWebAuthnVerifierContract());
     guardiansValidatorAddr = await guardianValidator.getAddress() as Address;
-    factory = await fixtures.getAaFactory();
     const initialValidators = [
       ethers.AbiCoder.defaultAbiCoder().encode(["address", "bytes"], [await webauthn.getAddress(), generatedKey.generatedKey]),
       ethers.AbiCoder.defaultAbiCoder().encode(["address", "bytes"], [await guardianValidator.getAddress(), ethers.AbiCoder.defaultAbiCoder().encode(
@@ -47,22 +44,8 @@ describe("GuardianRecoveryValidator", function () {
         [[]],
       )]),
     ];
-    const tx = await factory.deployProxySsoAccount(
-      randomSalt,
-      initialValidators,
-      [ownerWallet],
-    );
-    const receipt = await tx.wait();
-    const accountCreatedLog = receipt?.logs.map((x) => {
-      const parsedLog = factory.interface.parseLog(x);
 
-      if (parsedLog?.signature === "AccountCreated(address,bytes32)") {
-        return parsedLog;
-      }
-    }).filter((x) => !!x)[0];
-    ssoAccountInstance = SsoAccount__factory.connect(accountCreatedLog!.args[0]?.toLowerCase(), fixtures.wallet);
-    const ssoAccountInstanceAddress = await ssoAccountInstance.getAddress();
-    await (await fixtures.wallet.sendTransaction({ value: parseEther("0.2"), to: ssoAccountInstanceAddress })).wait(); ;
+    ssoAccountInstance = await deploySsoAccountWithValidators(initialValidators);
     await (await fixtures.wallet.sendTransaction({ value: parseEther("0.2"), to: guardianWallet.address })).wait();
     newGuardianConnectedSsoAccount = new SmartAccount({
       payloadSigner: async (hash) => {
@@ -187,6 +170,37 @@ describe("GuardianRecoveryValidator", function () {
       expect(guardians.length).to.equal(0);
       const guardedAccounts = await guardianValidator.guardianOf(hashedOriginDomain, guardian.getAddress());
       expect(guardedAccounts.length).to.equal(0);
+    });
+  });
+
+  describe("onInstall", () => {
+    describe("When WebAuthValidator is not enabled for caller account", () => {
+      let ssoAccountInstance: SsoAccount;
+      let ssoAccount: SmartAccount;
+      cacheBeforeEach(async () => {
+        ssoAccountInstance = await deploySsoAccountWithValidators([]);
+        ssoAccount = new SmartAccount({
+          address: await ssoAccountInstance.getAddress(),
+          secret: ownerWallet.privateKey,
+        }, provider);
+      });
+
+      const sut = async () => {
+        const txToSign = {
+          ...(await aaTxTemplate(await ssoAccountInstance.getAddress(), provider)),
+          type: 1,
+          to: guardiansValidatorAddr,
+          data: guardianValidator.interface.encodeFunctionData("onInstall", ["0x"]),
+        };
+        txToSign.gasLimit = await provider.estimateGas(txToSign);
+        const txData = await ssoAccount.signTransaction(txToSign);
+        const tx = await provider.broadcastTransaction(txData);
+        return tx.wait();
+      };
+
+      it("Reverts with WebAuthValidatorNotEnabled error", async function () {
+        await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "WebAuthValidatorNotEnabled");
+      });
     });
   });
 
@@ -406,6 +420,28 @@ describe("GuardianRecoveryValidator", function () {
       });
     });
   });
+
+  async function deploySsoAccountWithValidators(initialValidators: string[]) {
+    const randomSalt = randomBytes(32);
+    const factory = await fixtures.getAaFactory();
+    const tx = await factory.deployProxySsoAccount(
+      randomSalt,
+      initialValidators,
+      [ownerWallet],
+    );
+    const receipt = await tx.wait();
+    const accountCreatedLog = receipt?.logs.map((x) => {
+      const parsedLog = factory.interface.parseLog(x);
+
+      if (parsedLog?.signature === "AccountCreated(address,bytes32)") {
+        return parsedLog;
+      }
+    }).filter((x) => !!x)[0];
+    const createdAccountAddress = accountCreatedLog!.args[0]?.toLowerCase();
+    await (await fixtures.wallet.sendTransaction({ value: parseEther("0.2"), to: createdAccountAddress })).wait(); ;
+
+    return SsoAccount__factory.connect(createdAccountAddress, fixtures.wallet);
+  }
 });
 
 export async function generatePassKey(accountId: `0x${string}`, keyDomain: string) {
