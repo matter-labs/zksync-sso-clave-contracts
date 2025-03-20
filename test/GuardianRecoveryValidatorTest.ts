@@ -110,11 +110,18 @@ describe("GuardianRecoveryValidator", function () {
       expect(res[0].isReady).to.equal(false);
       expect(tx).to.emit(user1ConnectedValidator, "GuardianProposed");
     });
+
+    it("Reverts if attempts to add zero address", async function () {
+      const [user1, user1ConnectedValidator] = await randomWallet();
+
+      await expect(user1ConnectedValidator.proposeValidationKey(hashedOriginDomain, ethers.ZeroAddress))
+        .to.be.revertedWithCustomError(user1ConnectedValidator, "InvalidGuardianAddress");
+    });
   });
 
   describe("addValidationKey", () => {
     function callAddValidationKey(contract: GuardianRecoveryValidator, hashedOriginDomain: `0x${string}`, account: string): Promise<ethers.ContractTransactionResponse> {
-      return contract.addValidationKey(hashedOriginDomain, account, { gasLimit: "80000000" });
+      return contract.addValidationKey(hashedOriginDomain, account);
     }
 
     it("fails when tries to confirm a guardian that was not proposed.", async function () {
@@ -124,6 +131,14 @@ describe("GuardianRecoveryValidator", function () {
 
       await expect(callAddValidationKey(guardianConnection, hashedOriginDomain, user1.address))
         .to.reverted;
+    });
+
+    it("fails when tries to confirm a guardian for zero address.", async function () {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const [_, guardianConnection] = await randomWallet();
+
+      await expect(callAddValidationKey(guardianConnection, hashedOriginDomain, ethers.ZeroAddress))
+        .to.revertedWithCustomError(guardianConnection, "InvalidAccountToGuardAddress");
     });
 
     it("fails when tries to confirm a was proposed for a different account.", async function () {

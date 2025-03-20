@@ -35,6 +35,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   error PasskeyNotMatched();
   error CooldownPeriodNotPassed();
   error ExpiredRequest();
+  error InvalidGuardianAddress();
+  error InvalidWebAuthValidatorAddress();
+  error InvalidAccountToGuardAddress();
+  error InvalidAccountToRecoverAddress();
 
   event RecoveryInitiated(
     address indexed account,
@@ -74,6 +78,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   function initialize(WebAuthValidator _webAuthValidator) public initializer {
+    if (address(_webAuthValidator) == address(0)) revert InvalidWebAuthValidatorAddress();
     webAuthValidator = _webAuthValidator;
   }
 
@@ -115,6 +120,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @param newGuardian New Guardian's address
   function proposeValidationKey(bytes32 hashedOriginDomain, address newGuardian) external {
     if (msg.sender == newGuardian) revert GuardianCannotBeSelf();
+    if (newGuardian == address(0)) revert InvalidGuardianAddress();
 
     bool additionSuccessful = accountGuardians[hashedOriginDomain][msg.sender].add(newGuardian);
 
@@ -162,6 +168,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @param accountToGuard Address of account which msg.sender is becoming guardian of
   /// @return Flag indicating whether guardian was already valid or not
   function addValidationKey(bytes32 hashedOriginDomain, address accountToGuard) external returns (bool) {
+    if (accountToGuard == address(0)) revert InvalidAccountToGuardAddress();
+
     bool guardianProposed = accountGuardians[hashedOriginDomain][accountToGuard].contains(msg.sender);
 
     if (guardianProposed) {
@@ -205,6 +213,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     bytes32[2] memory rawPublicKey,
     bytes32 hashedOriginDomain
   ) external onlyGuardianOf(hashedOriginDomain, accountToRecover) {
+    if (accountToRecover == address(0)) revert InvalidAccountToRecoverAddress();
+
     pendingRecoveryData[hashedOriginDomain][accountToRecover] = RecoveryRequest(
       hashedCredentialId,
       rawPublicKey,
