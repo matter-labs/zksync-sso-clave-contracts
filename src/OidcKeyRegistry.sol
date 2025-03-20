@@ -96,7 +96,8 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       delete OIDCKeys[issHash][i];
     }
 
-    keyIndexes[issHash] = keyCount == 0 ? MAX_KEYS - 1 : (keyCount - 1) % MAX_KEYS;
+    // Adding MAX_KEYS to take adventage of modulus and avoid overflow
+    keyIndexes[issHash] = (keyCount + MAX_KEYS - 1) % MAX_KEYS;
   }
 
   function _deleteKey(bytes32 issHash, bytes32 kid) private {
