@@ -80,6 +80,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     uint8 keyCount = 0;
     uint8 currentIndex = keyIndexes[issHash];
 
+    // Collect non-empty keys in order
     for (uint8 i = 0; i < MAX_KEYS; i++) {
       uint8 circularIndex = (currentIndex + i) % MAX_KEYS;
       if (OIDCKeys[issHash][circularIndex].kid != 0) {
@@ -88,10 +89,12 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       }
     }
 
+    // Reassign the collected keys in order back to storage
     for (uint8 i = 0; i < keyCount; i++) {
       OIDCKeys[issHash][i] = keys[i];
     }
 
+    // Delete remaining keys that are no longer needed
     for (uint8 i = keyCount; i < MAX_KEYS; i++) {
       delete OIDCKeys[issHash][i];
     }
