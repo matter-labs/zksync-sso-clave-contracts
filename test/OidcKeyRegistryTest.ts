@@ -39,7 +39,7 @@ describe("OidcKeyRegistry", function () {
 
     await expect(oidcKeyRegistry.addKey(key))
       .to.emit(oidcKeyRegistry, "KeyAdded")
-      .withArgs(issHash, key.kid, 1);
+      .withArgs(issHash, key.kid, key.n);
 
     const storedKey = await oidcKeyRegistry.getKey(issHash, key.kid);
     expect(storedKey.kid).to.equal(key.kid);
@@ -61,7 +61,7 @@ describe("OidcKeyRegistry", function () {
     for (let i = 0; i < newKeys.length; i++) {
       await expect(oidcKeyRegistry.addKeys([newKeys[i]]))
         .to.emit(oidcKeyRegistry, "KeyAdded")
-        .withArgs(issHash, newKeys[i].kid, (i + 1) % 8);
+        .withArgs(issHash, newKeys[i].kid, newKeys[i].n);
     }
 
     for (let i = 0; i < 8; i++) {

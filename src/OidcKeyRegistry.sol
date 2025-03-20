@@ -18,7 +18,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     bytes e; // RSA exponent
   }
 
-  event KeyAdded(bytes32 indexed issHash, bytes32 indexed kid, uint8 index);
+  event KeyAdded(bytes32 indexed issHash, bytes32 indexed kid, uint256[CIRCOM_BIGINT_CHUNKS] n);
   event KeyDeleted(bytes32 indexed issHash, bytes32 indexed kid);
 
   // Mapping of issuer hash to keys
@@ -52,7 +52,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       uint8 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
       OIDCKeys[issHash][nextIndex] = newKeys[i];
       keyIndexes[issHash] = nextIndex;
-      emit KeyAdded(issHash, newKeys[i].kid, nextIndex);
+      emit KeyAdded(issHash, newKeys[i].kid, newKeys[i].n);
     }
   }
 
