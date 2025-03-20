@@ -32,7 +32,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   }
 
   function hashIssuer(string memory iss) public pure returns (bytes32) {
-    return keccak256(abi.encodePacked(iss));
+    return keccak256(abi.encode(iss));
   }
 
   function addKey(Key memory newKey) public onlyOwner {
