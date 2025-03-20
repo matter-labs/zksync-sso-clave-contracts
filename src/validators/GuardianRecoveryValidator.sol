@@ -32,9 +32,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   error GuardianNotProposed(address guardian);
   error AccountAlreadyGuardedByGuardian(address account, address guardian);
   error AccountNotGuardedByAddress(address account, address guardian);
-  error PasskeyNotMatched();
-  error CooldownPeriodNotPassed();
-  error ExpiredRequest();
 
   event RecoveryInitiated(
     address indexed account,
