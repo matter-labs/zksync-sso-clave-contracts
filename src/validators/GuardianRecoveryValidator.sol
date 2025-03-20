@@ -65,7 +65,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     private accountGuardians;
   mapping(bytes32 hashedOriginDomain => mapping(address guardian => EnumerableSetUpgradeable.AddressSet))
     private guardedAccounts;
-  mapping(bytes32 hashedOriginDomain => mapping(address account => RecoveryRequest)) public pendingRecoveryData;
+  mapping(bytes32 hashedOriginDomain => mapping(address account => RecoveryRequest)) private pendingRecoveryData;
   mapping(bytes32 hashedOriginDomain => mapping(address account => mapping(address guardian => Guardian)))
     public accountGuardianData;
 
