@@ -108,12 +108,12 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     }
   }
 
-  /// @notice The `proposeValidationKey` method handles the initial registration of guardians by:
+  /// @notice The `proposeGuardian` method handles the initial registration of guardians by:
   ///   1. Taking an external account address and store it as pending guardian
-  ///   2. Enable `addValidationKey` to confirm this account
+  ///   2. Enable `addGuardian` to confirm this account
   /// @param hashedOriginDomain Hash of origin domain
   /// @param newGuardian New Guardian's address
-  function proposeValidationKey(bytes32 hashedOriginDomain, address newGuardian) external {
+  function proposeGuardian(bytes32 hashedOriginDomain, address newGuardian) external {
     if (msg.sender == newGuardian) revert GuardianCannotBeSelf();
 
     bool additionSuccessful = accountGuardians[hashedOriginDomain][msg.sender].add(newGuardian);
@@ -135,7 +135,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   ///   2. Removing the account from the list of guardians
   /// @param hashedOriginDomain Hash of origin domain
   /// @param guardianToRemove Guardian's address to remove
-  function removeValidationKey(bytes32 hashedOriginDomain, address guardianToRemove) external {
+  function removeGuardian(bytes32 hashedOriginDomain, address guardianToRemove) external {
     bool removalSuccessful = accountGuardians[hashedOriginDomain][msg.sender].remove(guardianToRemove);
 
     if (removalSuccessful) {
@@ -161,7 +161,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @param hashedOriginDomain Hash of origin domain
   /// @param accountToGuard Address of account which msg.sender is becoming guardian of
   /// @return Flag indicating whether guardian was already valid or not
-  function addValidationKey(bytes32 hashedOriginDomain, address accountToGuard) external returns (bool) {
+  function addGuardian(bytes32 hashedOriginDomain, address accountToGuard) external returns (bool) {
     bool guardianProposed = accountGuardians[hashedOriginDomain][accountToGuard].contains(msg.sender);
 
     if (guardianProposed) {
