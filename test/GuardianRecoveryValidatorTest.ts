@@ -96,12 +96,12 @@ describe("GuardianRecoveryValidator", function () {
     return [wallet, connected];
   };
 
-  describe("proposeValidationKey", () => {
+  describe("proposeGuardian", () => {
     it("can propose a guardian", async function () {
       const [user1, user1ConnectedValidator] = await randomWallet();
       const [guardian] = await randomWallet();
 
-      const tx = await user1ConnectedValidator.proposeValidationKey(hashedOriginDomain, guardian.address);
+      const tx = await user1ConnectedValidator.proposeGuardian(hashedOriginDomain, guardian.address);
       await tx.wait();
 
       const res = await user1ConnectedValidator.guardiansFor(hashedOriginDomain, user1.address);
@@ -112,9 +112,9 @@ describe("GuardianRecoveryValidator", function () {
     });
   });
 
-  describe("addValidationKey", () => {
-    function callAddValidationKey(contract: GuardianRecoveryValidator, hashedOriginDomain: `0x${string}`, account: string): Promise<ethers.ContractTransactionResponse> {
-      return contract.addValidationKey(hashedOriginDomain, account, { gasLimit: "80000000" });
+  describe("addGuardian", () => {
+    function callAddGuardian(contract: GuardianRecoveryValidator, hashedOriginDomain: `0x${string}`, account: string): Promise<ethers.ContractTransactionResponse> {
+      return contract.addGuardian(hashedOriginDomain, account, { gasLimit: "80000000" });
     }
 
     it("fails when tries to confirm a guardian that was not proposed.", async function () {
@@ -122,7 +122,7 @@ describe("GuardianRecoveryValidator", function () {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const [_, guardianConnection] = await randomWallet();
 
-      await expect(callAddValidationKey(guardianConnection, hashedOriginDomain, user1.address))
+      await expect(callAddGuardian(guardianConnection, hashedOriginDomain, user1.address))
         .to.reverted;
     });
 
@@ -132,10 +132,10 @@ describe("GuardianRecoveryValidator", function () {
       const [user2] = await randomWallet();
       const [guardian, guardianConnection] = await randomWallet();
 
-      const tx1 = await user1Connection.proposeValidationKey(hashedOriginDomain, guardian.address);
+      const tx1 = await user1Connection.proposeGuardian(hashedOriginDomain, guardian.address);
       await tx1.wait();
 
-      await expect(callAddValidationKey(guardianConnection, hashedOriginDomain, user2.address))
+      await expect(callAddGuardian(guardianConnection, hashedOriginDomain, user2.address))
         .to.reverted;
     });
 
@@ -143,9 +143,9 @@ describe("GuardianRecoveryValidator", function () {
       const [user1, user1Connected] = await randomWallet();
       const [guardian, guardianConnected] = await randomWallet();
 
-      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian.address);
+      await user1Connected.proposeGuardian(hashedOriginDomain, guardian.address);
 
-      const tx = await callAddValidationKey(guardianConnected, hashedOriginDomain, user1.address);
+      const tx = await callAddGuardian(guardianConnected, hashedOriginDomain, user1.address);
 
       const res = await user1Connected.guardiansFor(hashedOriginDomain, user1.address);
       expect(res.length).to.equal(1);
@@ -155,7 +155,7 @@ describe("GuardianRecoveryValidator", function () {
     });
   });
 
-  describe("removeValidationKey", () => {
+  describe("removeGuardian", () => {
     let guardian: ethers.Signer;
     let user1: ethers.Signer;
 
@@ -164,12 +164,12 @@ describe("GuardianRecoveryValidator", function () {
       guardian = guardianWallet;
       const [user1Wallet, user1Connected] = await randomWallet();
       user1 = user1Wallet;
-      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian.getAddress());
-      await guardianConnected.addValidationKey(hashedOriginDomain, user1.getAddress());
+      await user1Connected.proposeGuardian(hashedOriginDomain, guardian.getAddress());
+      await guardianConnected.addGuardian(hashedOriginDomain, user1.getAddress());
     });
 
     const sut = async (guardianToRemove: string) => {
-      return guardianValidator.connect(user1).removeValidationKey(hashedOriginDomain, guardianToRemove);
+      return guardianValidator.connect(user1).removeGuardian(hashedOriginDomain, guardianToRemove);
     };
 
     it("fails when tries to remove non existing guardian.", async function () {
@@ -201,10 +201,10 @@ describe("GuardianRecoveryValidator", function () {
       guardian2 = guardian2Wallet;
       const [user1Wallet, user1Connected] = await randomWallet();
       user1 = user1Wallet;
-      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian.getAddress());
-      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian2.getAddress());
-      await guardianConnected.addValidationKey(hashedOriginDomain, user1.getAddress());
-      await guardian2Connected.addValidationKey(hashedOriginDomain, user1.getAddress());
+      await user1Connected.proposeGuardian(hashedOriginDomain, guardian.getAddress());
+      await user1Connected.proposeGuardian(hashedOriginDomain, guardian2.getAddress());
+      await guardianConnected.addGuardian(hashedOriginDomain, user1.getAddress());
+      await guardian2Connected.addGuardian(hashedOriginDomain, user1.getAddress());
     });
 
     const sut = async () => {
@@ -230,7 +230,7 @@ describe("GuardianRecoveryValidator", function () {
       it("it adds guardian as non ready one.", async function () {
         const [newGuardianWallet] = await randomWallet();
         const functionData = guardianValidator.interface.encodeFunctionData(
-          "proposeValidationKey",
+          "proposeGuardian",
           [hashedOriginDomain, newGuardianWallet.address],
         );
         const txToSign = {
@@ -252,7 +252,7 @@ describe("GuardianRecoveryValidator", function () {
     describe("When approving existing guardian addition operation", () => {
       cacheBeforeEach(async () => {
         const functionData = guardianValidator.interface.encodeFunctionData(
-          "proposeValidationKey",
+          "proposeGuardian",
           [hashedOriginDomain, guardianWallet.address],
         );
         const txToSign = {
@@ -267,7 +267,7 @@ describe("GuardianRecoveryValidator", function () {
       });
       const sut = async () => {
         return guardianValidator.connect(guardianWallet)
-          .addValidationKey(hashedOriginDomain, newGuardianConnectedSsoAccount.address);
+          .addGuardian(hashedOriginDomain, newGuardianConnectedSsoAccount.address);
       };
       it("it makes guardian active one.", async function () {
         await sut();
@@ -280,7 +280,7 @@ describe("GuardianRecoveryValidator", function () {
     describe("When having active guardian", () => {
       cacheBeforeEach(async () => {
         const functionData = guardianValidator.interface.encodeFunctionData(
-          "proposeValidationKey",
+          "proposeGuardian",
           [hashedOriginDomain, guardianWallet.address],
         );
         const txToSign = {
@@ -292,7 +292,7 @@ describe("GuardianRecoveryValidator", function () {
         const txData = await ownerConnectedSsoAccount.signTransaction(txToSign);
         const tx = await provider.broadcastTransaction(txData);
         await tx.wait();
-        await guardianValidator.connect(guardianWallet).addValidationKey(hashedOriginDomain, newGuardianConnectedSsoAccount.address);
+        await guardianValidator.connect(guardianWallet).addGuardian(hashedOriginDomain, newGuardianConnectedSsoAccount.address);
       });
 
       describe("And initiating recovery process", () => {
