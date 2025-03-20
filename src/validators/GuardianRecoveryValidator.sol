@@ -10,7 +10,6 @@ import { IGuardianRecoveryValidator } from "../interfaces/IGuardianRecoveryValid
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
-import { BatchCaller, Call } from "../batch/BatchCaller.sol";
 
 contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
