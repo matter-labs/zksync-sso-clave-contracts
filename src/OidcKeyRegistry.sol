@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
+contract OidcKeyRegistry is Ownable {
   uint8 public constant MAX_KEYS = 8;
   // Number of 128-bit chunks needed to represent RSA public key modulus in the ZK circuit
   // This matches the Circom circuit's bigint configuration for RSA verification
@@ -25,14 +24,6 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   mapping(bytes32 => Key[MAX_KEYS]) public OIDCKeys;
   // Index of the last key added per issuer
   mapping(bytes32 => uint8) public keyIndexes;
-
-  constructor() {
-    initialize();
-  }
-
-  function initialize() public initializer {
-    __Ownable_init();
-  }
 
   function hashIssuer(string memory iss) public pure returns (bytes32) {
     return keccak256(abi.encodePacked(iss));
