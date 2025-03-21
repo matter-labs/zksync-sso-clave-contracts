@@ -83,7 +83,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @notice Removes all past guardians when this module is disabled in a account
   function onUninstall(bytes calldata data) external {
     bytes32[] memory hashedOriginDomains = abi.decode(data, (bytes32[]));
-    for (uint256 j = 0; j < hashedOriginDomains.length; j++) {
+    for (uint256 j = 0; j < hashedOriginDomains.length; ++j) {
       bytes32 hashedOriginDomain = hashedOriginDomains[j];
       address[] memory guardians = accountGuardians[hashedOriginDomain][msg.sender].values();
       for (uint256 i = 0; i < guardians.length; ++i) {
