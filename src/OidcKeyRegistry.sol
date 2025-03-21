@@ -22,6 +22,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   event KeyDeleted(bytes32 indexed issHash, bytes32 indexed kid);
 
   error KeyNotFound(bytes32 issHash, bytes32 kid);
+  error KeyCountLimitExceeded(uint256 count);
 
   // Mapping of issuer hash to keys
   mapping(bytes32 => Key[MAX_KEYS]) public OIDCKeys;
@@ -116,7 +117,9 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   }
 
   function _checkKeyCountLimit(Key[] memory newKeys) private pure {
-    require(newKeys.length <= MAX_KEYS, "Key count limit exceeded");
+    if (newKeys.length > MAX_KEYS) {
+      revert KeyCountLimitExceeded(newKeys.length);
+    }
     if (newKeys.length == 0) {
       return;
     }

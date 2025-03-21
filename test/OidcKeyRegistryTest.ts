@@ -167,7 +167,9 @@ describe("OidcKeyRegistry", function () {
       e: "0x010001",
     }));
 
-    await expect(oidcKeyRegistry.addKeys(keys)).to.be.revertedWith("Key count limit exceeded");
+    await expect(oidcKeyRegistry.addKeys(keys))
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyCountLimitExceeded")
+      .withArgs(9);
   });
 
   it("should revert when adding two different issuers", async () => {
