@@ -73,7 +73,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     _disableInitializers();
   }
 
-  function initialize(WebAuthValidator _webAuthValidator) public initializer {
+  function initialize(WebAuthValidator _webAuthValidator) external initializer {
     webAuthValidator = _webAuthValidator;
   }
 
@@ -227,7 +227,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
   /// @notice This method allows to finish currently pending recovery
   /// @param hashedOriginDomain Hash of origin domain
-  function finishRecovery(bytes32 hashedOriginDomain) internal {
+  function _finishRecovery(bytes32 hashedOriginDomain) private {
     emit RecoveryFinished(
       msg.sender,
       hashedOriginDomain,
@@ -238,7 +238,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
   /// @notice This method allows to discard currently pending recovery
   /// @param hashedOriginDomain Hash of origin domain
-  function _discardRecovery(bytes32 hashedOriginDomain) internal {
+  function _discardRecovery(bytes32 hashedOriginDomain) private {
     delete pendingRecoveryData[hashedOriginDomain][msg.sender];
   }
 
@@ -288,7 +288,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
       storedData.timestamp + REQUEST_VALIDITY_TIME
     );
 
-    finishRecovery(hashedOriginDomain);
+    _finishRecovery(hashedOriginDomain);
     return true;
   }
 
@@ -309,7 +309,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @param hashedOriginDomain Hash of origin domain
   /// @param addr Address of account to get guardians for
   /// @return Array of guardians for the account
-  function guardiansFor(bytes32 hashedOriginDomain, address addr) public view returns (Guardian[] memory) {
+  function guardiansFor(bytes32 hashedOriginDomain, address addr) external view returns (Guardian[] memory) {
     address[] memory guardians = accountGuardians[hashedOriginDomain][addr].values();
     Guardian[] memory result = new Guardian[](guardians.length);
     for (uint256 i = 0; i < guardians.length; i++) {
@@ -322,7 +322,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @param hashedOriginDomain Hash of origin domain
   /// @param guardian Address of guardian to get guarded accounts for
   /// @return Array of accounts guarded by the guardian
-  function guardianOf(bytes32 hashedOriginDomain, address guardian) public view returns (address[] memory) {
+  function guardianOf(bytes32 hashedOriginDomain, address guardian) external view returns (address[] memory) {
     return guardedAccounts[hashedOriginDomain][guardian].values();
   }
 
@@ -333,7 +333,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   function getPendingRecoveryData(
     bytes32 hashedOriginDomain,
     address account
-  ) public view returns (RecoveryRequest memory) {
+  ) external view returns (RecoveryRequest memory) {
     return pendingRecoveryData[hashedOriginDomain][account];
   }
 }
