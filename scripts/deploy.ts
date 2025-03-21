@@ -68,6 +68,13 @@ function getDeployer(hre, cmd) {
   }
 }
 
+function getKeyRegistryOwner() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { LOCAL_RICH_WALLETS, getProvider } = require("../test/utils");
+  const provider = getProvider();
+  return new Wallet(LOCAL_RICH_WALLETS[1].privateKey, provider);
+}
+
 function getArgs(cmd) {
   if (cmd.only == BEACON_NAME) {
     if (!cmd.implementation) {
@@ -102,6 +109,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
   .addOptionalParam("file", "where to save all contract locations (it not using only)")
   .setAction(async (cmd, hre) => {
     const deployer = getDeployer(hre, cmd);
+    const keyRegistryOwner = getKeyRegistryOwner();
     if (!cmd.only) {
       const passkey = await deploy(WEBAUTH_NAME, deployer, !cmd.noProxy);
       const session = await deploy(SESSIONS_NAME, deployer, !cmd.noProxy);
@@ -113,8 +121,9 @@ task("deploy", "Deploys ZKsync SSO contracts")
         "initialize(address)",
         [passkey],
       ));
-      const oidcKeyRegistryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_KEY_REGISTRY_NAME)).abi);
-      const oidcKeyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, false, [], oidcKeyRegistryInterface.encodeFunctionData("initialize", [])); // TODO: Add proxy
+      const oidcKeyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, !cmd.noProxy);
+      const oidcKeyRegistryContract = await hre.ethers.getContractAt(OIDC_KEY_REGISTRY_NAME, oidcKeyRegistry, keyRegistryOwner);
+      await oidcKeyRegistryContract.initialize();
       const oidcRecoveryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_RECOVERY_NAME)).abi);
       const oidcVerifier = await deploy(OIDC_VERIFIER_NAME, deployer, false, []);
       const recoveryOidc = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier, passkey], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier, passkey]));
