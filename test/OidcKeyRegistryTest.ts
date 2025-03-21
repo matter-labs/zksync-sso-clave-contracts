@@ -27,16 +27,6 @@ describe("OidcKeyRegistry", function () {
   });
 
   it("should set one key", async () => {
-    const keys = Array.from({ length: 8 }, () => [
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-      Array(17).fill("0"),
-      "0x",
-    ]);
-
-    const currentIndex = await oidcKeyRegistry.keyIndex();
-    const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
-
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
 
@@ -47,7 +37,9 @@ describe("OidcKeyRegistry", function () {
       e: "0x010001",
     };
 
-    await oidcKeyRegistry.addKey(key);
+    await expect(oidcKeyRegistry.addKey(key))
+      .to.emit(oidcKeyRegistry, "KeyAdded")
+      .withArgs(issHash, key.kid, key.n);
 
     const storedKey = await oidcKeyRegistry.getKey(issHash, key.kid);
     expect(storedKey.kid).to.equal(key.kid);
@@ -66,7 +58,11 @@ describe("OidcKeyRegistry", function () {
       e: "0x010001",
     }));
 
-    await oidcKeyRegistry.addKeys(newKeys);
+    for (let i = 0; i < newKeys.length; i++) {
+      await expect(oidcKeyRegistry.addKeys([newKeys[i]]))
+        .to.emit(oidcKeyRegistry, "KeyAdded")
+        .withArgs(issHash, newKeys[i].kid, newKeys[i].n);
+    }
 
     for (let i = 0; i < 8; i++) {
       const storedKey = await oidcKeyRegistry.getKey(issHash, newKeys[i].kid);
@@ -127,6 +123,160 @@ describe("OidcKeyRegistry", function () {
     // Check that the old keys are not stored anymore
     for (let i = 0; i < 8; i++) {
       await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid)).to.be.revertedWith("Key not found");
+    }
+  });
+
+  it("should correctly implement circular key storage with multiple issuers", async () => {
+    const issuers = ["https://issuer1.com", "https://issuer2.com"];
+    const keysPerIssuer = 4;
+
+    for (const issuer of issuers) {
+      const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+      const keys = Array.from({ length: keysPerIssuer }, (_, i) => ({
+        issHash,
+        kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}-${issuer}`)),
+        n: JWK_MODULUS,
+        e: "0x010001",
+      }));
+
+      await oidcKeyRegistry.addKeys(keys);
+
+      for (let i = 0; i < keysPerIssuer; i++) {
+        const storedKey = await oidcKeyRegistry.getKey(issHash, keys[i].kid);
+        expect(storedKey.kid).to.equal(keys[i].kid);
+      }
+    }
+
+    const nonExistentKid = ethers.keccak256(ethers.toUtf8Bytes(`key1-${issuers[1]}`));
+    const firstIssuerHash = await oidcKeyRegistry.hashIssuer(issuers[0]);
+    await expect(oidcKeyRegistry.getKey(firstIssuerHash, nonExistentKid)).to.be.revertedWith("Key not found");
+  });
+
+  it("should revert when trying to add too many keys", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+
+    const keys = Array.from({ length: 9 }, (_, i) => ({
+      issHash,
+      kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}`)),
+      n: JWK_MODULUS,
+      e: "0x010001",
+    }));
+
+    await expect(oidcKeyRegistry.addKeys(keys)).to.be.revertedWith("Key count limit exceeded");
+  });
+
+  it("should revert when adding two different issuers", async () => {
+    const issuers = ["https://issuer1.com", "https://issuer2.com"];
+    const keysPerIssuer = 4; // Adding the limit for 2 issuers
+    const allKeys: { issHash: string; kid: string; n: string[]; e: string }[] = [];
+
+    for (const issuer of issuers) {
+      const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+      const keys = Array.from({ length: keysPerIssuer }, (_, i) => ({
+        issHash,
+        kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}-${issuer}`)),
+        n: JWK_MODULUS,
+        e: "0x010001",
+      }));
+      allKeys.push(...keys);
+    }
+
+    await expect(oidcKeyRegistry.addKeys(allKeys)).to.be.revertedWith("Issuer hash mismatch: All keys must have the same issuer");
+  });
+
+  it("should remove a key", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const kid = ethers.keccak256(ethers.toUtf8Bytes("key1"));
+    const key = {
+      issHash,
+      kid,
+      n: JWK_MODULUS,
+      e: "0x010001",
+    };
+
+    await oidcKeyRegistry.addKey(key);
+    await expect(oidcKeyRegistry.deleteKey(issHash, kid)).to.emit(oidcKeyRegistry, "KeyDeleted").withArgs(issHash, kid);
+
+    await expect(oidcKeyRegistry.getKey(issHash, kid)).to.be.revertedWith("Key not found");
+  });
+
+  it("should revert when a non-owner tries to remove a key", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const kid = ethers.keccak256(ethers.toUtf8Bytes("key1"));
+    const key = {
+      issHash,
+      kid,
+      n: JWK_MODULUS,
+      e: "0x010001",
+    };
+
+    await oidcKeyRegistry.addKey(key);
+
+    const nonOwner = Wallet.createRandom(getProvider());
+    const nonOwnerRegistry = OidcKeyRegistry__factory.connect(await oidcKeyRegistry.getAddress(), nonOwner);
+
+    await expect(nonOwnerRegistry.deleteKey(issHash, kid)).to.be.revertedWith("Ownable: caller is not the owner");
+  });
+
+  it("should revert when trying to remove a non-existent key", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const nonExistentKid = ethers.keccak256(ethers.toUtf8Bytes("key1"));
+
+    await expect(oidcKeyRegistry.deleteKey(issHash, nonExistentKid)).to.be.revertedWith("Key not found");
+  });
+
+  it("should remove holes when removing keys", async () => {
+    const iss = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(iss);
+    const keys = Array.from({ length: 8 }, (_, i) => ({
+      issHash,
+      kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}`)),
+      n: JWK_MODULUS,
+      e: "0x010001",
+    }));
+
+    await oidcKeyRegistry.addKeys(keys);
+
+    // Remove the first two keys
+    for (let i = 0; i < 2; i++) {
+      await expect(oidcKeyRegistry.deleteKey(issHash, keys[i].kid)).to.emit(oidcKeyRegistry, "KeyDeleted").withArgs(issHash, keys[i].kid);
+    }
+
+    // Check that the removed keys are not stored anymore
+    for (let i = 0; i < 2; i++) {
+      await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid)).to.be.revertedWith("Key not found");
+    }
+
+    // Check that the other keys are still stored
+    for (let i = 2; i < 8; i++) {
+      const storedKey = await oidcKeyRegistry.getKey(issHash, keys[i].kid);
+      expect(storedKey.kid).to.equal(keys[i].kid);
+    }
+
+    // Add two new keys
+    const newKeys = Array.from({ length: 2 }, (_, i) => ({
+      issHash,
+      kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 9}`)),
+      n: JWK_MODULUS,
+      e: "0x010001",
+    }));
+
+    await oidcKeyRegistry.addKeys(newKeys);
+
+    // Check that the new keys are stored correctly
+    for (let i = 0; i < 2; i++) {
+      const storedKey = await oidcKeyRegistry.getKey(issHash, newKeys[i].kid);
+      expect(storedKey.kid).to.equal(newKeys[i].kid);
+    }
+
+    // Check that the other keys are still stored
+    for (let i = 2; i < 8; i++) {
+      const storedKey = await oidcKeyRegistry.getKey(issHash, keys[i].kid);
+      expect(storedKey.kid).to.equal(keys[i].kid);
     }
   });
 });
