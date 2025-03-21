@@ -202,7 +202,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   function initRecovery(
     address accountToRecover,
     bytes32 hashedCredentialId,
-    bytes32[2] memory rawPublicKey,
+    bytes32[2] calldata rawPublicKey,
     bytes32 hashedOriginDomain
   ) external onlyGuardianOf(hashedOriginDomain, accountToRecover) {
     pendingRecoveryData[hashedOriginDomain][accountToRecover] = RecoveryRequest(
@@ -293,7 +293,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   /// @inheritdoc IModuleValidator
-  function validateSignature(bytes32, bytes memory) external pure returns (bool) {
+  function validateSignature(bytes32, bytes calldata) external pure returns (bool) {
     return false;
   }
 
