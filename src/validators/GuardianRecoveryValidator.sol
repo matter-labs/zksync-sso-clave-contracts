@@ -142,25 +142,26 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @param hashedOriginDomain Hash of origin domain
   /// @param guardianToRemove Guardian's address to remove
   function removeValidationKey(bytes32 hashedOriginDomain, address guardianToRemove) external {
+    if (guardianToRemove == address(0)) revert InvalidGuardianAddress();
+
     bool removalSuccessful = accountGuardians[hashedOriginDomain][msg.sender].remove(guardianToRemove);
-
-    if (removalSuccessful) {
-      bool wasActiveGuardian = accountGuardianData[hashedOriginDomain][msg.sender][guardianToRemove].isReady;
-      delete accountGuardianData[hashedOriginDomain][msg.sender][guardianToRemove];
-
-      if (wasActiveGuardian) {
-        EnumerableSetUpgradeable.AddressSet storage accounts = guardedAccounts[hashedOriginDomain][guardianToRemove];
-        bool accountsRemovalSuccessful = accounts.remove(msg.sender);
-
-        if (!accountsRemovalSuccessful) {
-          revert AccountNotGuardedByAddress(msg.sender, guardianToRemove);
-        }
-      }
-      emit GuardianRemoved(msg.sender, hashedOriginDomain, guardianToRemove);
-      return;
+    if (!removalSuccessful) {
+      revert GuardianNotFound(guardianToRemove);
     }
 
-    revert GuardianNotFound(guardianToRemove);
+    bool wasActiveGuardian = accountGuardianData[hashedOriginDomain][msg.sender][guardianToRemove].isReady;
+    delete accountGuardianData[hashedOriginDomain][msg.sender][guardianToRemove];
+
+    if (wasActiveGuardian) {
+      EnumerableSetUpgradeable.AddressSet storage accounts = guardedAccounts[hashedOriginDomain][guardianToRemove];
+      bool accountsRemovalSuccessful = accounts.remove(msg.sender);
+
+      if (!accountsRemovalSuccessful) {
+        revert AccountNotGuardedByAddress(msg.sender, guardianToRemove);
+      }
+    }
+    emit GuardianRemoved(msg.sender, hashedOriginDomain, guardianToRemove);
+    return;
   }
 
   /// @notice This method allows to accept being a guardian of given account

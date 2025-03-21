@@ -194,6 +194,13 @@ describe("GuardianRecoveryValidator", function () {
         .to.be.revertedWithCustomError(guardianValidator, "GuardianNotFound");
     });
 
+    it("fails when tries to remove zero address guardian.", async function () {
+      const [randomGeneratedWallet] = await randomWallet();
+
+      await expect(sut(ethers.ZeroAddress))
+        .to.be.revertedWithCustomError(guardianValidator, "InvalidGuardianAddress");
+    });
+
     it("works to remove existing guardian.", async function () {
       const tx = await sut(await guardian.getAddress());
 
