@@ -86,7 +86,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     for (uint256 j = 0; j < hashedOriginDomains.length; j++) {
       bytes32 hashedOriginDomain = hashedOriginDomains[j];
       address[] memory guardians = accountGuardians[hashedOriginDomain][msg.sender].values();
-      for (uint256 i = 0; i < guardians.length; i++) {
+      for (uint256 i = 0; i < guardians.length; ++i) {
         address guardian = guardians[i];
 
         EnumerableSetUpgradeable.AddressSet storage accounts = guardedAccounts[hashedOriginDomain][guardian];
@@ -312,7 +312,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   function guardiansFor(bytes32 hashedOriginDomain, address addr) public view returns (Guardian[] memory) {
     address[] memory guardians = accountGuardians[hashedOriginDomain][addr].values();
     Guardian[] memory result = new Guardian[](guardians.length);
-    for (uint256 i = 0; i < guardians.length; i++) {
+    for (uint256 i = 0; i < guardians.length; ++i) {
       result[i] = accountGuardianData[hashedOriginDomain][addr][guardians[i]];
     }
     return result;
