@@ -200,7 +200,6 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
   function oidcDataForAddress(address account) public view returns (OidcData memory) {
     OidcData memory data = accountData[account];
-    OidcData[] memory array;
 
     if (data.oidcDigest == bytes32(0)) {
       revert("OidcRecoveryValidator: No oidc data for given address");
