@@ -21,6 +21,10 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   event KeyAdded(bytes32 indexed issHash, bytes32 indexed kid, uint256[CIRCOM_BIGINT_CHUNKS] n);
   event KeyDeleted(bytes32 indexed issHash, bytes32 indexed kid);
 
+  error KeyNotFound(bytes32 issHash, bytes32 kid);
+  error KeyCountLimitExceeded(uint256 count);
+  error IssuerHashMismatch(bytes32 expectedIssHash, bytes32 actualIssHash);
+
   // Mapping of issuer hash to keys
   mapping(bytes32 => Key[MAX_KEYS]) public OIDCKeys;
   // Index of the last key added per issuer
@@ -62,7 +66,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
         return OIDCKeys[issHash][i];
       }
     }
-    revert("Key not found");
+    revert KeyNotFound(issHash, kid);
   }
 
   function getKeys(bytes32 issHash) public view returns (Key[MAX_KEYS] memory) {
@@ -110,17 +114,21 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
         return;
       }
     }
-    revert("Key not found");
+    revert KeyNotFound(issHash, kid);
   }
 
   function _checkKeyCountLimit(Key[] memory newKeys) private pure {
-    require(newKeys.length <= MAX_KEYS, "Key count limit exceeded");
+    if (newKeys.length > MAX_KEYS) {
+      revert KeyCountLimitExceeded(newKeys.length);
+    }
     if (newKeys.length == 0) {
       return;
     }
     bytes32 issHash = newKeys[0].issHash;
     for (uint8 i = 1; i < newKeys.length; i++) {
-      require(newKeys[i].issHash == issHash, "Issuer hash mismatch: All keys must have the same issuer");
+      if (newKeys[i].issHash != issHash) {
+        revert IssuerHashMismatch(issHash, newKeys[i].issHash);
+      }
     }
   }
 }
