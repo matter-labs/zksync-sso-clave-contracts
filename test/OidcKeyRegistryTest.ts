@@ -22,8 +22,8 @@ describe("OidcKeyRegistry", function () {
     const nonExistentKid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
     await expect(oidcKeyRegistry.getKey(issHash, nonExistentKid))
-        .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
-        .withArgs(issHash, nonExistentKid);
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+      .withArgs(issHash, nonExistentKid);
   });
 
   it("should set one key", async () => {
@@ -188,7 +188,9 @@ describe("OidcKeyRegistry", function () {
       allKeys.push(...keys);
     }
 
-    await expect(oidcKeyRegistry.addKeys(allKeys)).to.be.revertedWith("Issuer hash mismatch: All keys must have the same issuer");
+    await expect(oidcKeyRegistry.addKeys(allKeys))
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "IssuerHashMismatch")
+      .withArgs(allKeys[0].issHash, allKeys[4].issHash);
   });
 
   it("should remove a key", async () => {

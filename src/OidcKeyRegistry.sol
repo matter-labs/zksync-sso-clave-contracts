@@ -23,6 +23,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
 
   error KeyNotFound(bytes32 issHash, bytes32 kid);
   error KeyCountLimitExceeded(uint256 count);
+  error IssuerHashMismatch(bytes32 expectedIssHash, bytes32 actualIssHash);
 
   // Mapping of issuer hash to keys
   mapping(bytes32 => Key[MAX_KEYS]) public OIDCKeys;
@@ -125,7 +126,9 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     }
     bytes32 issHash = newKeys[0].issHash;
     for (uint8 i = 1; i < newKeys.length; i++) {
-      require(newKeys[i].issHash == issHash, "Issuer hash mismatch: All keys must have the same issuer");
+      if (newKeys[i].issHash != issHash) {
+        revert IssuerHashMismatch(issHash, newKeys[i].issHash);
+      }
     }
   }
 }
