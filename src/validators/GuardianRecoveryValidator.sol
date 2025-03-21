@@ -15,47 +15,6 @@ import { BatchCaller, Call } from "../batch/BatchCaller.sol";
 contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
-  struct Guardian {
-    address addr;
-    bool isReady;
-    uint64 addedAt;
-  }
-
-  struct RecoveryRequest {
-    bytes32 hashedCredentialId;
-    bytes32[2] rawPublicKey;
-    uint256 timestamp;
-  }
-
-  error GuardianCannotBeSelf();
-  error GuardianNotFound(address guardian);
-  error GuardianNotProposed(address guardian);
-  error AccountAlreadyGuardedByGuardian(address account, address guardian);
-  error AccountNotGuardedByAddress(address account, address guardian);
-  error PasskeyNotMatched();
-  error CooldownPeriodNotPassed();
-  error ExpiredRequest();
-
-  event RecoveryInitiated(
-    address indexed account,
-    bytes32 indexed hashedOriginDomain,
-    bytes32 indexed hashedCredentialId,
-    address guardian
-  );
-  event RecoveryFinished(
-    address indexed account,
-    bytes32 indexed hashedOriginDomain,
-    bytes32 indexed hashedCredentialId
-  );
-  event RecoveryDiscarded(
-    address indexed account,
-    bytes32 indexed hashedOriginDomain,
-    bytes32 indexed hashedCredentialId
-  );
-  event GuardianProposed(address indexed account, bytes32 indexed hashedOriginDomain, address indexed guardian);
-  event GuardianAdded(address indexed account, bytes32 indexed hashedOriginDomain, address indexed guardian);
-  event GuardianRemoved(address indexed account, bytes32 indexed hashedOriginDomain, address indexed guardian);
-
   uint256 public constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
   uint256 public constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
 
