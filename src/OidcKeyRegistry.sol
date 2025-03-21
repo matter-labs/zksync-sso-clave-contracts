@@ -26,29 +26,52 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   error IssuerHashMismatch(bytes32 expectedIssHash, bytes32 actualIssHash);
 
   // Mapping of issuer hash to keys
-  mapping(bytes32 => Key[MAX_KEYS]) public OIDCKeys;
+  mapping(bytes32 issHash => Key[MAX_KEYS] keys) public OIDCKeys;
   // Index of the last key added per issuer
-  mapping(bytes32 => uint8) public keyIndexes;
+  mapping(bytes32 issHash => uint8 keyIndex) public keyIndexes;
 
   constructor() {
     _disableInitializers();
   }
 
-  function initialize() public initializer {
+  function initialize() external initializer {
     __Ownable_init();
   }
 
-  function hashIssuer(string memory iss) public pure returns (bytes32) {
+  function hashIssuer(string memory iss) external pure returns (bytes32) {
     return keccak256(abi.encode(iss));
   }
 
-  function addKey(Key memory newKey) public onlyOwner {
-    Key[] memory newKeys = new Key[](1);
-    newKeys[0] = newKey;
-    addKeys(newKeys);
+  function addKeys(Key[] memory newKeys) external onlyOwner {
+    _addKeys(newKeys);
   }
 
-  function addKeys(Key[] memory newKeys) public onlyOwner {
+  function addKey(Key memory newKey) external onlyOwner {
+    Key[] memory newKeys = new Key[](1);
+    newKeys[0] = newKey;
+    _addKeys(newKeys);
+  }
+
+  function getKey(bytes32 issHash, bytes32 kid) external view returns (Key memory) {
+    for (uint8 i = 0; i < MAX_KEYS; i++) {
+      if (OIDCKeys[issHash][i].kid == kid) {
+        return OIDCKeys[issHash][i];
+      }
+    }
+    revert KeyNotFound(issHash, kid);
+  }
+
+  function getKeys(bytes32 issHash) external view returns (Key[MAX_KEYS] memory) {
+    return OIDCKeys[issHash];
+  }
+
+  function deleteKey(bytes32 issHash, bytes32 kid) external onlyOwner {
+    _deleteKey(issHash, kid);
+    _compactKeys(issHash);
+    emit KeyDeleted(issHash, kid);
+  }
+
+  function _addKeys(Key[] memory newKeys) private {
     _checkKeyCountLimit(newKeys);
     for (uint8 i = 0; i < newKeys.length; i++) {
       bytes32 issHash = newKeys[i].issHash;
@@ -58,25 +81,6 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       keyIndexes[issHash] = nextIndex;
       emit KeyAdded(issHash, newKeys[i].kid, newKeys[i].n);
     }
-  }
-
-  function getKey(bytes32 issHash, bytes32 kid) public view returns (Key memory) {
-    for (uint8 i = 0; i < MAX_KEYS; i++) {
-      if (OIDCKeys[issHash][i].kid == kid) {
-        return OIDCKeys[issHash][i];
-      }
-    }
-    revert KeyNotFound(issHash, kid);
-  }
-
-  function getKeys(bytes32 issHash) public view returns (Key[MAX_KEYS] memory) {
-    return OIDCKeys[issHash];
-  }
-
-  function deleteKey(bytes32 issHash, bytes32 kid) public onlyOwner {
-    _deleteKey(issHash, kid);
-    _compactKeys(issHash);
-    emit KeyDeleted(issHash, kid);
   }
 
   function _compactKeys(bytes32 issHash) private {
