@@ -113,8 +113,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
         "initialize(address)",
         [passkey],
       ));
-      const oidcKeyRegistryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_KEY_REGISTRY_NAME)).abi);
-      const oidcKeyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, false, [], oidcKeyRegistryInterface.encodeFunctionData("initialize", [])); // TODO: Add proxy
+      const oidcKeyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, false, []);
       const oidcRecoveryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_RECOVERY_NAME)).abi);
       const oidcVerifier = await deploy(OIDC_VERIFIER_NAME, deployer, false, []);
       const recoveryOidc = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier, passkey], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier, passkey]));
