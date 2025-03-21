@@ -172,23 +172,22 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     if (accountToGuard == address(0)) revert InvalidAccountToGuardAddress();
 
     bool guardianProposed = accountGuardians[hashedOriginDomain][accountToGuard].contains(msg.sender);
-
-    if (guardianProposed) {
-      // We return true if the guardian was not confirmed before.
-      if (accountGuardianData[hashedOriginDomain][accountToGuard][msg.sender].isReady) return false;
-
-      accountGuardianData[hashedOriginDomain][accountToGuard][msg.sender].isReady = true;
-      bool addSuccessful = guardedAccounts[hashedOriginDomain][msg.sender].add(accountToGuard);
-
-      if (!addSuccessful) {
-        revert AccountAlreadyGuardedByGuardian(accountToGuard, msg.sender);
-      }
-
-      emit GuardianAdded(accountToGuard, hashedOriginDomain, msg.sender);
-      return true;
+    if (!guardianProposed) {
+      revert GuardianNotProposed(msg.sender);
     }
 
-    revert GuardianNotProposed(msg.sender);
+    // We return true if the guardian was not confirmed before.
+    if (accountGuardianData[hashedOriginDomain][accountToGuard][msg.sender].isReady) return false;
+
+    accountGuardianData[hashedOriginDomain][accountToGuard][msg.sender].isReady = true;
+    bool addSuccessful = guardedAccounts[hashedOriginDomain][msg.sender].add(accountToGuard);
+
+    if (!addSuccessful) {
+      revert AccountAlreadyGuardedByGuardian(accountToGuard, msg.sender);
+    }
+
+    emit GuardianAdded(accountToGuard, hashedOriginDomain, msg.sender);
+    return true;
   }
 
   /// @notice This modifier allows execution only by active guardian of account
