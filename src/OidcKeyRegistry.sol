@@ -27,7 +27,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   mapping(bytes32 => uint8) public keyIndexes;
 
   constructor() {
-    initialize();
+    _disableInitializers();
   }
 
   function initialize() public initializer {
