@@ -225,6 +225,33 @@ describe("GuardianRecoveryValidator", function () {
     });
   });
 
+  describe("validateTransaction", () => {
+    const sut = async (data: ethers.BytesLike) => {
+      return guardianValidator.validateTransaction(ethers.zeroPadBytes("0x", 32), {
+        data,
+        to: ethers.ZeroAddress,
+        value: 0n,
+        txType: 113n,
+        from: ethers.ZeroAddress,
+        reserved: [0n, 0n, 0n, 0n],
+        reservedDynamic: "0x",
+        signature: "0x",
+        gasLimit: 8_000_0000n,
+        gasPerPubdataByteLimit: 50000n,
+        maxFeePerGas: 0n,
+        maxPriorityFeePerGas: 0n,
+        paymaster: 0n,
+        nonce: 0n,
+        factoryDeps: [],
+        paymasterInput: "0x",
+      });
+    };
+
+    it("Should revert when passed non function call data.", async function () {
+      await expect(sut("0x1234")).to.be.revertedWithCustomError(guardianValidator, "NonFunctionCallTransaction");
+    });
+  });
+
   describe("When attached to SsoAccount", () => {
     describe("When initiating new guardian addition operation", () => {
       it("it adds guardian as non ready one.", async function () {
