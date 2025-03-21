@@ -16,12 +16,14 @@ describe("OidcKeyRegistry", function () {
     oidcKeyRegistry = await fixtures.getOidcKeyRegistryContract();
   });
 
-  it("should return empty key when fetching a non-existent key", async () => {
+  it("should revert when fetching a non-existent key", async () => {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
     const nonExistentKid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
-    await expect(oidcKeyRegistry.getKey(issHash, nonExistentKid)).to.be.revertedWith("Key not found");
+    await expect(oidcKeyRegistry.getKey(issHash, nonExistentKid))
+        .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+        .withArgs(issHash, nonExistentKid);
   });
 
   it("should set one key", async () => {
@@ -120,7 +122,9 @@ describe("OidcKeyRegistry", function () {
 
     // Check that the old keys are not stored anymore
     for (let i = 0; i < 8; i++) {
-      await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid)).to.be.revertedWith("Key not found");
+      await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid))
+        .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+        .withArgs(issHash, keys[i].kid);
     }
   });
 
@@ -147,7 +151,9 @@ describe("OidcKeyRegistry", function () {
 
     const nonExistentKid = ethers.keccak256(ethers.toUtf8Bytes(`key1-${issuers[1]}`));
     const firstIssuerHash = await oidcKeyRegistry.hashIssuer(issuers[0]);
-    await expect(oidcKeyRegistry.getKey(firstIssuerHash, nonExistentKid)).to.be.revertedWith("Key not found");
+    await expect(oidcKeyRegistry.getKey(firstIssuerHash, nonExistentKid))
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+      .withArgs(firstIssuerHash, nonExistentKid);
   });
 
   it("should revert when trying to add too many keys", async () => {
@@ -197,7 +203,9 @@ describe("OidcKeyRegistry", function () {
     await oidcKeyRegistry.addKey(key);
     await expect(oidcKeyRegistry.deleteKey(issHash, kid)).to.emit(oidcKeyRegistry, "KeyDeleted").withArgs(issHash, kid);
 
-    await expect(oidcKeyRegistry.getKey(issHash, kid)).to.be.revertedWith("Key not found");
+    await expect(oidcKeyRegistry.getKey(issHash, kid))
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+      .withArgs(issHash, kid);
   });
 
   it("should revert when a non-owner tries to remove a key", async () => {
@@ -224,7 +232,9 @@ describe("OidcKeyRegistry", function () {
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
     const nonExistentKid = ethers.keccak256(ethers.toUtf8Bytes("key1"));
 
-    await expect(oidcKeyRegistry.deleteKey(issHash, nonExistentKid)).to.be.revertedWith("Key not found");
+    await expect(oidcKeyRegistry.deleteKey(issHash, nonExistentKid))
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+      .withArgs(issHash, nonExistentKid);
   });
 
   it("should remove holes when removing keys", async () => {
@@ -246,7 +256,9 @@ describe("OidcKeyRegistry", function () {
 
     // Check that the removed keys are not stored anymore
     for (let i = 0; i < 2; i++) {
-      await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid)).to.be.revertedWith("Key not found");
+      await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid))
+        .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+        .withArgs(issHash, keys[i].kid);
     }
 
     // Check that the other keys are still stored

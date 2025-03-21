@@ -21,6 +21,8 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   event KeyAdded(bytes32 indexed issHash, bytes32 indexed kid, uint256[CIRCOM_BIGINT_CHUNKS] n);
   event KeyDeleted(bytes32 indexed issHash, bytes32 indexed kid);
 
+  error KeyNotFound(bytes32 issHash, bytes32 kid);
+
   // Mapping of issuer hash to keys
   mapping(bytes32 => Key[MAX_KEYS]) public OIDCKeys;
   // Index of the last key added per issuer
@@ -62,7 +64,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
         return OIDCKeys[issHash][i];
       }
     }
-    revert("Key not found");
+    revert KeyNotFound(issHash, kid);
   }
 
   function getKeys(bytes32 issHash) public view returns (Key[MAX_KEYS] memory) {
@@ -110,7 +112,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
         return;
       }
     }
-    revert("Key not found");
+    revert KeyNotFound(issHash, kid);
   }
 
   function _checkKeyCountLimit(Key[] memory newKeys) private pure {
