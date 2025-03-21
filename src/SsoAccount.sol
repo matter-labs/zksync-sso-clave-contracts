@@ -125,7 +125,7 @@ contract SsoAccount is
     uint32 gas = Utils.safeCastToU32(gasleft());
     bool success;
 
-    if (_to == address(DEPLOYER_SYSTEM_CONTRACT)) {
+    if (_to == address(DEPLOYER_SYSTEM_CONTRACT) && _data.length >= 4) {
       bytes4 selector = bytes4(_data[:4]);
       // Check that called function is the deployment method,
       // the other deployer methods are not supposed to be called from the account.
