@@ -58,10 +58,11 @@ describe("OidcRecoveryValidator", function () {
       const tx = await oidcValidator.connect(ownerWallet).addValidationKey(encodedData);
       await tx.wait();
 
-      const storedData = (await oidcValidator.oidcDataForAddress(ownerWallet.address))[0];
+      const storedData = await oidcValidator.oidcDataForAddress(ownerWallet.address);
 
       expect(storedData.oidcDigest).to.equal(oidcDigest);
       expect(storedData.iss).to.equal(iss);
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       expect(storedData.readyToRecover).to.be.false;
       expect(storedData.pendingPasskeyHash).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
       expect(storedData.recoverNonce).to.equal(0);
@@ -150,7 +151,8 @@ describe("OidcRecoveryValidator", function () {
 
       await oidcValidator.connect(secondWallet).startRecovery(startRecoveryData, ownerWallet.address, { gasLimit: 20_000_000 });
 
-      const storedData = (await oidcValidator.oidcDataForAddress(ownerWallet.address))[0];
+      const storedData = await oidcValidator.oidcDataForAddress(ownerWallet.address);
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       expect(storedData.readyToRecover).to.be.true;
       expect(storedData.pendingPasskeyHash).to.equal(keypassPubKeyHash);
       expect(storedData.recoverNonce).to.equal(1);

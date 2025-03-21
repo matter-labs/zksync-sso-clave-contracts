@@ -198,17 +198,15 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     return digestIndex[digest];
   }
 
-  function oidcDataForAddress(address account) public view returns (OidcData[] memory) {
+  function oidcDataForAddress(address account) public view returns (OidcData memory) {
     OidcData memory data = accountData[account];
     OidcData[] memory array;
 
     if (data.oidcDigest == bytes32(0)) {
-      return array;
+      revert("OidcRecoveryValidator: No oidc data for given address");
     }
 
-    array = new OidcData[](1);
-    array[0] = data;
-    return array;
+    return data;
   }
 
   // Reverse byte order
