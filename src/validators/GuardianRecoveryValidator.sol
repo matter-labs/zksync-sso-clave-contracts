@@ -12,6 +12,10 @@ import { IModule } from "../interfaces/IModule.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 import { BatchCaller, Call } from "../batch/BatchCaller.sol";
 
+/// @title GuardianRecoveryValidator
+/// @author Matter Labs
+/// @custom:security-contact security@matterlabs.dev
+/// @dev This contract allows account recovery using trusted guardians.
 contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
