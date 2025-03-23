@@ -54,7 +54,7 @@ contract SsoAccount is
   /// @notice Initializer function that sets account initial configuration. Expected to be used in the proxy.
   /// @dev Sets passkey and passkey validator within account storage
   /// @param initialValidators An array of module validator addresses and initial validation keys
-  /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey))`.
+  /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey)`.
   /// @param initialK1Owners An array of addresses with full control over the account.
   function initialize(bytes[] calldata initialValidators, address[] calldata initialK1Owners) external initializer {
     address validatorAddr;
