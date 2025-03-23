@@ -57,6 +57,10 @@ contract SsoAccount is
   /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey))`.
   /// @param initialK1Owners An array of addresses with full control over the account.
   function initialize(bytes[] calldata initialValidators, address[] calldata initialK1Owners) external initializer {
+    if (initialValidators.length == 0 && initialK1Owners.length == 0) {
+      revert Errors.INVALID_ACCOUNT_KEYS();
+    }
+
     address validatorAddr;
     bytes memory initData;
     for (uint256 i = 0; i < initialValidators.length; ++i) {
