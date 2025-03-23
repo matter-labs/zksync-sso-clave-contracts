@@ -49,6 +49,8 @@ contract WebAuthValidator is IModuleValidator {
   error KEY_EXISTS();
   error ACCOUNT_EXISTS();
   error EMPTY_KEY();
+  error BAD_DOMAIN_LENGTH();
+  error BAD_CREDENTIAL_ID_LENGTH();
 
   /// @notice This is helper function that returns the whole public key, as of solidity 0.8.24 the auto-generated getters only return half of the key
   /// @param originDomain the domain this key is associated with (the auth-server)
@@ -118,6 +120,15 @@ contract WebAuthValidator is IModuleValidator {
     if (rawPublicKey[0] == 0 && rawPublicKey[1] == 0) {
       // empty keys aren't valid
       revert EMPTY_KEY();
+    }
+    uint256 domainLength = bytes(originDomain).length;
+    if (domainLength < 1 || domainLength > 253) {
+      // RFC 1035 sets domains between 1-253 characters
+      revert BAD_DOMAIN_LENGTH();
+    }
+    if (credentialId.length < 16) {
+      // min length from: https://www.w3.org/TR/webauthn-2/#credential-id
+      revert BAD_CREDENTIAL_ID_LENGTH();
     }
 
     publicKeys[originDomain][credentialId][msg.sender] = rawPublicKey;
