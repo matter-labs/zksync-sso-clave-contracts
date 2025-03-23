@@ -37,6 +37,8 @@ contract WebAuthValidator is IModuleValidator {
   bytes1 private constant AUTH_DATA_MASK = 0x05;
   bytes32 private constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
   bytes32 private constant HIGH_R_MAX = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
+  bytes32 private constant WEBAUTHN_GET_HASH = keccak256("webauthn.get");
+  bytes32 private constant FALSE_HASH = keccak256("false");
 
   // Order of Layout: Events
   event PasskeyCreated(address indexed keyOwner, string originDomain, bytes credentialId);
@@ -181,8 +183,8 @@ contract WebAuthValidator is IModuleValidator {
     }
 
     // type ensures the signature was created from a validation request
-    string memory type_ = root.at('"type"').value().decodeString();
-    if (!Strings.equal("webauthn.get", type_)) {
+    string memory webauthn_type = root.at('"type"').value().decodeString();
+    if (WEBAUTHN_GET_HASH != keccak256(bytes(webauthn_type))) {
       return false;
     }
 
@@ -202,7 +204,7 @@ contract WebAuthValidator is IModuleValidator {
     JSONParserLib.Item memory crossOriginItem = root.at('"crossOrigin"');
     if (!crossOriginItem.isUndefined()) {
       string memory crossOrigin = crossOriginItem.value();
-      if (!Strings.equal("false", crossOrigin)) {
+      if (FALSE_HASH != keccak256(bytes(crossOrigin))) {
         return false;
       }
     }
