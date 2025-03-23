@@ -90,8 +90,9 @@ contract WebAuthValidator is IModuleValidator {
   }
 
   function removeValidationKey(bytes memory credentialId, string memory domain) public {
-    if (registeredAddress[domain][credentialId] != msg.sender) {
-      revert NOT_KEY_OWNER(registeredAddress[domain][credentialId]);
+    address existingAddress = registeredAddress[domain][credentialId];
+    if (existingAddress != msg.sender) {
+      revert NOT_KEY_OWNER(existingAddress);
     }
     registeredAddress[domain][credentialId] = address(0);
     publicKeys[domain][credentialId][msg.sender] = [bytes32(0), bytes32(0)];
