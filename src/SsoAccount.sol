@@ -54,7 +54,7 @@ contract SsoAccount is
   /// @notice Initializer function that sets account initial configuration. Expected to be used in the proxy.
   /// @dev Sets passkey and passkey validator within account storage
   /// @param initialValidators An array of module validator addresses and initial validation keys
-  /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey))`.
+  /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey)`.
   /// @param initialK1Owners An array of addresses with full control over the account.
   function initialize(bytes[] calldata initialValidators, address[] calldata initialK1Owners) external initializer {
     address validatorAddr;
@@ -90,8 +90,9 @@ contract SsoAccount is
 
     // If there is not enough balance for the transaction, the account should reject it
     // on the validation step to prevent paying fees for revertable transactions.
-    if (_transaction.totalRequiredBalance() > address(this).balance) {
-      revert Errors.INSUFFICIENT_FUNDS(_transaction.totalRequiredBalance(), address(this).balance);
+    uint256 requiredBalance = _transaction.totalRequiredBalance();
+    if (requiredBalance > address(this).balance) {
+      revert Errors.INSUFFICIENT_FUNDS(requiredBalance, address(this).balance);
     }
 
     // While the suggested signed hash is usually provided, it is generally
