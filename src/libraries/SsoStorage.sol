@@ -4,8 +4,8 @@ pragma solidity ^0.8.24;
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 library SsoStorage {
-  // keccak256('zksync-sso.contracts.SsoStorage') - 1
-  bytes32 private constant SSO_STORAGE_SLOT = 0x996e49e905bb2c30d677a2ad554e4b964a479b19a0509deafafca5126b88ba23;
+  // @custom:storage-location erc7201:zksync-sso.contracts.SsoStorage
+  bytes32 private constant SSO_STORAGE_SLOT = 0x76d91304710525fd07f6da5fffdfa69dbbabd80bc84f808f10d120a9bbff4600;
 
   struct Layout {
     // Ownership Data
