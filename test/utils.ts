@@ -58,6 +58,7 @@ export const CIRCOM_BIGINT_N = 121;
 
 export class ContractFixtures {
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
+  readonly keyRegistryOwner: Wallet = getWallet(LOCAL_RICH_WALLETS[1].privateKey);
 
   private _aaFactory: AAFactory;
   async getAaFactory() {
@@ -175,7 +176,9 @@ export class ContractFixtures {
   async getOidcKeyRegistryContract() {
     if (!this._oicdKeyRegistryContract) {
       const contract = await create2("OidcKeyRegistry", this.wallet, randomBytes(32));
-      this._oicdKeyRegistryContract = OidcKeyRegistry__factory.connect(await contract.getAddress(), this.wallet);
+      const proxyContract = await create2("TransparentProxy", this.wallet, ethersStaticSalt, [await contract.getAddress(), "0x"]);
+      this._oicdKeyRegistryContract = OidcKeyRegistry__factory.connect(await proxyContract.getAddress(), this.keyRegistryOwner);
+      await this._oicdKeyRegistryContract.initialize();
     }
     return this._oicdKeyRegistryContract;
   }
