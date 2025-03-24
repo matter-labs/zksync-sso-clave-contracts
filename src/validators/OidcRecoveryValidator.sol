@@ -104,9 +104,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   }
 
   function _deleteValidationKey() private {
-    OidcData memory oidcData = accountData[msg.sender];
+    bytes32 digest = accountData[msg.sender].oidcDigest;
+    delete digestIndex[digest];
     delete accountData[msg.sender];
-    delete digestIndex[oidcData.oidcDigest];
   }
 
   function startRecovery(StartRecoveryData calldata data, address targetAccount) external {
