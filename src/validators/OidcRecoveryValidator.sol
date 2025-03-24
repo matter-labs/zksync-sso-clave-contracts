@@ -64,24 +64,39 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     webAuthValidator = _webAuthValidator;
   }
 
-  /// @notice Adds an `OidcData` for the caller.
-  /// @param key ABI-encoded `OidcData`.
-  /// @return true if the key was added, false if it was updated.
-  function addValidationKey(bytes calldata key) public returns (bool) {
-    OidcCreationData memory oidcCreationData = abi.decode(key, (OidcCreationData));
-    bytes32 newDigest = oidcCreationData.oidcDigest;
-    string memory iss = oidcCreationData.iss;
+  /// @notice Runs on module install
+  /// @param data ABI-encoded OidcCreationData key to add immediately, or empty if not needed
+  function onInstall(bytes calldata data) external override {
+    OidcCreationData memory oidcCreationData = abi.decode(data, (OidcCreationData));
+    if (data.length > 0) {
+      require(
+        addOidcAccount(oidcCreationData.oidcDigest, oidcCreationData.iss),
+        "OidcRecoveryValidator: key already exists"
+      );
+    }
+  }
 
+  /// @notice Runs on module uninstall
+  /// @param data unused
+  function onUninstall(bytes calldata data) external override {
+    _deleteValidationKey();
+  }
+
+  /// @notice Adds an `OidcData` for the caller.
+  /// @param oidcDigest PoseidonHash(sub || aud || iss || salt).
+  /// @param iss The OIDC issuer.
+  /// @return true if the key was added, false if it was updated.
+  function addOidcAccount(bytes32 oidcDigest, string memory iss) public returns (bool) {
     bool isNew = accountData[msg.sender].oidcDigest.length == 0;
-    if (digestIndex[newDigest] != address(0)) {
+    if (digestIndex[oidcDigest] != address(0)) {
       revert("oidc_digest already registered in other account");
     }
 
-    accountData[msg.sender].oidcDigest = newDigest;
+    accountData[msg.sender].oidcDigest = oidcDigest;
     accountData[msg.sender].iss = iss;
-    digestIndex[newDigest] = msg.sender;
+    digestIndex[oidcDigest] = msg.sender;
 
-    emit OidcKeyUpdated(msg.sender, newDigest, iss, isNew);
+    emit OidcKeyUpdated(msg.sender, oidcDigest, iss, isNew);
     return isNew;
   }
 
