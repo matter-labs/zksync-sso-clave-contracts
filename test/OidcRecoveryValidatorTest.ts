@@ -55,10 +55,10 @@ describe("OidcRecoveryValidator", function () {
         [[oidcData.oidcDigest, oidcData.iss]],
       );
 
-      const tx = await oidcValidator.connect(ownerWallet).addValidationKey(encodedData);
+      const tx = await oidcValidator.connect(testWallet).addValidationKey(encodedData);
       await tx.wait();
 
-      const storedData = (await oidcValidator.oidcDataForAddress(ownerWallet.address))[0];
+      const storedData = (await oidcValidator.connect(testWallet).oidcDataForAddress(testWallet.address))[0];
 
       expect(storedData.oidcDigest).to.equal(oidcDigest);
       expect(storedData.iss).to.equal(iss);

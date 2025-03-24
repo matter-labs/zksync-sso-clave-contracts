@@ -131,8 +131,15 @@ export class ContractFixtures {
       const verifier = await this.getJOidcVerifier();
       const oidcKeyRegistry = await this.getOidcKeyRegistryContract();
       const webAuthValidator = await this.getWebAuthnVerifierContract();
-      const contract = await create2("OidcRecoveryValidator", this.wallet, ethersStaticSalt, [await oidcKeyRegistry.getAddress(), await verifier.getAddress(), await webAuthValidator.getAddress()]);
-      this._oidcRecoveryValidator = OidcRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
+      const contract = await create2("OidcRecoveryValidator", this.wallet, ethersStaticSalt, []);
+      const proxyContract = await create2("TransparentProxy", this.wallet, ethersStaticSalt, [
+        await contract.getAddress(),
+        contract.interface.encodeFunctionData(
+          "initialize",
+          [await oidcKeyRegistry.getAddress(), await verifier.getAddress(), await webAuthValidator.getAddress()],
+        ),
+      ]);
+      this._oidcRecoveryValidator = OidcRecoveryValidator__factory.connect(await proxyContract.getAddress(), this.wallet);
     }
 
     return this._oidcRecoveryValidator;
