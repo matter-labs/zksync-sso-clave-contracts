@@ -67,8 +67,8 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice Runs on module install
   /// @param data ABI-encoded OidcCreationData key to add immediately, or empty if not needed
   function onInstall(bytes calldata data) external override {
-    OidcCreationData memory oidcCreationData = abi.decode(data, (OidcCreationData));
     if (data.length > 0) {
+      OidcCreationData memory oidcCreationData = abi.decode(data, (OidcCreationData));
       require(
         addOidcAccount(oidcCreationData.oidcDigest, oidcCreationData.iss),
         "OidcRecoveryValidator: key already exists"
