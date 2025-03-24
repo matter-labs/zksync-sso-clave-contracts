@@ -34,7 +34,6 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
   bytes4 constant WEB_AUTH_VALIDATOR_REMOVE_KEY_SELECTOR = WebAuthValidator.removeValidationKey.selector;
   bytes4 constant WEB_AUTH_VALIDATOR_ADD_KEY_SELECTOR = WebAuthValidator.addValidationKey.selector;
   bytes4 constant OIDC_RECOVERY_ADD_KEY_SELECTOR = OidcRecoveryValidator.addOidcAccount.selector;
-  bytes4 constant OIDC_RECOVERY_DELETE_KEY_SELECTOR = OidcRecoveryValidator.deleteValidationKey.selector;
 
   modifier onlyBootloader() {
     require(msg.sender == BOOTLOADER_FORMAL_ADDRESS, "Only bootloader can call this method");
@@ -111,10 +110,7 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
     }
 
     if (to == OIDC_RECOVERY_VALIDATOR_CONTRACT_ADDRESS) {
-      require(
-        methodSelector == OIDC_RECOVERY_ADD_KEY_SELECTOR || methodSelector == OIDC_RECOVERY_DELETE_KEY_SELECTOR,
-        "Unsupported method"
-      );
+      require(methodSelector == OIDC_RECOVERY_ADD_KEY_SELECTOR, "Unsupported method");
     }
 
     bytes4 paymasterInputSelector = bytes4(_transaction.paymasterInput[0:4]);
