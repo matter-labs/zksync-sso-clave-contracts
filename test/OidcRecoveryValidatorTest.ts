@@ -64,7 +64,7 @@ describe("OidcRecoveryValidator", function () {
       const iss = "https://issuer.com";
 
       // First registration should succeed
-      await oidcValidator.connect(ownerWallet).addOidcAccount(oidcDigest, iss);
+      await oidcValidator.connect(testWallet).addOidcAccount(oidcDigest, iss);
 
       // Create another wallet
       const otherWallet = new Wallet(Wallet.createRandom().privateKey, provider);
@@ -77,6 +77,18 @@ describe("OidcRecoveryValidator", function () {
       await expect(
         oidcValidator.connect(otherWallet).addOidcAccount(oidcDigest, iss),
       ).to.be.revertedWith("oidc_digest already registered in other account");
+    });
+  });
+
+  describe("deleteOidcAccount", () => {
+    it("should delete OIDC account", async function () {
+      const oidcDigest = ethers.hexlify(randomBytes(32));
+      const iss = "https://issuer.com";
+
+      await oidcValidator.connect(testWallet).addOidcAccount(oidcDigest, iss);
+      await oidcValidator.connect(testWallet).deleteOidcAccount();
+
+      await expect(oidcValidator.connect(testWallet).oidcDataForAddress(testWallet.address)).to.be.revertedWith("OidcRecoveryValidator: No oidc data for given address");
     });
   });
 
