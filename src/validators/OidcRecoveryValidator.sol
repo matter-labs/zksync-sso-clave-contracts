@@ -54,8 +54,8 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   address public verifier;
   address public webAuthValidator;
 
-  constructor(address _keyRegistry, address _verifier, address _webAuthValidator) {
-    initialize(_keyRegistry, _verifier, _webAuthValidator);
+  constructor() {
+    _disableInitializers();
   }
 
   function initialize(address _keyRegistry, address _verifier, address _webAuthValidator) public initializer {

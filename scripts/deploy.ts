@@ -136,7 +136,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const oidcKeyRegistry = await deployKeyRegistry(deployer, keyRegistryOwner, hre, cmd.noProxy);
       const oidcRecoveryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_RECOVERY_NAME)).abi);
       const oidcVerifier = await deploy(OIDC_VERIFIER_NAME, deployer, false, []);
-      const recoveryOidc = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier, passkey], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier, passkey]));
+      const recoveryOidc = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier, passkey]));
       const accountPaymaster = await deploy(PAYMASTER_NAME, deployer, false, [accountFactory, session, recovery, passkey, recoveryOidc]);
       await fundPaymaster(deployer, accountPaymaster, cmd.fund);
       if (cmd.file) {
