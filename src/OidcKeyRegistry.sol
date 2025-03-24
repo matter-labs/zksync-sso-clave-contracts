@@ -83,25 +83,6 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     }
   }
 
-  function getKey(bytes32 issHash, bytes32 kid) public view returns (Key memory) {
-    for (uint8 i = 0; i < MAX_KEYS; i++) {
-      if (OIDCKeys[issHash][i].kid == kid) {
-        return OIDCKeys[issHash][i];
-      }
-    }
-    revert KeyNotFound(issHash, kid);
-  }
-
-  function getKeys(bytes32 issHash) public view returns (Key[MAX_KEYS] memory) {
-    return OIDCKeys[issHash];
-  }
-
-  function deleteKey(bytes32 issHash, bytes32 kid) public onlyOwner {
-    _deleteKey(issHash, kid);
-    _compactKeys(issHash);
-    emit KeyDeleted(issHash, kid);
-  }
-
   function _compactKeys(bytes32 issHash) private {
     Key[MAX_KEYS] memory keys;
     uint8 keyCount = 0;
