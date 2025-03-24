@@ -75,7 +75,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice Runs on module uninstall
   /// @param data unused
   function onUninstall(bytes calldata data) external override {
-    _removeValidationKey();
+    _deleteValidationKey();
   }
 
   /// @notice Adds an `OidcData` for the caller.
@@ -99,11 +99,11 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     return isNew;
   }
 
-  function removeValidationKey() external {
-    _removeValidationKey();
+  function deleteValidationKey() external {
+    _deleteValidationKey();
   }
 
-  function _removeValidationKey() private {
+  function _deleteValidationKey() private {
     OidcData memory oidcData = accountData[msg.sender];
     delete accountData[msg.sender];
     delete digestIndex[oidcData.oidcDigest];
