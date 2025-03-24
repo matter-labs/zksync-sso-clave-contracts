@@ -3,6 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import { ethers } from "ethers";
 import { writeFileSync } from "fs";
 import { task } from "hardhat/config";
+import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Wallet } from "zksync-ethers";
 
 const WEBAUTH_NAME = "WebAuthValidator";
@@ -98,6 +99,17 @@ function getArgs(cmd) {
   throw `Unsupported '${cmd.only}' contract name. Use: ${BEACON_NAME}, ${FACTORY_NAME}, ${PAYMASTER_NAME}`;
 }
 
+async function deployKeyRegistry(deployer: Wallet, keyRegistryOwner: Wallet, hre: HardhatRuntimeEnvironment, noProxy: boolean) {
+  const keyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, !noProxy);
+  const keyRegistryContract = await hre.ethers.getContractAt(OIDC_KEY_REGISTRY_NAME, keyRegistry, keyRegistryOwner);
+  try {
+    await keyRegistryContract.initialize();
+  } catch (error) {
+    console.log("Key registry already initialized\n");
+  }
+  return keyRegistry;
+}
+
 task("deploy", "Deploys ZKsync SSO contracts")
   .addOptionalParam("only", "name of a specific contract to deploy")
   .addFlag("noProxy", "do not deploy transparent proxies for factory and modules")
@@ -121,9 +133,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
         "initialize(address)",
         [passkey],
       ));
-      const oidcKeyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, !cmd.noProxy);
-      const oidcKeyRegistryContract = await hre.ethers.getContractAt(OIDC_KEY_REGISTRY_NAME, oidcKeyRegistry, keyRegistryOwner);
-      await oidcKeyRegistryContract.initialize();
+      const oidcKeyRegistry = await deployKeyRegistry(deployer, keyRegistryOwner, hre, cmd.noProxy);
       const oidcRecoveryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_RECOVERY_NAME)).abi);
       const oidcVerifier = await deploy(OIDC_VERIFIER_NAME, deployer, false, []);
       const recoveryOidc = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier, passkey], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier, passkey]));
