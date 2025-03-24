@@ -86,8 +86,7 @@ describe("OidcRecoveryValidator", function () {
       const iss = "https://issuer.com";
 
       await oidcValidator.connect(testWallet).addOidcAccount(oidcDigest, iss);
-      await oidcValidator.connect(testWallet).deleteOidcAccount();
-
+      await expect(oidcValidator.connect(testWallet).deleteOidcAccount()).to.emit(oidcValidator, "OidcAccountDeleted").withArgs(testWallet.address, oidcDigest);
       await expect(oidcValidator.connect(testWallet).oidcDataForAddress(testWallet.address)).to.be.revertedWith("OidcRecoveryValidator: No oidc data for given address");
     });
   });

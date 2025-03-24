@@ -20,6 +20,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   uint8 constant PUB_SIGNALS_LENGTH = 20;
 
   event OidcKeyUpdated(address indexed account, bytes32 oidcDigest, string iss, bool isNew);
+  event OidcAccountDeleted(address indexed account, bytes32 oidcDigest);
 
   struct OidcData {
     bytes32 oidcDigest; // PoseidonHash(sub || aud || iss || salt)
@@ -108,6 +109,8 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bytes32 digest = accountData[msg.sender].oidcDigest;
     delete digestIndex[digest];
     delete accountData[msg.sender];
+
+    emit OidcAccountDeleted(msg.sender, digest);
   }
 
   function startRecovery(StartRecoveryData calldata data, address targetAccount) external {
