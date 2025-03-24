@@ -64,20 +64,6 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     webAuthValidator = _webAuthValidator;
   }
 
-  /// @notice Runs on module install
-  /// @param data ABI-encoded OidcData key to add immediately, or empty if not needed
-  function onInstall(bytes calldata data) external override {
-    if (data.length > 0) {
-      require(addValidationKey(data), "OidcRecoveryValidator: key already exists");
-    }
-  }
-
-  /// @notice Runs on module uninstall
-  /// @param data unused
-  function onUninstall(bytes calldata data) external override {
-    _deleteValidationKey();
-  }
-
   /// @notice Adds an `OidcData` for the caller.
   /// @param key ABI-encoded `OidcData`.
   /// @return true if the key was added, false if it was updated.
