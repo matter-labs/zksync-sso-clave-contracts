@@ -209,6 +209,8 @@ contract SsoAccount is
     }
 
     // Extract the signature, validator address and hook data from the _transaction.signature
+    //  the signature value is not necessary, omitting it
+    // slither-disable-next-line unused-return
     (, address validator) = SignatureDecoder.decodeSignatureNoHookData(_transaction.signature);
 
     bool validationSuccess = _isModuleValidator(validator) &&
