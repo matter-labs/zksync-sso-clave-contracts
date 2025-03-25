@@ -32,6 +32,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   error GuardianNotProposed(address guardian);
   error AccountAlreadyGuardedByGuardian(address account, address guardian);
   error AccountNotGuardedByAddress(address account, address guardian);
+  error AccountRecoveryInProgress();
   error PasskeyNotMatched();
   error CooldownPeriodNotPassed();
   error ExpiredRequest();
@@ -205,6 +206,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     bytes32[2] memory rawPublicKey,
     bytes32 hashedOriginDomain
   ) external onlyGuardianOf(hashedOriginDomain, accountToRecover) {
+    if (pendingRecoveryData[hashedOriginDomain][accountToRecover].timestamp + REQUEST_VALIDITY_TIME > block.timestamp) {
+      revert AccountRecoveryInProgress();
+    }
+
     pendingRecoveryData[hashedOriginDomain][accountToRecover] = RecoveryRequest(
       hashedCredentialId,
       rawPublicKey,
