@@ -107,7 +107,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       delete OIDCKeys[issHash][i];
     }
 
-    // Adding MAX_KEYS to avoid overflow
+    // Adding MAX_KEYS to avoid underflow
     keyIndexes[issHash] = (keyCount + MAX_KEYS - 1) % MAX_KEYS;
   }
 
