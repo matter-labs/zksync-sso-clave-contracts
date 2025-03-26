@@ -24,12 +24,37 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   event KeyAdded(bytes32 indexed issHash, bytes32 indexed kid, uint256[CIRCOM_BIGINT_CHUNKS] n);
   event KeyDeleted(bytes32 indexed issHash, bytes32 indexed kid);
 
+  /// @notice Thrown when a key is not found for the given issuer hash and key ID.
+  /// @param issHash The issuer hash associated with the key.
+  /// @param kid The key ID that was not found.
   error KeyNotFound(bytes32 issHash, bytes32 kid);
+
+  /// @notice Thrown when the number of keys exceeds the maximum allowed limit (MAX_KEYS).
+  /// @param count The number of keys that exceeded the limit.
   error KeyCountLimitExceeded(uint256 count);
+
+  /// @notice Thrown when the issuer hash of the keys being added does not match the expected issuer hash.
+  /// @dev This is to ensure that all added keys are for the same issuer.
+  /// @param expectedIssHash The expected issuer hash.
+  /// @param actualIssHash The actual issuer hash provided.
   error IssuerHashMismatch(bytes32 expectedIssHash, bytes32 actualIssHash);
+
+  /// @notice Thrown when the key ID is zero, which is not allowed.
+  /// @param index The index of the key in the batch being validated.
   error KeyIdCannotBeZero(uint8 index);
+
+  /// @notice Thrown when the exponent is zero, which is not allowed.
+  /// @param index The index of the key in the batch being validated.
   error ExponentCannotBeZero(uint8 index);
+
+  /// @notice Thrown when the modulus is zero, which is not allowed.
+  /// @param index The index of the key in the batch being validated.
   error ModulusCannotBeZero(uint8 index);
+
+  /// @notice Thrown when a modulus chunk exceeds the maximum allowed size of 121 bits.
+  /// @param index The index of the key in the batch being validated.
+  /// @param chunkIndex The index of the chunk that exceeded the limit.
+  /// @param chunkValue The value of the chunk that exceeded the limit.
   error ModulusChunkTooLarge(uint8 index, uint256 chunkIndex, uint256 chunkValue);
 
   // Mapping of issuer hash to keys
