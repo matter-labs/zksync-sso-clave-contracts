@@ -35,9 +35,17 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   error PasskeyNotMatched();
   error CooldownPeriodNotPassed();
   error ExpiredRequest();
+
+  /// @notice Error thrown when an invalid guardian address is provided
   error InvalidGuardianAddress();
+
+  /// @notice Error thrown when an invalid web auth validator address is provided
   error InvalidWebAuthValidatorAddress();
+
+  /// @notice Error thrown when an invalid account to guard address is provided
   error InvalidAccountToGuardAddress();
+
+  /// @notice Error thrown when an invalid account to recover address is provided
   error InvalidAccountToRecoverAddress();
 
   event RecoveryInitiated(
