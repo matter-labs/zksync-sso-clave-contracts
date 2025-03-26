@@ -22,10 +22,10 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   /// @param n The RSA modulus.
   /// @param e The RSA exponent.
   struct Key {
-    bytes32 issHash; // Issuer
-    bytes32 kid; // Key ID
-    uint256[CIRCOM_BIGINT_CHUNKS] n; // RSA modulus
-    bytes e; // RSA exponent
+    bytes32 issHash;
+    bytes32 kid;
+    uint256[CIRCOM_BIGINT_CHUNKS] n;
+    bytes e;
   }
 
   /// @notice Emitted when a key is added to the registry.
