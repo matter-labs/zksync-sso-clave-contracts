@@ -306,6 +306,8 @@ describe("GuardianRecoveryValidator", function () {
           const key = await generatePassKey(accountId, keyDomain);
           newKeyArgs = key.args;
           hashDomain = key.hashedOriginDomain;
+          await helpers.time.increase(4 * 24 * 60 * 60); // This is to avoid the edge case where block.timestamp is around 0
+          await helpers.mine();
           refTimestamp = (await provider.getBlock("latest")).timestamp;
         });
         const sut = async (signer: ethers.Signer = guardianWallet) => {
@@ -373,11 +375,12 @@ describe("GuardianRecoveryValidator", function () {
           });
         });
         describe("and passing correct new key", () => {
-          it("it should revert due to active recovery process.", async function () {
+          it("it should revert due to expired recovery process.", async function () {
+            await helpers.time.increase(4 * 24 * 60 * 60);
             await expect(sut(newKeyArgs)).to.be.reverted;
           });
-          it("it should clean up pending request if recovery process is not active.", async function () {
-            await helpers.time.increase(4 * 24 * 60 * 60);
+          it("it should clean up pending request if recovery process is active.", async function () {
+            await helpers.time.increase(2 * 24 * 60 * 60);
             await sut(newKeyArgs);
 
             const pendingRecoveryData = (await guardianValidator.getPendingRecoveryData(
