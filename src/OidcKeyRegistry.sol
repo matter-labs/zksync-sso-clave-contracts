@@ -55,7 +55,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   }
 
   function getKey(bytes32 issHash, bytes32 kid) external view returns (Key memory) {
-    for (uint8 i = 0; i < MAX_KEYS; i++) {
+    for (uint8 i = 0; i < MAX_KEYS; ++i) {
       if (OIDCKeys[issHash][i].kid == kid) {
         return OIDCKeys[issHash][i];
       }
@@ -75,7 +75,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
 
   function _addKeys(Key[] memory newKeys) private {
     _validateKeyBatch(newKeys);
-    for (uint8 i = 0; i < newKeys.length; i++) {
+    for (uint8 i = 0; i < newKeys.length; ++i) {
       bytes32 issHash = newKeys[i].issHash;
       uint8 keyIndex = keyIndexes[issHash];
       uint8 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
@@ -91,7 +91,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     uint8 currentIndex = keyIndexes[issHash];
 
     // Collect non-empty keys in order
-    for (uint8 i = 0; i < MAX_KEYS; i++) {
+    for (uint8 i = 0; i < MAX_KEYS; ++i) {
       uint8 circularIndex = (currentIndex + i) % MAX_KEYS;
       if (OIDCKeys[issHash][circularIndex].kid != 0) {
         keys[keyCount] = OIDCKeys[issHash][circularIndex];
@@ -100,12 +100,12 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     }
 
     // Reassign the collected keys in order back to storage
-    for (uint8 i = 0; i < keyCount; i++) {
+    for (uint8 i = 0; i < keyCount; ++i) {
       OIDCKeys[issHash][i] = keys[i];
     }
 
     // Delete remaining keys that are no longer needed
-    for (uint8 i = keyCount; i < MAX_KEYS; i++) {
+    for (uint8 i = keyCount; i < MAX_KEYS; ++i) {
       delete OIDCKeys[issHash][i];
     }
 
@@ -114,7 +114,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   }
 
   function _deleteKey(bytes32 issHash, bytes32 kid) private {
-    for (uint8 i = 0; i < MAX_KEYS; i++) {
+    for (uint8 i = 0; i < MAX_KEYS; ++i) {
       if (OIDCKeys[issHash][i].kid == kid) {
         delete OIDCKeys[issHash][i];
         return;
@@ -131,7 +131,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       return;
     }
     bytes32 issHash = newKeys[0].issHash;
-    for (uint8 i = 0; i < newKeys.length; i++) {
+    for (uint8 i = 0; i < newKeys.length; ++i) {
       if (newKeys[i].issHash != issHash) {
         revert IssuerHashMismatch(issHash, newKeys[i].issHash);
       }
@@ -151,8 +151,8 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   }
 
   function _hasNonZeroExponent(bytes memory exponent) private pure returns (bool) {
-    for (uint256 j = 0; j < exponent.length; j++) {
-      if (exponent[j] != 0) {
+    for (uint256 i = 0; i < exponent.length; ++i) {
+      if (exponent[i] != 0) {
         return true;
       }
     }
@@ -160,8 +160,8 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   }
 
   function _hasNonZeroModulus(uint256[CIRCOM_BIGINT_CHUNKS] memory modulus) private pure returns (bool) {
-    for (uint8 j = 0; j < CIRCOM_BIGINT_CHUNKS; j++) {
-      if (modulus[j] != 0) {
+    for (uint8 i = 0; i < CIRCOM_BIGINT_CHUNKS; ++i) {
+      if (modulus[i] != 0) {
         return true;
       }
     }
