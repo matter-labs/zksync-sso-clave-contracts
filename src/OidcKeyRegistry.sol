@@ -73,9 +73,11 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   error ModulusChunkTooLarge(uint8 index, uint256 chunkIndex, uint256 chunkValue);
 
   /// @notice The mapping of issuer hash to keys.
+  /// @dev Each issuer has an array of length MAX_KEYS, which is a circular buffer.
   mapping(bytes32 issHash => Key[MAX_KEYS] keys) public OIDCKeys;
 
   /// @notice The index of the last key added per issuer.
+  /// @dev This is used to determine the next index to add a key to in the circular buffer.
   mapping(bytes32 issHash => uint8 keyIndex) public keyIndexes;
 
   constructor() {
