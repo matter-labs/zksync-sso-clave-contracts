@@ -20,7 +20,7 @@ import type {
   AccountProxy,
   ERC20,
   ExampleAuthServerPaymaster,
-  Groth16Verifier,
+  Groth16VerifierTest,
   GuardianRecoveryValidator,
   OidcKeyRegistry,
   OidcRecoveryValidator,
@@ -34,7 +34,7 @@ import {
   AccountProxy__factory,
   ERC20__factory,
   ExampleAuthServerPaymaster__factory,
-  Groth16Verifier__factory,
+  Groth16VerifierTest__factory,
   GuardianRecoveryValidator__factory,
   OidcKeyRegistry__factory,
   OidcRecoveryValidator__factory,
@@ -116,11 +116,11 @@ export class ContractFixtures {
     return isHex(contractAddress) ? contractAddress : toHex(contractAddress);
   }
 
-  private _oidcVerifier: Groth16Verifier;
-  async getJOidcVerifier() {
+  private _oidcVerifier: Groth16VerifierTest;
+  async getOidcVerifier() {
     if (!this._oidcVerifier) {
-      const contract = await create2("Groth16Verifier", this.wallet, ethersStaticSalt);
-      this._oidcVerifier = Groth16Verifier__factory.connect(await contract.getAddress(), this.wallet);
+      const contract = await create2("Groth16VerifierTest", this.wallet, ethersStaticSalt);
+      this._oidcVerifier = Groth16VerifierTest__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._oidcVerifier;
   }
@@ -128,7 +128,7 @@ export class ContractFixtures {
   private _oidcRecoveryValidator: OidcRecoveryValidator;
   async getOidcRecoveryValidator() {
     if (this._oidcRecoveryValidator === undefined) {
-      const verifier = await this.getJOidcVerifier();
+      const verifier = await this.getOidcVerifier();
       const oidcKeyRegistry = await this.getOidcKeyRegistryContract();
       const webAuthValidator = await this.getWebAuthnVerifierContract();
       const contract = await create2("OidcRecoveryValidator", this.wallet, ethersStaticSalt, []);

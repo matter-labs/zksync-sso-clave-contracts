@@ -11,7 +11,6 @@ import { base64ToCircomBigInt, cacheBeforeEach, ContractFixtures, getProvider, L
 describe("OidcRecoveryValidator", function () {
   let fixtures: ContractFixtures;
   const provider = getProvider();
-  let factory: AAFactory;
   let oidcValidator: OidcRecoveryValidator;
   let keyRegistry: OidcKeyRegistry;
   let webAuthValidator: WebAuthValidator;
@@ -27,7 +26,6 @@ describe("OidcRecoveryValidator", function () {
     ownerWallet = new Wallet(Wallet.createRandom().privateKey, provider);
     oidcValidator = await fixtures.getOidcRecoveryValidator();
     keyRegistry = await fixtures.getOidcKeyRegistryContract();
-    factory = await fixtures.getAaFactory();
     webAuthValidator = await fixtures.getWebAuthnVerifierContract();
 
     // Fund the test wallet
@@ -101,7 +99,8 @@ describe("OidcRecoveryValidator", function () {
     }
 
     xit("should start recovery process", async function () {
-      const issuer = "https://google.com";
+      const oidcDigest = ethers.hexlify(randomBytes(32));
+      const issuer = "https://accounts.google.com";
       const issHash = await keyRegistry.hashIssuer(issuer);
 
       const key = {
@@ -112,18 +111,7 @@ describe("OidcRecoveryValidator", function () {
       };
       await keyRegistry.addKey(key);
 
-      const oidcDigest = ethers.hexlify(randomBytes(32));
-      const oidcData = {
-        oidcDigest,
-        iss: issuer,
-      };
-
-      const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(bytes32, string)"],
-        [[oidcData.oidcDigest, oidcData.iss]],
-      );
-
-      await oidcValidator.connect(ownerWallet).addValidationKey(encodedData);
+      await oidcValidator.connect(ownerWallet).addOidcAccount(oidcDigest, issuer);
 
       const keypassPubKey = [ethers.hexlify(randomBytes(32)), ethers.hexlify(randomBytes(32))];
       const keypassPubKeyHash = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(["bytes32[2]"], [keypassPubKey]));
