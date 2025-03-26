@@ -9,11 +9,18 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract is used to store OIDC keys for the OIDC recovery validator.
 contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
+  /// @dev The maximum number of keys that can be added to the registry.
   uint8 public constant MAX_KEYS = 8;
-  // Number of 128-bit chunks needed to represent RSA public key modulus in the ZK circuit
-  // This matches the Circom circuit's bigint configuration for RSA verification
+
+  /// @dev The number of 128-bit chunks needed to represent RSA public key modulus in the ZK circuit.
+  /// @dev This matches the Circom circuit's bigint configuration for RSA verification.
   uint8 public constant CIRCOM_BIGINT_CHUNKS = 17;
 
+  /// @notice The structure representing an OIDC key.
+  /// @param issHash The issuer hash.
+  /// @param kid The key ID.
+  /// @param n The RSA modulus.
+  /// @param e The RSA exponent.
   struct Key {
     bytes32 issHash; // Issuer
     bytes32 kid; // Key ID
@@ -21,7 +28,15 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     bytes e; // RSA exponent
   }
 
+  /// @notice Emitted when a key is added to the registry.
+  /// @param issHash The issuer hash.
+  /// @param kid The key ID.
+  /// @param n The RSA modulus.
   event KeyAdded(bytes32 indexed issHash, bytes32 indexed kid, uint256[CIRCOM_BIGINT_CHUNKS] n);
+
+  /// @notice Emitted when a key is deleted from the registry.
+  /// @param issHash The issuer hash.
+  /// @param kid The key ID.
   event KeyDeleted(bytes32 indexed issHash, bytes32 indexed kid);
 
   /// @notice Thrown when a key is not found for the given issuer hash and key ID.
@@ -57,9 +72,10 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   /// @param chunkValue The value of the chunk that exceeded the limit.
   error ModulusChunkTooLarge(uint8 index, uint256 chunkIndex, uint256 chunkValue);
 
-  // Mapping of issuer hash to keys
+  /// @notice The mapping of issuer hash to keys.
   mapping(bytes32 issHash => Key[MAX_KEYS] keys) public OIDCKeys;
-  // Index of the last key added per issuer
+
+  /// @notice The index of the last key added per issuer.
   mapping(bytes32 issHash => uint8 keyIndex) public keyIndexes;
 
   constructor() {
@@ -70,20 +86,31 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     __Ownable_init();
   }
 
+  /// @notice Hashes the issuer string to a bytes32 value.
+  /// @param iss The issuer string to hash.
+  /// @return issHash The hashed issuer.
   function hashIssuer(string memory iss) external pure returns (bytes32) {
     return keccak256(abi.encode(iss));
   }
 
+  /// @notice Adds a batch of keys to the registry.
+  /// @param newKeys The keys to add.
   function addKeys(Key[] memory newKeys) external onlyOwner {
     _addKeys(newKeys);
   }
 
+  /// @notice Adds a single key to the registry.
+  /// @param newKey The key to add.
   function addKey(Key memory newKey) external onlyOwner {
     Key[] memory newKeys = new Key[](1);
     newKeys[0] = newKey;
     _addKeys(newKeys);
   }
 
+  /// @notice Retrieves a key from the registry.
+  /// @param issHash The issuer hash.
+  /// @param kid The key ID.
+  /// @return key The key.
   function getKey(bytes32 issHash, bytes32 kid) external view returns (Key memory) {
     for (uint8 i = 0; i < MAX_KEYS; ++i) {
       if (OIDCKeys[issHash][i].kid == kid) {
@@ -93,16 +120,24 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     revert KeyNotFound(issHash, kid);
   }
 
+  /// @notice Retrieves all keys for a given issuer hash.
+  /// @param issHash The issuer hash.
+  /// @return keys The keys.
   function getKeys(bytes32 issHash) external view returns (Key[MAX_KEYS] memory) {
     return OIDCKeys[issHash];
   }
 
+  /// @notice Deletes a key from the registry.
+  /// @param issHash The issuer hash.
+  /// @param kid The key ID.
   function deleteKey(bytes32 issHash, bytes32 kid) external onlyOwner {
     _deleteKey(issHash, kid);
     _compactKeys(issHash);
     emit KeyDeleted(issHash, kid);
   }
 
+  /// @notice Adds a batch of keys to the registry.
+  /// @param newKeys The keys to add.
   function _addKeys(Key[] memory newKeys) private {
     _validateKeyBatch(newKeys);
     for (uint8 i = 0; i < newKeys.length; ++i) {
@@ -115,6 +150,9 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     }
   }
 
+  /// @notice Compacts the keys for a given issuer hash.
+  /// @dev This function is called when a key is deleted from the registry.
+  /// @param issHash The issuer hash.
   function _compactKeys(bytes32 issHash) private {
     Key[MAX_KEYS] memory keys;
     uint8 keyCount = 0;
@@ -143,6 +181,9 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     keyIndexes[issHash] = (keyCount + MAX_KEYS - 1) % MAX_KEYS;
   }
 
+  /// @notice Deletes a key from the registry.
+  /// @param issHash The issuer hash.
+  /// @param kid The key ID.
   function _deleteKey(bytes32 issHash, bytes32 kid) private {
     for (uint8 i = 0; i < MAX_KEYS; ++i) {
       if (OIDCKeys[issHash][i].kid == kid) {
@@ -153,6 +194,14 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     revert KeyNotFound(issHash, kid);
   }
 
+  /// @notice Validates a batch of keys.
+  /// @dev This function is called when a batch of keys is added to the registry.
+  /// @dev It validates that only one issuer is added per batch.
+  /// @dev It validates that the key ID is not zero.
+  /// @dev It validates that the exponent is not zero.
+  /// @dev It validates that the modulus is not zero.
+  /// @dev It validates that the modulus chunks are not bigger than 121 bits.
+  /// @param newKeys The keys to validate.
   function _validateKeyBatch(Key[] memory newKeys) private pure {
     if (newKeys.length > MAX_KEYS) {
       revert KeyCountLimitExceeded(newKeys.length);
@@ -178,6 +227,10 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     }
   }
 
+  /// @notice Checks if the exponent is not zero.
+  /// @dev This function is called when a batch of keys is added to the registry.
+  /// @param exponent The exponent to check.
+  /// @return hasNonZeroExponent True if the exponent is not zero, false otherwise.
   function _hasNonZeroExponent(bytes memory exponent) private pure returns (bool) {
     for (uint256 i = 0; i < exponent.length; ++i) {
       if (exponent[i] != 0) {
@@ -187,6 +240,12 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     return false;
   }
 
+  /// @notice Validates the modulus.
+  /// @dev This function is called when a key is added to the registry.
+  /// @dev It validates that the modulus is not zero.
+  /// @dev It validates that the modulus chunks are not bigger than 121 bits.
+  /// @param modulus The modulus to validate.
+  /// @param index The index of the key in the batch being validated.
   function _validateModulus(uint256[CIRCOM_BIGINT_CHUNKS] memory modulus, uint8 index) private pure {
     uint256 limit = (1 << 121) - 1;
     bool hasNonZero = false;
