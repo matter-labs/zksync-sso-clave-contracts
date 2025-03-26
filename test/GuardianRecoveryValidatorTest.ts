@@ -296,40 +296,54 @@ describe("GuardianRecoveryValidator", function () {
       });
 
       describe("And initiating recovery process", () => {
-        let newKeyArgs: Awaited<ReturnType<typeof generatePassKey>>["args"];
-        let hashDomain: Awaited<ReturnType<typeof generatePassKey>>["hashedOriginDomain"];
+        let newKey: Awaited<ReturnType<typeof generatePassKey>>;
         let refTimestamp: number;
         let accountId: `0x${string}`;
 
         cacheBeforeEach(async () => {
           accountId = `0x${Buffer.from(ethers.toUtf8Bytes(`id-${randomBytes(32).toString()}`)).toString("hex")}`;
-          const key = await generatePassKey(accountId, keyDomain);
-          newKeyArgs = key.args;
-          hashDomain = key.hashedOriginDomain;
+          newKey = await generatePassKey(accountId, keyDomain);
           await helpers.time.increase(4 * 24 * 60 * 60); // This is to avoid the edge case where block.timestamp is around 0
-          await helpers.mine();
           refTimestamp = (await provider.getBlock("latest")).timestamp;
         });
-        const sut = async (signer: ethers.Signer = guardianWallet) => {
+        const sut = async (signer: ethers.Signer = guardianWallet, key: Awaited<ReturnType<typeof generatePassKey>> = newKey) => {
           const tx = await guardianValidator.connect(signer).initRecovery(
-            ssoAccountInstance.getAddress(), ethers.keccak256(accountId), newKeyArgs[1], hashDomain,
+            ssoAccountInstance.getAddress(), ethers.keccak256(accountId), key.args[1], key.hashedOriginDomain,
           );
           return tx;
         };
-        it("it creates new recovery process.", async function () {
-          await sut();
-
+        const validatePendingRecovery = async (key: Awaited<ReturnType<typeof generatePassKey>> = newKey, timestamp: number = refTimestamp) => {
           const pendingRecoveryData = (await guardianValidator.getPendingRecoveryData(
-            hashDomain,
+            key.hashedOriginDomain,
             newGuardianConnectedSsoAccount.address,
           ));
-          expect(pendingRecoveryData.rawPublicKey[0]).to.eq(toHex(newKeyArgs[1][0]));
-          expect(pendingRecoveryData.rawPublicKey[1]).to.eq(toHex(newKeyArgs[1][1]));
-          expect(Math.abs(Number(pendingRecoveryData.timestamp) - refTimestamp)).to.lt(10);
+          expect(pendingRecoveryData.rawPublicKey[0]).to.eq(toHex(key.args[1][0]));
+          expect(pendingRecoveryData.rawPublicKey[1]).to.eq(toHex(key.args[1][1]));
+          expect(Math.abs(Number(pendingRecoveryData.timestamp) - timestamp)).to.lt(10);
+        }
+        it("it creates new recovery process.", async function () {
+          await sut();
+          await validatePendingRecovery();
         });
         it("it prohibits non guardian from starting recovery process", async function () {
           await expect(sut(externalUserWallet)).to.be.reverted;
         });
+        it("it reverts due to active recovery process", async () => {
+          await sut();
+          await validatePendingRecovery();
+          await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "AccountRecoveryInProgress");
+          await helpers.time.increase(3 * 24 * 60 * 60 - 1 * 60 * 60); // Increase by < 72 hours
+          await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "AccountRecoveryInProgress");
+        })
+        it("it overwrites expired recovery process", async () => {
+          await sut();
+          await validatePendingRecovery();
+          await helpers.time.increase(3 * 24 * 60 * 60 + 1 * 60 * 60); // Increase by > 72 hours
+          const anotherKey = await generatePassKey(accountId, keyDomain);
+          const anotherTimestamp = (await provider.getBlock("latest")).timestamp;
+          await sut(guardianWallet, anotherKey);
+          await validatePendingRecovery(anotherKey, anotherTimestamp);
+        })
       });
 
       describe("And has active recovery process and trying to execute", () => {
