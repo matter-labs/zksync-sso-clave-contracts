@@ -28,6 +28,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bool readyToRecover;
     bytes32 pendingPasskeyHash;
     uint256 recoverNonce;
+    uint256 addedOn;
   }
 
   struct OidcCreationData {
@@ -95,6 +96,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     accountData[msg.sender].oidcDigest = oidcDigest;
     accountData[msg.sender].iss = iss;
+    accountData[msg.sender].addedOn = block.timestamp;
     digestIndex[oidcDigest] = msg.sender;
 
     emit OidcKeyUpdated(msg.sender, oidcDigest, iss, isNew);
