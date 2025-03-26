@@ -36,6 +36,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   error PasskeyNotMatched();
   error CooldownPeriodNotPassed();
   error ExpiredRequest();
+
+  /// @notice Error thrown when a non-function call transaction is detected
   error NonFunctionCallTransaction();
 
   event RecoveryInitiated(
