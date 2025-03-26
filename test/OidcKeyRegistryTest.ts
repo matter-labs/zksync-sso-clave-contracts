@@ -193,6 +193,51 @@ describe("OidcKeyRegistry", function () {
       .withArgs(allKeys[0].issHash, allKeys[4].issHash);
   });
 
+  it("should revert when adding a key with a zero exponent", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const key = {
+      issHash,
+      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      n: JWK_MODULUS,
+      e: "0x000000",
+    };
+
+    await expect(oidcKeyRegistry.addKey(key))
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "ExponentCannotBeZero")
+      .withArgs(0);
+  });
+
+  it("should revert when adding a key with a zero modulus", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const key = {
+      issHash,
+      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      n: base64ToCircomBigInt(""),
+      e: "0x010001",
+    };
+
+    await expect(oidcKeyRegistry.addKey(key))
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "ModulusCannotBeZero")
+      .withArgs(0);
+  });
+
+  it("should revert when adding a key with a zero kid", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const key = {
+      issHash,
+      kid: "0x0000000000000000000000000000000000000000000000000000000000000000",
+      n: JWK_MODULUS,
+      e: "0x010001",
+    };
+
+    await expect(oidcKeyRegistry.addKey(key))
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyIdCannotBeZero")
+      .withArgs(0);
+  });
+
   it("should remove a key", async () => {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);

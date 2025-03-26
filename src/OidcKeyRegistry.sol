@@ -23,6 +23,9 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   error KeyNotFound(bytes32 issHash, bytes32 kid);
   error KeyCountLimitExceeded(uint256 count);
   error IssuerHashMismatch(bytes32 expectedIssHash, bytes32 actualIssHash);
+  error KeyIdCannotBeZero(uint8 index);
+  error ExponentCannotBeZero(uint8 index);
+  error ModulusCannotBeZero(uint8 index);
 
   // Mapping of issuer hash to keys
   mapping(bytes32 issHash => Key[MAX_KEYS] keys) public OIDCKeys;
@@ -71,7 +74,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   }
 
   function _addKeys(Key[] memory newKeys) private {
-    _checkKeyCountLimit(newKeys);
+    _validateKeyBatch(newKeys);
     for (uint8 i = 0; i < newKeys.length; i++) {
       bytes32 issHash = newKeys[i].issHash;
       uint8 keyIndex = keyIndexes[issHash];
@@ -120,7 +123,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     revert KeyNotFound(issHash, kid);
   }
 
-  function _checkKeyCountLimit(Key[] memory newKeys) private pure {
+  function _validateKeyBatch(Key[] memory newKeys) private pure {
     if (newKeys.length > MAX_KEYS) {
       revert KeyCountLimitExceeded(newKeys.length);
     }
@@ -128,10 +131,40 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       return;
     }
     bytes32 issHash = newKeys[0].issHash;
-    for (uint8 i = 1; i < newKeys.length; i++) {
+    for (uint8 i = 0; i < newKeys.length; i++) {
       if (newKeys[i].issHash != issHash) {
         revert IssuerHashMismatch(issHash, newKeys[i].issHash);
       }
+
+      if (newKeys[i].kid == 0) {
+        revert KeyIdCannotBeZero(i);
+      }
+
+      if (!_hasNonZeroExponent(newKeys[i].e)) {
+        revert ExponentCannotBeZero(i);
+      }
+
+      if (!_hasNonZeroModulus(newKeys[i].n)) {
+        revert ModulusCannotBeZero(i);
+      }
     }
+  }
+
+  function _hasNonZeroExponent(bytes memory exponent) private pure returns (bool) {
+    for (uint256 j = 0; j < exponent.length; j++) {
+      if (exponent[j] != 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function _hasNonZeroModulus(uint256[CIRCOM_BIGINT_CHUNKS] memory modulus) private pure returns (bool) {
+    for (uint8 j = 0; j < CIRCOM_BIGINT_CHUNKS; j++) {
+      if (modulus[j] != 0) {
+        return true;
+      }
+    }
+    return false;
   }
 }
