@@ -36,6 +36,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   error PasskeyNotMatched();
   error CooldownPeriodNotPassed();
   error ExpiredRequest();
+
+  /// @notice Error thrown when the WebAuthValidator is not enabled for the account
   error WebAuthValidatorNotEnabled();
 
   event RecoveryInitiated(
