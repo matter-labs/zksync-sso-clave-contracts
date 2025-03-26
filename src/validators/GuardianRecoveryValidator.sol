@@ -271,7 +271,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
       storedData.timestamp + REQUEST_VALIDITY_TIME
     );
 
-    finishRecovery(hashedOriginDomain);
+    _finishRecovery(hashedOriginDomain);
     return true;
   }
 
@@ -322,7 +322,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
   /// @notice This method allows to finish currently pending recovery
   /// @param hashedOriginDomain Hash of origin domain
-  function finishRecovery(bytes32 hashedOriginDomain) internal {
+  function _finishRecovery(bytes32 hashedOriginDomain) internal {
     emit RecoveryFinished(
       msg.sender,
       hashedOriginDomain,
