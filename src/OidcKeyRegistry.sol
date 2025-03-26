@@ -30,6 +30,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   error KeyIdCannotBeZero(uint8 index);
   error ExponentCannotBeZero(uint8 index);
   error ModulusCannotBeZero(uint8 index);
+  error ModulusChunkTooLarge(uint8 index, uint256 chunkIndex, uint256 chunkValue);
 
   // Mapping of issuer hash to keys
   mapping(bytes32 issHash => Key[MAX_KEYS] keys) public OIDCKeys;
@@ -148,9 +149,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
         revert ExponentCannotBeZero(i);
       }
 
-      if (!_hasNonZeroModulus(newKeys[i].n)) {
-        revert ModulusCannotBeZero(i);
-      }
+      _validateModulus(newKeys[i].n, i);
     }
   }
 
@@ -163,12 +162,21 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     return false;
   }
 
-  function _hasNonZeroModulus(uint256[CIRCOM_BIGINT_CHUNKS] memory modulus) private pure returns (bool) {
+  function _validateModulus(uint256[CIRCOM_BIGINT_CHUNKS] memory modulus, uint8 index) private pure {
+    uint256 limit = (1 << 121) - 1;
+    bool hasNonZero = false;
+
     for (uint8 i = 0; i < CIRCOM_BIGINT_CHUNKS; ++i) {
+      if (modulus[i] > limit) {
+        revert ModulusChunkTooLarge(index, i, modulus[i]);
+      }
       if (modulus[i] != 0) {
-        return true;
+        hasNonZero = true;
       }
     }
-    return false;
+
+    if (!hasNonZero) {
+      revert ModulusCannotBeZero(index);
+    }
   }
 }
