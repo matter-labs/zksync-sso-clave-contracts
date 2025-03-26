@@ -261,7 +261,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     return
       interfaceId == type(IERC165).interfaceId ||
       interfaceId == type(IModuleValidator).interfaceId ||
-      interfaceId == type(IModule).interfaceId;
+      interfaceId == type(IModule).interfaceId ||
+      interfaceId == type(IGuardianRecoveryValidator).interfaceId;
   }
 
   /// @notice Returns all guardians for an account
