@@ -74,7 +74,8 @@ describe("OidcRecoveryValidator", function () {
       // Second registration with same digest should fail
       await expect(
         oidcValidator.connect(otherWallet).addOidcAccount(oidcDigest, iss),
-      ).to.be.revertedWith("oidc_digest already registered in other account");
+      ).to.be.revertedWithCustomError(oidcValidator, "OidcDigestAlreadyRegisteredInAnotherAccount")
+        .withArgs(oidcDigest);
     });
   });
 
@@ -85,7 +86,8 @@ describe("OidcRecoveryValidator", function () {
 
       await oidcValidator.connect(testWallet).addOidcAccount(oidcDigest, iss);
       await expect(oidcValidator.connect(testWallet).deleteOidcAccount()).to.emit(oidcValidator, "OidcAccountDeleted").withArgs(testWallet.address, oidcDigest);
-      await expect(oidcValidator.connect(testWallet).oidcDataForAddress(testWallet.address)).to.be.revertedWith("OidcRecoveryValidator: No oidc data for given address");
+      await expect(oidcValidator.connect(testWallet).oidcDataForAddress(testWallet.address)).to.be.revertedWithCustomError(oidcValidator, "NoOidcDataForGivenAddress")
+        .withArgs(testWallet.address);
     });
   });
 

@@ -254,7 +254,6 @@ describe("OidcKeyRegistry", function () {
       .to.be.revertedWithCustomError(oidcKeyRegistry, "ModulusChunkTooLarge")
       .withArgs(0, 2, n[2]);
   });
-  
 
   it("should remove a key", async () => {
     const issuer = "https://example.com";

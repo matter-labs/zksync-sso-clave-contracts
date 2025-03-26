@@ -32,6 +32,48 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @param oidcDigest The PoseidonHash(sub || aud || iss || salt) of the OIDC key.
   event OidcAccountDeleted(address indexed account, bytes32 oidcDigest);
 
+  /// @notice Thrown when calling `validateSignature` since it is not implemented.
+  error ValidateSignatureNotImplemented();
+
+  /// @notice Thrown when an address is not found for a given OIDC digest.
+  /// @param digest The OIDC digest.
+  error AddressNotFoundForDigest(bytes32 digest);
+
+  /// @notice Thrown when trying to add an OIDC account with an OIDC digest that is already registered in another account.
+  /// @param digest The OIDC digest.
+  error OidcDigestAlreadyRegisteredInAnotherAccount(bytes32 digest);
+
+  /// @notice Thrown when there is no OIDC data for a given address.
+  /// @param account The address.
+  error NoOidcDataForGivenAddress(address account);
+
+  /// @notice Thrown when the zk proof verification fails.
+  error ZkProofVerificationFailed();
+
+  /// @notice Thrown when the web authentication validator address is invalid.
+  /// @param expectedValidator The expected address of the web authentication validator.
+  /// @param validator The address of the web authentication validator.
+  error InvalidWebAuthnValidatorAddress(address expectedValidator, address validator);
+
+  /// @notice Thrown when the transaction to address overflows.
+  error TransactionToOverflow();
+
+  /// @notice Thrown when trying to validate a non-function call transaction.
+  error OnlyFunctionCallsSupported();
+
+  /// @notice Thrown when trying to validate a transaction that does not call `addValidationKey` on the `WebAuthValidator` contract.
+  /// @param expectedSelector The expected selector of the `addValidationKey` function.
+  /// @param actualSelector The actual selector of the function being called.
+  error UnauthorizedFunctionCall(bytes4 expectedSelector, bytes4 actualSelector);
+
+  /// @notice Thrown when the passkey hash is invalid.
+  /// @param expectedHash The expected passkey hash.
+  /// @param actualHash The actual passkey hash.
+  error InvalidPasskeyHash(bytes32 expectedHash, bytes32 actualHash);
+
+  /// @notice Thrown when the account is not ready to recover.
+  error NotReadyToRecover();
+
   /// @notice The data for an OIDC account.
   /// @param oidcDigest The PoseidonHash(sub || aud || iss || salt) of the OIDC key.
   /// @param iss The OIDC issuer.
@@ -107,10 +149,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   function onInstall(bytes calldata data) external override {
     if (data.length > 0) {
       OidcCreationData memory oidcCreationData = abi.decode(data, (OidcCreationData));
-      require(
-        addOidcAccount(oidcCreationData.oidcDigest, oidcCreationData.iss),
-        "OidcRecoveryValidator: key already exists"
-      );
+      addOidcAccount(oidcCreationData.oidcDigest, oidcCreationData.iss);
     }
   }
 
@@ -128,7 +167,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   function addOidcAccount(bytes32 oidcDigest, string memory iss) public returns (bool) {
     bool isNew = accountData[msg.sender].oidcDigest.length == 0;
     if (digestIndex[oidcDigest] != address(0)) {
-      revert("oidc_digest already registered in other account");
+      revert OidcDigestAlreadyRegisteredInAnotherAccount(oidcDigest);
     }
 
     accountData[msg.sender].oidcDigest = oidcDigest;
@@ -186,10 +225,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     index++;
     publicInputs[index] = (uint256(senderHash) << 248) >> 248;
 
-    require(
-      verifierContract.verifyProof(data.zkProof.pA, data.zkProof.pB, data.zkProof.pC, publicInputs),
-      "OidcRecoveryValidator: zk proof verification failed"
-    );
+    if (!verifierContract.verifyProof(data.zkProof.pA, data.zkProof.pB, data.zkProof.pC, publicInputs)) {
+      revert ZkProofVerificationFailed();
+    }
 
     accountData[targetAccount].pendingPasskeyHash = data.pendingPasskeyHash;
     accountData[targetAccount].recoverNonce++;
@@ -203,28 +241,35 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @param transaction The transaction data being validated.
   /// @return true if the transaction is valid and authorized, false otherwise.
   function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external returns (bool) {
-    require(transaction.to <= type(uint160).max, "OidcRecoveryValidator: Transaction.to overflow");
-    require(
-      address(uint160(transaction.to)) == webAuthValidator,
-      "OidcRecoveryValidator: invalid webauthn validator address"
-    );
+    if (transaction.to > type(uint160).max) {
+      revert TransactionToOverflow();
+    }
+    if (address(uint160(transaction.to)) != webAuthValidator) {
+      revert InvalidWebAuthnValidatorAddress(webAuthValidator, address(uint160(transaction.to)));
+    }
 
-    require(transaction.data.length >= 4, "Only function calls are supported");
+    if (transaction.data.length < 4) {
+      revert OnlyFunctionCallsSupported();
+    }
+
     bytes4 selector = bytes4(transaction.data[:4]);
 
     // Check for calling "addValidationKey" method by anyone on WebAuthValidator contract
-    require(
-      selector == WebAuthValidator.addValidationKey.selector,
-      "OidcRecoveryValidator: Unauthorized function call"
-    );
+    if (selector != WebAuthValidator.addValidationKey.selector) {
+      revert UnauthorizedFunctionCall(WebAuthValidator.addValidationKey.selector, selector);
+    }
 
     // Decode the key from the transaction data and check against the pending passkey hash
     (, bytes32[2] memory newPasskeyPubKey, ) = abi.decode(transaction.data[4:], (bytes, bytes32[2], string));
     bytes32 passkeyHash = keccak256(abi.encode(newPasskeyPubKey[0], newPasskeyPubKey[1]));
     OidcData memory oidcData = accountData[msg.sender];
 
-    require(oidcData.pendingPasskeyHash == passkeyHash, "OidcRecoveryValidator: Invalid passkey hash");
-    require(oidcData.readyToRecover, "OidcRecoveryValidator: Not ready to recover");
+    if (oidcData.pendingPasskeyHash != passkeyHash) {
+      revert InvalidPasskeyHash(oidcData.pendingPasskeyHash, passkeyHash);
+    }
+    if (!oidcData.readyToRecover) {
+      revert NotReadyToRecover();
+    }
 
     // Reset pending passkey hash
     accountData[msg.sender].pendingPasskeyHash = bytes32(0);
@@ -236,7 +281,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice Unimplemented because signature validation is not required.
   /// @dev We only need `validateTransaction` to add new passkeys, so this function is intentionally left unimplemented.
   function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
-    revert("OidcRecoveryValidator: validateSignature not implemented");
+    revert ValidateSignatureNotImplemented();
   }
 
   /// @inheritdoc IERC165
@@ -253,7 +298,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   function addressForDigest(bytes32 digest) public view returns (address) {
     address addr = digestIndex[digest];
     if (addr == address(0)) {
-      revert("Address not found for given digest.");
+      revert AddressNotFoundForDigest(digest);
     }
 
     return digestIndex[digest];
@@ -266,7 +311,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     OidcData memory data = accountData[account];
 
     if (data.oidcDigest == bytes32(0)) {
-      revert("OidcRecoveryValidator: No oidc data for given address");
+      revert NoOidcDataForGivenAddress(account);
     }
 
     return data;
