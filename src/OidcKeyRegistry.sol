@@ -4,6 +4,10 @@ pragma solidity ^0.8.24;
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
+/// @title OidcKeyRegistry
+/// @author Matter Labs
+/// @custom:security-contact security@matterlabs.dev
+/// @dev This contract is used to store OIDC keys for the OIDC recovery validator.
 contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   uint8 public constant MAX_KEYS = 8;
   // Number of 128-bit chunks needed to represent RSA public key modulus in the ZK circuit
