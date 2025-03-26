@@ -36,6 +36,9 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   error PasskeyNotMatched();
   error CooldownPeriodNotPassed();
   error ExpiredRequest();
+
+  /// @notice Error thrown when an unknown hashed origin domain is provided
+  /// @param hashedOriginDomain Hash of the unknown origin domain
   error UnknownHashedOriginDomain(bytes32 hashedOriginDomain);
 
   event RecoveryInitiated(
@@ -57,7 +60,15 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   event GuardianProposed(address indexed account, bytes32 indexed hashedOriginDomain, address indexed guardian);
   event GuardianAdded(address indexed account, bytes32 indexed hashedOriginDomain, address indexed guardian);
   event GuardianRemoved(address indexed account, bytes32 indexed hashedOriginDomain, address indexed guardian);
+
+  /// @notice Emitted when an origin domain is enabled for an account
+  /// @param account The account that the origin domain is enabled for
+  /// @param hashedOriginDomain Hash of the origin domain that is enabled
   event HashedOriginDomainEnabledForAccount(address indexed account, bytes32 indexed hashedOriginDomain);
+
+  /// @notice Emitted when an origin domain is disabled for an account
+  /// @param account The account that the origin domain is disabled for
+  /// @param hashedOriginDomain Hash of the origin domain that is disabled
   event HashedOriginDomainDisabledForAccount(address indexed account, bytes32 indexed hashedOriginDomain);
 
   uint256 public constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
