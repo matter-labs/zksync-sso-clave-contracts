@@ -115,14 +115,16 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     emit OidcAccountDeleted(msg.sender, digest);
   }
 
-  function startRecovery(StartRecoveryData calldata data, address targetAccount) external {
+  function startRecovery(StartRecoveryData calldata data, address targetAccount, uint256 timeLimit) external {
+    require(timeLimit >= block.timestamp, "block limit is expired");
+
     OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);
     Groth16Verifier verifierContract = Groth16Verifier(verifier);
 
     OidcData memory oidcData = accountData[targetAccount];
     OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(data.issHash, data.kid);
 
-    bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce));
+    bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce, timeLimit));
 
     // Fill public inputs
     uint8 index = 0;
