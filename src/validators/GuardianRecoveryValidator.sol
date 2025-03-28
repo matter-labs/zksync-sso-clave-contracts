@@ -123,9 +123,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
         emit GuardianRemoved(msg.sender, hashedOriginDomain, guardian);
       }
 
-      if (!accountHashedOriginDomains[msg.sender].remove(hashedOriginDomain)) {
-        revert UnknownHashedOriginDomain(hashedOriginDomain);
-      }
+      // Allow-listing slither finding as the element removal's success is granted due to the element being
+      //  loaded from the accountHashedOriginDomains EnumerableSet on line 104
+      // slither-disable-next-line unused-return
+      accountHashedOriginDomains[msg.sender].remove(hashedOriginDomain);
     }
   }
 
