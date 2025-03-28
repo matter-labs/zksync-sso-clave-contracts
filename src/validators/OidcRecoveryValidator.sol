@@ -184,12 +184,12 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     return isNew;
   }
 
-  /// @notice Deletes the OIDC account for the caller.
+  /// @notice Deletes the OIDC account for the caller, freeing it for use by another SSO account.
   function deleteOidcAccount() external {
     _deleteOidcAccount();
   }
 
-  /// @dev Deletes the OIDC account for the caller, freeing it for use by another SSO account.
+  /// @notice Deletes the OIDC account for the caller, freeing it for use by another SSO account.
   function _deleteOidcAccount() private {
     bytes32 digest = accountData[msg.sender].oidcDigest;
     delete digestIndex[digest];
