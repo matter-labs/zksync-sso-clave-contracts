@@ -93,7 +93,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     uint256 addedOn;
   }
 
-  /// @notice The data for an OIDC key creation.
+  /// @notice Data needed to associate a new oidc account to an sso account.
   /// @param oidcDigest The PoseidonHash(sub || aud || iss || salt) of the OIDC key.
   /// @param iss The OIDC issuer. See https://openid.net/specs/openid-connect-core-1_0.html#IDToken
   struct OidcCreationData {
