@@ -8,8 +8,6 @@ import { SystemContractsCaller } from "@matterlabs/zksync-contracts/l2/system-co
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 import { Errors } from "./libraries/Errors.sol";
 
-import { Logger } from "./helpers/Logger.sol";
-
 /// @title AAFactory
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
@@ -36,6 +34,10 @@ contract AAFactory {
   event AccountCreated(address indexed accountAddress, bytes32 uniqueAccountId);
 
   // Order of Layout: Errors
+  error EMPTY_BEACON_BYTECODE_HASH();
+  error EMPTY_BEACON_ADDRESS();
+  error EMPTY_PASSKEY_ADDRESS();
+  error EMPTY_SESSIONKEY_ADDRESS();
 
   // Order of Layout: Functions
 
@@ -45,9 +47,21 @@ contract AAFactory {
   /// @param _passKeyModule The address of the UpgradeableBeacon contract used for the SSO accounts' passkey proxies.
   /// @param _sessionKeyModule The address of the UpgradeableBeacon contract used for the SSO accounts' sessionkey proxies.
   constructor(bytes32 _beaconProxyBytecodeHash, address _beacon, address _passKeyModule, address _sessionKeyModule) {
+    if (_beaconProxyBytecodeHash == bytes32(0)) {
+      revert EMPTY_BEACON_BYTECODE_HASH();
+    }
     beaconProxyBytecodeHash = _beaconProxyBytecodeHash;
+    if (_beacon == address(0)) {
+      revert EMPTY_BEACON_ADDRESS();
+    }
     beacon = _beacon;
+    if (_passKeyModule == address(0)) {
+      revert EMPTY_PASSKEY_ADDRESS();
+    }
     passKeyModule = _passKeyModule;
+    if (_sessionKeyModule == address(0)) {
+      revert EMPTY_SESSIONKEY_ADDRESS();
+    }
     sessionKeyModule = _sessionKeyModule;
   }
 
@@ -97,11 +111,11 @@ contract AAFactory {
   }
 
   /// @notice Deploys a new SSO account as a beacon proxy with the specified parameters.
-  /// @notice Requires at least: 1 passkey and 1 session key or 1 k1 owner address.
+  /// @notice Requires at least of the following: passkey, session key, or owner address.
   /// @dev Uses `deployProxySsoAccount` with saved passkey and session key modules addresses.
-  /// @param uniqueId Use to generate a unique account id and deterministic address calculation (create2 salt).
-  /// @param passKey R1 public key, origin, and credential ids for WebAuthN validation
-  /// @param sessionKey K1 public key, session state, and credential ids for session validation
+  /// @param uniqueId Use to generate a account address with the msg.sender
+  /// @param passKey Credential id, raw R1 public key, and origin domain for WebAuthN validation
+  /// @param sessionKey Session spec for session validation
   /// @param ownerKeys An array of initial owners of the K1 key for the new account.
   /// @return accountAddress The address of the newly deployed SSO account.
   function deployModularAccount(
@@ -114,9 +128,6 @@ contract AAFactory {
       revert Errors.INVALID_ACCOUNT_KEYS();
     }
 
-    Logger.logString("dma:uniqueAccountID");
-    Logger.logBytes32(uniqueId);
-    Logger.logAddress(msg.sender);
     bytes memory passKeyData = abi.encode(passKeyModule, passKey);
     bytes memory sessionKeyData = abi.encode(sessionKeyModule, sessionKey);
     bytes[] memory initialValidators = new bytes[](2);
