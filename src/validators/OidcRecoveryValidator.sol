@@ -273,7 +273,6 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     }
 
     if (oidcData.pendingPasskeyHash != passkeyHash) {
-      // revert InvalidPasskeyHash(oidcData.pendingPasskeyHash, passkeyHash);
       return false;
     }
 
