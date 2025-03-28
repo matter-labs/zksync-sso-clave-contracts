@@ -269,7 +269,6 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     OidcData memory oidcData = accountData[msg.sender];
 
     if (!oidcData.readyToRecover) {
-      // revert NotReadyToRecover();
       return false;
     }
 
