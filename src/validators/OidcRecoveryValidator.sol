@@ -123,7 +123,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice The mapping of account addresses to their OIDC data.
   mapping(address account => OidcData oidcData) accountData;
 
-  /// @notice The mapping of OIDC digests to their corresponding account addresses.
+  /// @notice The mapping of OIDC digests to their corresponding account addresses, used to retrieve the user's address during the recovery process.
   mapping(bytes32 oidcDigest => address account) digestIndex;
 
   /// @notice The address of the OIDC key registry.
@@ -159,7 +159,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   }
 
   /// @notice Runs on module uninstall
-  /// @dev Deletes the OIDC account for the caller.
+  /// @dev Deletes the OIDC account for the caller, freeing it for use by another SSO account.
   /// @param data unused
   function onUninstall(bytes calldata data) external override {
     _deleteOidcAccount();
@@ -189,7 +189,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     _deleteOidcAccount();
   }
 
-  /// @dev Deletes the OIDC account for the caller.
+  /// @dev Deletes the OIDC account for the caller, freeing it for use by another SSO account.
   function _deleteOidcAccount() private {
     bytes32 digest = accountData[msg.sender].oidcDigest;
     delete digestIndex[digest];
