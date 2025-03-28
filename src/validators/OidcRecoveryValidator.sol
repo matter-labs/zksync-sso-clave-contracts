@@ -246,7 +246,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     accountData[targetAccount].readyToRecover = true;
   }
 
-  /// @notice Only allows transaction setting a new passkey for the sender, and only if `startRecovery` was succesfulyl
+  /// @notice Only allows transaction setting a new passkey for the sender, and only if `startRecovery` was successfully
   ///         called before
   /// @dev Only allows calls to `addValidationKey` on the `WebAuthValidator` contract.
   /// @dev Validates that the transaction adds the pending passkey to the account.
