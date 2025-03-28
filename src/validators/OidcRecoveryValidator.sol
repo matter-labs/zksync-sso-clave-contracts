@@ -55,7 +55,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @param validator The address of the web authentication validator.
   error InvalidWebAuthnValidatorAddress(address expectedValidator, address validator);
 
-  /// @notice Thrown when the transaction is being send to an invalid address.
+  /// @notice Thrown when the transaction is sent to an invalid address.
   error InvalidReceiverAddress();
 
   /// @notice Thrown when trying to validate a non-function call transaction.
