@@ -253,7 +253,6 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     }
 
     if (transaction.data.length < 4) {
-      // revert OnlyFunctionCallsSupported();
       return false;
     }
 
