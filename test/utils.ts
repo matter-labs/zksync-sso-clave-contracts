@@ -52,7 +52,14 @@ export class ContractFixtures {
   async getAaFactory() {
     const beaconAddress = await this.getBeaconAddress();
     if (!this._aaFactory) {
-      this._aaFactory = await deployFactory(this.wallet, beaconAddress, ethersStaticSalt);
+      const passKeyModuleAddress = await this.getPasskeyModuleAddress();
+      const sessionKeyModuleAddress = await this.getSessionKeyModuleAddress();
+      this._aaFactory = await deployFactory(
+        this.wallet,
+        beaconAddress,
+        passKeyModuleAddress,
+        sessionKeyModuleAddress,
+        ethersStaticSalt);
     }
     return this._aaFactory;
   }
@@ -206,7 +213,12 @@ export const getProviderL1 = () => {
   return provider;
 };
 
-export async function deployFactory(wallet: Wallet, beaconAddress: string, salt?: ethers.BytesLike): Promise<AAFactory> {
+export async function deployFactory(
+  wallet: Wallet,
+  beaconAddress: string,
+  passKeyAddress: string,
+  sessionKeyAddress: string,
+  salt?: ethers.BytesLike): Promise<AAFactory> {
   const factoryArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AAFactory.sol/AAFactory.json", "utf8"));
   const proxyAaArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"));
 
@@ -214,7 +226,7 @@ export async function deployFactory(wallet: Wallet, beaconAddress: string, salt?
   const bytecodeHash = utils.hashBytecode(proxyAaArtifact.bytecode);
   const factoryBytecodeHash = utils.hashBytecode(factoryArtifact.bytecode);
   const factorySalt = ethers.hexlify(salt ?? randomBytes(32));
-  const constructorArgs = deployer.interface.encodeDeploy([bytecodeHash, beaconAddress]);
+  const constructorArgs = deployer.interface.encodeDeploy([bytecodeHash, beaconAddress, passKeyAddress, sessionKeyAddress]);
   const standardCreate2Address = utils.create2Address(wallet.address, factoryBytecodeHash, factorySalt, constructorArgs);
   const accountCode = await wallet.provider.getCode(standardCreate2Address);
   if (accountCode != "0x") {
@@ -224,6 +236,8 @@ export async function deployFactory(wallet: Wallet, beaconAddress: string, salt?
   const factory = await deployer.deploy(
     bytecodeHash,
     beaconAddress,
+    passKeyAddress,
+    sessionKeyAddress,
     { customData: { salt: factorySalt, factoryDeps: [proxyAaArtifact.bytecode] } },
   );
   const factoryAddress = await factory.getAddress();

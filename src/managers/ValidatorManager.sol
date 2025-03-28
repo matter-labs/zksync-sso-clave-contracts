@@ -89,8 +89,10 @@ abstract contract ValidatorManager is IValidatorManager, SelfAuth {
   }
 
   function _supportsModuleValidator(address validator) private view returns (bool) {
-    return
-      validator.supportsInterface(type(IModuleValidator).interfaceId) &&
-      validator.supportsInterface(type(IModule).interfaceId);
+    // Ah yes. Array literals are too hard for solidity to handle.
+    bytes4[] memory interfaces = new bytes4[](2);
+    interfaces[0] = type(IModuleValidator).interfaceId;
+    interfaces[1] = type(IModule).interfaceId;
+    return validator.supportsAllInterfaces(interfaces);
   }
 }
