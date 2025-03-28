@@ -51,22 +51,6 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice Thrown when the zk proof verification fails.
   error ZkProofVerificationFailed();
 
-  /// @notice Thrown when trying to validate a non-function call transaction.
-  error OnlyFunctionCallsSupported();
-
-  /// @notice Thrown when trying to validate a transaction that does not call `addValidationKey` on the `WebAuthValidator` contract.
-  /// @param expectedSelector The expected selector of the `addValidationKey` function.
-  /// @param actualSelector The actual selector of the function being called.
-  error UnauthorizedFunctionCall(bytes4 expectedSelector, bytes4 actualSelector);
-
-  /// @notice Thrown when the passkey hash is invalid.
-  /// @param expectedHash The expected passkey hash.
-  /// @param actualHash The actual passkey hash.
-  error InvalidPasskeyHash(bytes32 expectedHash, bytes32 actualHash);
-
-  /// @notice Thrown when the account is not ready to recover.
-  error NotReadyToRecover();
-
   /// @notice Thrown when the time limit has expired.
   error TimeLimitExpired();
 
