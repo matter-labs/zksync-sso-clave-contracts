@@ -82,7 +82,8 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @param iss The OIDC issuer.
   /// @param readyToRecover Indicating if recovery is active (true after `startRecovery` and false once recovery is completed).
   /// @param pendingPasskeyHash The hash of the pending passkey.
-  /// @param recoverNonce The nonce for the recovery process to prevent replay attacks.
+  /// @param recoverNonce The value is used to build the jwt nonce, and gets incremented each time a zk proof is successfully verified to prevent replay attacks.
+  /// @param addedOn The timestamp when the OIDC account was added.
   struct OidcData {
     bytes32 oidcDigest;
     string iss;
