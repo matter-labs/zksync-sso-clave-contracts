@@ -260,7 +260,6 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     // Check for calling "addValidationKey" method by anyone on WebAuthValidator contract
     if (selector != WebAuthValidator.addValidationKey.selector) {
-      // revert UnauthorizedFunctionCall(WebAuthValidator.addValidationKey.selector, selector);
       return false;
     }
 
