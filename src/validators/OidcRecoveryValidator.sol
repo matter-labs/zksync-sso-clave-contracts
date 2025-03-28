@@ -95,7 +95,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
   /// @notice The data for an OIDC key creation.
   /// @param oidcDigest The PoseidonHash(sub || aud || iss || salt) of the OIDC key.
-  /// @param iss The OIDC issuer.
+  /// @param iss The OIDC issuer. See https://openid.net/specs/openid-connect-core-1_0.html#IDToken
   struct OidcCreationData {
     bytes32 oidcDigest;
     string iss;
