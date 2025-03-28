@@ -86,6 +86,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bool readyToRecover;
     bytes32 pendingPasskeyHash;
     uint256 recoverNonce;
+    uint256 addedOn;
   }
 
   /// @notice The data for an OIDC key creation.
@@ -172,6 +173,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     accountData[msg.sender].oidcDigest = oidcDigest;
     accountData[msg.sender].iss = iss;
+    accountData[msg.sender].addedOn = block.timestamp;
     digestIndex[oidcDigest] = msg.sender;
 
     emit OidcKeyUpdated(msg.sender, oidcDigest, iss, isNew);
@@ -198,14 +200,16 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @dev Queries the OIDC key registry for the provider's public key (`pkop`).
   /// @dev Calls the verifier contract to validate the zk proof.
   /// @dev If the proof is valid, it sets the recovery data for the target account.
-  function startRecovery(StartRecoveryData calldata data, address targetAccount) external {
+  function startRecovery(StartRecoveryData calldata data, address targetAccount, uint256 timeLimit) external {
+    require(timeLimit >= block.timestamp, "block limit is expired");
+
     OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);
     Groth16Verifier verifierContract = Groth16Verifier(verifier);
 
     OidcData memory oidcData = accountData[targetAccount];
     OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(data.issHash, data.kid);
 
-    bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce));
+    bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce, timeLimit));
 
     // Fill public inputs
     uint8 index = 0;
