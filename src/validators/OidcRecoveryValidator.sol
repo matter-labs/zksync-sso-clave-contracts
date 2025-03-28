@@ -74,6 +74,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice Thrown when the account is not ready to recover.
   error NotReadyToRecover();
 
+  /// @notice Thrown when the time limit has expired.
+  error TimeLimitExpired();
+
   /// @notice The data for an OIDC account.
   /// @param oidcDigest The PoseidonHash(sub || aud || iss || salt) of the OIDC key.
   /// @param iss The OIDC issuer.
@@ -197,11 +200,14 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice Starts the recovery process for the target account.
   /// @param data The data for starting a recovery process.
   /// @param targetAccount The address of the account to start the recovery process for.
+  /// @param timeLimit The time limit for the recovery process.
   /// @dev Queries the OIDC key registry for the provider's public key (`pkop`).
   /// @dev Calls the verifier contract to validate the zk proof.
   /// @dev If the proof is valid, it sets the recovery data for the target account.
   function startRecovery(StartRecoveryData calldata data, address targetAccount, uint256 timeLimit) external {
-    require(timeLimit >= block.timestamp, "block limit is expired");
+    if (timeLimit < block.timestamp) {
+      revert TimeLimitExpired();
+    }
 
     OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);
     Groth16Verifier verifierContract = Groth16Verifier(verifier);
