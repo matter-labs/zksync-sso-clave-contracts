@@ -79,7 +79,7 @@ contract WebAuthValidator is IModuleValidator {
     }
   }
 
-  /// @notice Runs on module uninstall
+  /// @notice Runs on module uninstall, does not manage any dependant modules
   /// @param data ABI-encoded array of origin domains to remove keys for
   function onUninstall(bytes calldata data) external override {
     PasskeyId[] memory passkeyIds = abi.decode(data, (PasskeyId[]));
