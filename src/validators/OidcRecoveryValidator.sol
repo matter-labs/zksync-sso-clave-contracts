@@ -80,7 +80,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice The data for an OIDC account.
   /// @param oidcDigest Digest that identifies an account. It's calculated as: PoseidonHash(sub || aud || iss || salt) of the OIDC key.
   /// @param iss The OIDC issuer.
-  /// @param readyToRecover True if the account is ready to recover, false otherwise.
+  /// @param readyToRecover Indicating if recovery is active (true after `startRecovery` and false once recovery is completed).
   /// @param pendingPasskeyHash The hash of the pending passkey.
   /// @param recoverNonce The nonce for the recovery process to prevent replay attacks.
   struct OidcData {
