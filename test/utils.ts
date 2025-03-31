@@ -28,7 +28,8 @@ import {
   SsoAccount__factory,
   SsoBeacon__factory,
   TestPaymaster__factory,
-  WebAuthValidator__factory } from "../typechain-types";
+  WebAuthValidator__factory,
+  ERC1271Caller__factory } from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
   205, 241, 161, 186, 101, 105, 79,
@@ -127,6 +128,11 @@ export class ContractFixtures {
   async deployTestPaymaster() {
     const contract = await create2("TestPaymaster", this.wallet, ethersStaticSalt);
     return TestPaymaster__factory.connect(await contract.getAddress(), this.wallet);
+  }
+
+  async deployERC1271Caller() {
+    const contract = await create2("ERC1271Caller", this.wallet, ethersStaticSalt);
+    return ERC1271Caller__factory.connect(await contract.getAddress(), this.wallet);
   }
 
   async deployExampleAuthServerPaymaster(

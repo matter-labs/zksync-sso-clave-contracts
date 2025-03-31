@@ -6,14 +6,14 @@ import { AsnParser } from "@peculiar/asn1-schema";
 import { bigintToBuf, bufToBigint } from "bigint-conversion";
 import { assert, expect } from "chai";
 import { randomBytes } from "crypto";
-import { parseEther, ZeroAddress } from "ethers";
+import { parseEther, ZeroAddress, TypedDataEncoder } from "ethers";
 import * as hre from "hardhat";
 import { encodeAbiParameters, Hex, hexToBytes, pad, toHex } from "viem";
 import { SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 
 import type { WebAuthValidator } from "../typechain-types";
-import { IERC165__factory, IModuleValidator__factory, SsoAccount__factory, WebAuthValidator__factory } from "../typechain-types";
+import { IERC165__factory, IModuleValidator__factory, SsoAccount__factory, WebAuthValidator__factory, ERC1271Caller } from "../typechain-types";
 import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
 /**
@@ -322,17 +322,6 @@ async function signStringWithR1Key(privateKey: CryptoKey, messageBuffer: Uint8Ar
   return { r, s, signature: new Uint8Array(signatureBytes) };
 }
 
-async function verifySignatureWithR1Key(
-  messageBuffer: Uint8Array,
-  signatureArray: Uint8Array[],
-  publicKeyBytes: Uint8Array[],
-) {
-  const publicKey = await getCrpytoKeyFromPublicBytes(publicKeyBytes);
-  const verification = await crypto.subtle.verify(r1KeyParams, publicKey, concat(signatureArray), messageBuffer);
-
-  return verification;
-}
-
 function encodeFatSignature(
   passkeyResponse: {
     authenticatorData: string;
@@ -449,6 +438,7 @@ describe("Passkey validation", function () {
   describe("account integration", () => {
     const fixtures = new ContractFixtures();
     const provider = getProvider();
+    let proxyAccountAddress: string;
 
     async function deployAccount() {
       const factoryContract = await fixtures.getAaFactory();
@@ -476,37 +466,15 @@ describe("Passkey validation", function () {
       const deployTxReceipt = await deployTx.wait();
       logInfo(`\`deployProxySsoAccount\` gas used: ${deployTxReceipt?.gasUsed.toString()}`);
 
-      const proxyAccountAddress = deployTxReceipt!.contractAddress!;
+      proxyAccountAddress = deployTxReceipt!.contractAddress!;
       expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
 
       const fundTx = await wallet.sendTransaction({ value: parseEther("1"), to: proxyAccountAddress });
       const receipt = await fundTx.wait();
       expect(receipt.status).to.eq(1, "send funds to proxy account");
 
-      return { passKeyModuleContract, sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress, credentialId };
-    }
-
-    it("should deploy proxy account via factory", async () => {
-      const { passKeyModuleContract, sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress, credentialId } = await deployAccount();
-
-      const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
-
-      const initAccountKey = await passKeyModuleContract.getAccountKey(sampleDomain, credentialId, proxyAccountAddress);
-      expect(initAccountKey[0]).to.equal(toHex(generatedX), "initial lower key should exist");
-      expect(initAccountKey[1]).to.equal(toHex(generatedY), "initial upper key should exist");
-
-      const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
-      assert(await account.isK1Owner(fixtures.wallet.address));
-      assert(!await account.isHook(passKeyModuleAddress), "passkey module should not be an execution hook");
-      assert(await account.isModuleValidator(passKeyModuleAddress), "passkey module should be a validator");
-    });
-
-    it("should sign transaction with passkey", async () => {
-      const authData = toBuffer(ethersResponse.authenticatorData);
-      const { sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress, credentialId } = await deployAccount();
-
-      const sessionAccount = new SmartAccount({
-        payloadSigner: async (hash: Hex) => {
+      const signPayload = async (hash: Hex) => {
+          const authData = toBuffer(ethersResponse.authenticatorData);
           const sampleClientObject = {
             type: "webauthn.get",
             challenge: fromBuffer(hexToBytes(hash)),
@@ -534,7 +502,31 @@ describe("Passkey validation", function () {
             [{ name: "signature", type: "bytes" }, { name: "moduleAddress", type: "address" }, { name: "validatorData", type: "bytes" }],
             [fatSignature, passKeyModuleAddress, "0x"]);
           return moduleSignature;
-        },
+        };
+
+      return { passKeyModuleContract, sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress, credentialId, signPayload };
+    }
+
+    it("should deploy proxy account via factory", async () => {
+      const { passKeyModuleContract, sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress, credentialId } = await deployAccount();
+
+      const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
+
+      const initAccountKey = await passKeyModuleContract.getAccountKey(sampleDomain, credentialId, proxyAccountAddress);
+      expect(initAccountKey[0]).to.equal(toHex(generatedX), "initial lower key should exist");
+      expect(initAccountKey[1]).to.equal(toHex(generatedY), "initial upper key should exist");
+
+      const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
+      assert(await account.isK1Owner(fixtures.wallet.address));
+      assert(!await account.isHook(passKeyModuleAddress), "passkey module should not be an execution hook");
+      assert(await account.isModuleValidator(passKeyModuleAddress), "passkey module should be a validator");
+    });
+
+    it("should sign transaction with passkey", async () => {
+      const { proxyAccountAddress, signPayload } = await deployAccount();
+
+      const sessionAccount = new SmartAccount({
+        payloadSigner: signPayload,
         address: proxyAccountAddress,
         secret: wallet.privateKey, // generatedR1Key.privateKey,
       }, provider);
@@ -556,6 +548,36 @@ describe("Passkey validation", function () {
       const transactionReceipt = await transactionResponse.wait();
       expect(transactionReceipt.status).to.eq(1, "transaction should be successful");
       logInfo(`passkey transaction gas used: ${transactionReceipt?.gasUsed.toString()}`);
+    });
+
+    it("should verify signature with EIP1271", async () => {
+      const { proxyAccountAddress, signPayload } = await deployAccount();
+
+      const erc1271Caller = await fixtures.deployERC1271Caller();
+      const testStruct: ERC1271Caller.TestStructStruct = {
+        message: "test",
+        value: 42
+      };
+      const domain = await erc1271Caller.eip712Domain();
+      const digest = TypedDataEncoder.hash(
+        {
+          name: domain.name,
+          version: domain.version,
+          chainId: domain.chainId,
+          verifyingContract: domain.verifyingContract,
+        },
+        {
+          TestStruct: [
+            { name: "message", type: "string" },
+            { name: "value", type: "uint256" }
+          ]
+        },
+        testStruct
+      );
+
+      const signature = await signPayload(digest as Hex);
+      const isValid = await erc1271Caller.validateStruct(testStruct, proxyAccountAddress, signature);
+      expect(isValid).to.be.true;
     });
   });
 

@@ -8,6 +8,7 @@ import { SmartAccount, utils } from "zksync-ethers";
 import { SsoAccount__factory } from "../typechain-types";
 import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
 import { ContractFixtures, getProvider } from "./utils";
+import { ERC1271Caller } from "../typechain-types/src/test/ERC1271Caller";
 
 describe("Basic tests", function () {
   const fixtures = new ContractFixtures();
@@ -93,8 +94,7 @@ describe("Basic tests", function () {
     const aaTx = {
       ...await aaTxTemplate(),
       to: target,
-      value,
-      gasLimit: 300_000n,
+      value
     };
     aaTx.gasLimit = await provider.estimateGas(aaTx);
 
@@ -141,10 +141,8 @@ describe("Basic tests", function () {
       to: proxyAccountAddress,
       data: account.interface.encodeFunctionData("batchCall", [calls]),
       value: value * 2n,
-      gasLimit: 300_000n,
     };
-    // TODO: fix gas estimation
-    // aaTx.gasLimit = await provider.estimateGas(aaTx);
+    aaTx.gasLimit = await provider.estimateGas(aaTx);
 
     const signedTransaction = await smartAccount.signTransaction(aaTx);
     assert(signedTransaction != null, "valid transaction to sign");
@@ -156,5 +154,33 @@ describe("Basic tests", function () {
     expect(await provider.getBalance(proxyAccountAddress)).to.equal(balanceBefore - value * 2n - fee, "invalid final own balance");
     expect(await provider.getBalance(target1)).to.equal(value, "invalid final target-1 balance");
     expect(await provider.getBalance(target2)).to.equal(value, "invalid final target-2 balance");
+  });
+
+  it("should verify signature with EIP1271", async () => {
+    const erc1271Caller = await fixtures.deployERC1271Caller();
+    const testStruct: ERC1271Caller.TestStructStruct = {
+      message: "test",
+      value: 42
+    };
+    const domain = await erc1271Caller.eip712Domain();
+    const digest = ethers.TypedDataEncoder.hash(
+      {
+        name: domain.name,
+        version: domain.version,
+        chainId: domain.chainId,
+        verifyingContract: domain.verifyingContract,
+      },
+      {
+        TestStruct: [
+          { name: "message", type: "string" },
+          { name: "value", type: "uint256" }
+        ]
+      },
+      testStruct
+    );
+
+    const signature = fixtures.wallet.signingKey.sign(digest).serialized;
+    const isValid = await erc1271Caller.validateStruct(testStruct, proxyAccountAddress, signature);
+    expect(isValid).to.be.true;
   });
 });
