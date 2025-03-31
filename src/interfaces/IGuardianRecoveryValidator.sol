@@ -9,14 +9,14 @@ interface IGuardianRecoveryValidator is IModuleValidator {
 
   function removeValidationKey(bytes32 hashedOriginDomain, address externalAccount) external;
 
+  function addValidationKey(bytes32 hashedOriginDomain, address accountToGuard) external returns (bool);
+
   function initRecovery(
     address accountToRecover,
     bytes32 hashedCredentialId,
     bytes32[2] memory rawPublicKey,
     bytes32 hashedOriginDomain
   ) external;
-
-  function addValidationKey(bytes32 hashedOriginDomain, address accountToGuard) external returns (bool);
 
   function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external returns (bool);
 
