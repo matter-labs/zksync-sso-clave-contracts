@@ -29,6 +29,9 @@ contract WebAuthValidator is IModuleValidator {
   mapping(string originDomain => mapping(bytes credentialId => mapping(address accountAddress => bytes32[2] publicKey)))
     private publicKeys;
 
+  /// @dev Mapping of domain-bound credential IDs to the account address that owns them
+  mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public registeredAddress;
+
   /// @dev P256Verify precompile implementation, as defined in RIP-7212, is found at
   /// https://github.com/matter-labs/era-contracts/blob/main/system-contracts/contracts/precompiles/P256Verify.yul
   address private constant P256_VERIFIER = address(0x100);
@@ -64,8 +67,6 @@ contract WebAuthValidator is IModuleValidator {
   ) external view returns (bytes32[2] memory) {
     return publicKeys[originDomain][credentialId][accountAddress];
   }
-
-  mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public registeredAddress;
 
   /// @notice Runs on module install
   /// @param data ABI-encoded WebAuthn passkey to add immediately, or empty if not needed
