@@ -92,7 +92,6 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @param pendingPasskeyHash The hash of the pending passkey to be added.
   struct StartRecoveryData {
     ZkProof zkProof;
-    bytes32 issHash;
     bytes32 kid;
     bytes32 pendingPasskeyHash;
   }
@@ -190,7 +189,8 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     Groth16Verifier verifierContract = Groth16Verifier(verifier);
 
     OidcData memory oidcData = accountData[targetAccount];
-    OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(data.issHash, data.kid);
+    bytes32 issHash = keyRegistryContract.hashIssuer(oidcData.iss);
+    OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(issHash, data.kid);
 
     bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce, timeLimit));
 
