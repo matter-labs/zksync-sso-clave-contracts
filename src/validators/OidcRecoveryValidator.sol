@@ -90,10 +90,12 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @param issHash The hash of the OIDC issuer.
   /// @param kid The key id (kid) of the OIDC key.
   /// @param pendingPasskeyHash The hash of the pending passkey to be added.
+  /// @param timeLimit If the recovery process is started after this moment it will fail.
   struct StartRecoveryData {
     ZkProof zkProof;
     bytes32 kid;
     bytes32 pendingPasskeyHash;
+    uint256 timeLimit;
   }
 
   /// @notice The mapping of account addresses to their OIDC data.
@@ -176,12 +178,11 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice Starts the recovery process for the target account.
   /// @param data The data for starting a recovery process.
   /// @param targetAccount The address of the account to start the recovery process for.
-  /// @param timeLimit The time limit for the recovery process.
   /// @dev Queries the OIDC key registry for the provider's public key (`pkop`).
   /// @dev Calls the verifier contract to validate the zk proof.
   /// @dev If the proof is valid, it sets the recovery data for the target account.
-  function startRecovery(StartRecoveryData calldata data, address targetAccount, uint256 timeLimit) external {
-    if (timeLimit < block.timestamp) {
+  function startRecovery(StartRecoveryData calldata data, address targetAccount) external {
+    if (data.timeLimit < block.timestamp) {
       revert TimeLimitExpired();
     }
 
@@ -192,7 +193,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bytes32 issHash = keyRegistryContract.hashIssuer(oidcData.iss);
     OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(issHash, data.kid);
 
-    bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce, timeLimit));
+    bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce, data.timeLimit));
 
     // Fill public inputs
     uint8 index = 0;
