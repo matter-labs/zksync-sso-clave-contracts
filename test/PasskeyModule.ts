@@ -558,13 +558,13 @@ describe("Passkey validation", function () {
         message: "test",
         value: 42
       };
-      const domain = await erc1271Caller.eip712Domain();
-      const digest = TypedDataEncoder.hash(
+      const innerDomain = await erc1271Caller.eip712Domain();
+      const innerDigest = TypedDataEncoder.hash(
         {
-          name: domain.name,
-          version: domain.version,
-          chainId: domain.chainId,
-          verifyingContract: domain.verifyingContract,
+          name: innerDomain.name,
+          version: innerDomain.version,
+          chainId: innerDomain.chainId,
+          verifyingContract: innerDomain.verifyingContract,
         },
         {
           TestStruct: [
@@ -573,6 +573,19 @@ describe("Passkey validation", function () {
           ]
         },
         testStruct
+      );
+
+      const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
+      const domain = await account.eip712Domain();
+      const digest = TypedDataEncoder.hash(
+        {
+          name: domain.name,
+          version: domain.version,
+          chainId: domain.chainId,
+          verifyingContract: domain.verifyingContract,
+        },
+        { SsoMessage: [{ name: "signedHash", type: "bytes32" }] },
+        { signedHash: innerDigest },
       );
 
       const signature = await signPayload(digest as Hex);
