@@ -128,6 +128,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     require(_keyRegistry != address(0), "_keyRegistry cannot be zero address");
     require(_verifier != address(0), "_verifier cannot be zero address");
     require(_webAuthValidator != address(0), "_webAuthValidator cannot be zero address");
+
     keyRegistry = _keyRegistry;
     verifier = _verifier;
     webAuthValidator = _webAuthValidator;
@@ -160,6 +161,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @param iss The OIDC issuer.
   /// @return true if the key was added, false if it was updated.
   function addOidcAccount(bytes32 oidcDigest, string memory iss) public returns (bool) {
+    require(oidcDigest != bytes32(0), "oidcDigest cannot be empty");
+    require(bytes(iss).length > 0, "oidcDigest cannot be empty");
+
     bool isNew = accountData[msg.sender].oidcDigest.length == 0;
     if (digestIndex[oidcDigest] != address(0)) {
       revert OidcDigestAlreadyRegisteredInAnotherAccount(oidcDigest);
