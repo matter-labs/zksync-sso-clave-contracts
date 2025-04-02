@@ -47,7 +47,6 @@ library Errors {
 
   // Misc
   error BATCH_MSG_VALUE_MISMATCH(uint256 actualValue, uint256 expectedValue);
-  error WEBAUTHN_KEY_EXISTS();
   error NO_TIMESTAMP_ASSERTER(uint256 chainId);
   error ADDRESS_CAST_OVERFLOW(uint256 value);
   error INVALID_PAYMASTER_INPUT(bytes input);
