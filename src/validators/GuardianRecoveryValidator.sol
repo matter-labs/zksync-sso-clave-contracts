@@ -61,12 +61,13 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
   bytes30 private _gap; // Gap to claim 30 bytes remaining in slot 0 after fields layout of Initializable contract
   WebAuthValidator public webAuthValidator; // Enforced slot 1 in order to be able to access it during validateTransaction step
-  mapping(bytes32 hashedOriginDomain => mapping(address account => EnumerableSetUpgradeable.AddressSet))
+  mapping(bytes32 hashedOriginDomain => mapping(address account => EnumerableSetUpgradeable.AddressSet guardians))
     private accountGuardians;
-  mapping(bytes32 hashedOriginDomain => mapping(address guardian => EnumerableSetUpgradeable.AddressSet))
+  mapping(bytes32 hashedOriginDomain => mapping(address guardian => EnumerableSetUpgradeable.AddressSet accounts))
     private guardedAccounts;
-  mapping(bytes32 hashedOriginDomain => mapping(address account => RecoveryRequest)) public pendingRecoveryData;
-  mapping(bytes32 hashedOriginDomain => mapping(address account => mapping(address guardian => Guardian)))
+  mapping(bytes32 hashedOriginDomain => mapping(address account => RecoveryRequest recoveryData))
+    public pendingRecoveryData;
+  mapping(bytes32 hashedOriginDomain => mapping(address account => mapping(address guardian => Guardian guardianData)))
     public accountGuardianData;
 
   constructor() {
