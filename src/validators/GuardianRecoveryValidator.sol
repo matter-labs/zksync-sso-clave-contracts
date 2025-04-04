@@ -10,7 +10,6 @@ import { IGuardianRecoveryValidator } from "../interfaces/IGuardianRecoveryValid
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
-import { BatchCaller, Call } from "../batch/BatchCaller.sol";
 
 contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
@@ -32,9 +31,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   error GuardianNotProposed(address guardian);
   error AccountAlreadyGuardedByGuardian(address account, address guardian);
   error AccountNotGuardedByAddress(address account, address guardian);
-  error PasskeyNotMatched();
-  error CooldownPeriodNotPassed();
-  error ExpiredRequest();
 
   event RecoveryInitiated(
     address indexed account,
