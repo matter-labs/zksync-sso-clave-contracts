@@ -105,6 +105,11 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
         emit GuardianRemoved(msg.sender, hashedOriginDomain, guardian);
       }
+
+      // Remove pending recovery data if exist
+      if (pendingRecoveryData[hashedOriginDomain][msg.sender].timestamp != 0) {
+        discardRecovery(hashedOriginDomain);
+      }
     }
   }
 
@@ -216,7 +221,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
   /// @notice This method allows to discard currently pending recovery
   /// @param hashedOriginDomain Hash of origin domain
-  function discardRecovery(bytes32 hashedOriginDomain) external {
+  function discardRecovery(bytes32 hashedOriginDomain) public {
     emit RecoveryDiscarded(
       msg.sender,
       hashedOriginDomain,

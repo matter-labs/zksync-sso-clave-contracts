@@ -223,6 +223,24 @@ describe("GuardianRecoveryValidator", function () {
       const guardian2GuardedAccounts = await guardianValidator.guardianOf(hashedOriginDomain, user1.getAddress());
       expect(guardian2GuardedAccounts.length).to.equal(0);
     });
+
+    describe("And there is a pending recovery", () => {
+      cacheBeforeEach(async () => {
+        const key = await generatePassKey("0x1234", keyDomain);
+        await guardianValidator.connect(guardian).initRecovery(
+          user1.getAddress(), ethers.keccak256(key.args[0]), key.args[1], hashedOriginDomain,
+        );
+      });
+      it("Removes pending recovery data.", async function () {
+        await sut();
+        const res = await guardianValidator.getPendingRecoveryData(hashedOriginDomain, user1.getAddress());
+
+        expect(res.hashedCredentialId).to.equal(ethers.zeroPadBytes("0x", 32));
+        expect(res.rawPublicKey[0]).to.equal(ethers.zeroPadBytes("0x", 32));
+        expect(res.rawPublicKey[1]).to.equal(ethers.zeroPadBytes("0x", 32));
+        expect(res.timestamp).to.equal(0);
+      });
+    });
   });
 
   describe("When attached to SsoAccount", () => {
