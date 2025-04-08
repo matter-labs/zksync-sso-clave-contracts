@@ -48,9 +48,6 @@ interface IGuardianRecoveryValidator is IModuleValidator {
   /// @param hashedOriginDomain Hash of the unknown origin domain
   error UnknownHashedOriginDomain(bytes32 hashedOriginDomain);
 
-  /// @notice Error thrown when the WebAuthValidator is not enabled
-  error WebAuthValidatorNotEnabled();
-
   event RecoveryInitiated(
     address indexed account,
     bytes32 indexed hashedOriginDomain,
