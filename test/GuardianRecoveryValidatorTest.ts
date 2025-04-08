@@ -97,7 +97,7 @@ describe("GuardianRecoveryValidator", function () {
     it("Reverts if attempts to add zero address", async function () {
       const [user1, user1ConnectedValidator] = await randomWallet();
 
-      await expect(user1ConnectedValidator.proposeValidationKey(hashedOriginDomain, ethers.ZeroAddress))
+      await expect(user1ConnectedValidator.proposeGuardian(hashedOriginDomain, ethers.ZeroAddress))
         .to.be.revertedWithCustomError(user1ConnectedValidator, "InvalidGuardianAddress");
     });
   });
@@ -120,7 +120,7 @@ describe("GuardianRecoveryValidator", function () {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const [_, guardianConnection] = await randomWallet();
 
-      await expect(callAddValidationKey(guardianConnection, hashedOriginDomain, ethers.ZeroAddress))
+      await expect(callAddGuardian(guardianConnection, hashedOriginDomain, ethers.ZeroAddress))
         .to.revertedWithCustomError(guardianConnection, "InvalidAccountToGuardAddress");
     });
 
