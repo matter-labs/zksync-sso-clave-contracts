@@ -9,8 +9,6 @@ interface IGuardianRecoveryValidator is IModuleValidator {
 
   function removeGuardian(bytes32 hashedOriginDomain, address externalAccount) external;
 
-  function addValidationKey(bytes32 hashedOriginDomain, address accountToGuard) external returns (bool);
-
   function initRecovery(
     address accountToRecover,
     bytes32 hashedCredentialId,
