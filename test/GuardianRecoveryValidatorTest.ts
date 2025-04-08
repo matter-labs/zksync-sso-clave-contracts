@@ -263,6 +263,7 @@ describe("GuardianRecoveryValidator", function () {
     describe("And there is a pending recovery", () => {
       cacheBeforeEach(async () => {
         const key = await generatePassKey("0x1234", keyDomain);
+        await helpers.time.increase(3 * 24 * 60 * 60 + 1 * 60 * 60); // Increase by > 72 hours
         await guardianValidator.connect(guardian).initRecovery(
           user1.getAddress(), ethers.keccak256(key.args[0]), key.args[1], hashedOriginDomain,
         );
