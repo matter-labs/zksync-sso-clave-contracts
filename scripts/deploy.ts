@@ -19,7 +19,7 @@ async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any
   console.log("Deploying", name, "contract...");
   let implContract;
   if (name == FACTORY_NAME) {
-    implContract = await deployFactory(deployer, args![0], ethersStaticSalt);
+    implContract = await deployFactory(deployer, args![0], args![1], args![2], ethersStaticSalt);
   } else {
     implContract = await create2(name, deployer, ethersStaticSalt, args);
   }
@@ -104,7 +104,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const session = await deploy(SESSIONS_NAME, deployer, !cmd.noProxy);
       const implementation = await deploy(ACCOUNT_IMPL_NAME, deployer, false);
       const beacon = await deploy(BEACON_NAME, deployer, false, [implementation]);
-      const accountFactory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon]);
+      const accountFactory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon, passkey, session]);
       const guardianInterface = new ethers.Interface((await hre.artifacts.readArtifact(GUARDIAN_RECOVERY_NAME)).abi);
       const recovery = await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [], guardianInterface.encodeFunctionData(
         "initialize(address)",
