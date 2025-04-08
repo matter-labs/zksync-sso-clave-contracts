@@ -152,12 +152,9 @@ abstract contract HookManager is IHookManager, SelfAuth {
   }
 
   function _supportsHook(address hook, bool isValidation) private view returns (bool) {
-    return
-      hook.supportsInterface(type(IModule).interfaceId) &&
-      (
-        isValidation
-          ? hook.supportsInterface(type(IValidationHook).interfaceId)
-          : hook.supportsInterface(type(IExecutionHook).interfaceId)
-      );
+    bytes4[] memory interfaces = new bytes4[](2);
+    interfaces[0] = isValidation ? type(IValidationHook).interfaceId : type(IExecutionHook).interfaceId;
+    interfaces[1] = type(IModule).interfaceId;
+    return hook.supportsAllInterfaces(interfaces);
   }
 }
