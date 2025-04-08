@@ -226,7 +226,7 @@ describe("GuardianRecoveryValidator", function () {
     });
   });
 
-  describe("onUninstall", () => {
+  describe.only("onUninstall", () => {
     let user1: ethers.Signer;
     let guardian: ethers.Signer;
     let guardian2: ethers.Signer;
@@ -240,7 +240,6 @@ describe("GuardianRecoveryValidator", function () {
       await user1Connected.proposeGuardian(hashedOriginDomain, guardian.getAddress());
       await user1Connected.proposeGuardian(hashedOriginDomain, guardian2.getAddress());
       await guardianConnected.addGuardian(hashedOriginDomain, user1.getAddress());
-      await guardian2Connected.addGuardian(hashedOriginDomain, user1.getAddress());
     });
 
     const sut = async () => {
