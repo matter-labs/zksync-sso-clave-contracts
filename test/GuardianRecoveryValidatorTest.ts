@@ -104,7 +104,7 @@ describe("GuardianRecoveryValidator", function () {
 
   describe("addGuardian", () => {
     function callAddGuardian(contract: GuardianRecoveryValidator, hashedOriginDomain: `0x${string}`, account: string): Promise<ethers.ContractTransactionResponse> {
-      return contract.addGuardian(hashedOriginDomain, account, { gasLimit: "80000000" });
+      return contract.addGuardian(hashedOriginDomain, account);
     }
 
     it("fails when tries to confirm a guardian that was not proposed.", async function () {
