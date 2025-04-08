@@ -22,9 +22,27 @@ interface IGuardianRecoveryValidator is IModuleValidator {
   error GuardianNotProposed(address guardian);
   error AccountAlreadyGuardedByGuardian(address account, address guardian);
   error AccountNotGuardedByAddress(address account, address guardian);
-  error PasskeyNotMatched();
-  error CooldownPeriodNotPassed();
-  error ExpiredRequest();
+
+  /// @notice Error thrown when an account recovery is already in progress
+  error AccountRecoveryInProgress();
+
+  /// @notice Error thrown when the WebAuthValidator is not enabled for the account
+  error WebAuthValidatorNotEnabled();
+
+  /// @notice Error thrown when an invalid guardian address is provided
+  error InvalidGuardianAddress();
+
+  /// @notice Error thrown when an invalid web auth validator address is provided
+  error InvalidWebAuthValidatorAddress();
+
+  /// @notice Error thrown when an invalid account to guard address is provided
+  error InvalidAccountToGuardAddress();
+
+  /// @notice Error thrown when an invalid account to recover address is provided
+  error InvalidAccountToRecoverAddress();
+
+  /// @notice Error thrown when a non-function call transaction is detected
+  error NonFunctionCallTransaction();
 
   event RecoveryInitiated(
     address indexed account,
