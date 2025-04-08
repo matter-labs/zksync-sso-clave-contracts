@@ -248,7 +248,7 @@ export async function deployFactory(
     await verifyContract({
       address: factoryAddress,
       contract: `src/AAFactory.sol:AAFactory`,
-      constructorArguments: deployer.interface.encodeDeploy([bytecodeHash, beaconAddress]),
+      constructorArguments: deployer.interface.encodeDeploy([bytecodeHash, beaconAddress, passKeyAddress, sessionKeyAddress]),
       bytecode: factoryArtifact.bytecode,
     });
   }
