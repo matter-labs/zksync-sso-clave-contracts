@@ -8,6 +8,8 @@ library Errors {
   // Account errors
   error INSUFFICIENT_FUNDS(uint256 required, uint256 available);
   error FEE_PAYMENT_FAILED();
+  error ACCOUNT_ALREADY_EXISTS(address account);
+  error INVALID_ACCOUNT_KEYS();
   error METHOD_NOT_IMPLEMENTED();
 
   // ERC165 module errors
@@ -45,8 +47,6 @@ library Errors {
 
   // Misc
   error BATCH_MSG_VALUE_MISMATCH(uint256 actualValue, uint256 expectedValue);
-  error WEBAUTHN_KEY_EXISTS();
-  error ACCOUNT_ALREADY_EXISTS(address account);
   error NO_TIMESTAMP_ASSERTER(uint256 chainId);
   error ADDRESS_CAST_OVERFLOW(uint256 value);
   error INVALID_PAYMASTER_INPUT(bytes input);
