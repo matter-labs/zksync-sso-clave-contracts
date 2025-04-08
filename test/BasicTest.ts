@@ -74,6 +74,66 @@ describe("Basic tests", function () {
 
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
     assert(await account.isK1Owner(fixtures.wallet.address));
+
+    const emptyDeployTx = aaFactoryContract.deployProxySsoAccount(
+      randomBytes(32),
+      [],
+      [],
+    );
+
+    await expect(emptyDeployTx).to.be.revertedWithCustomError(aaFactoryContract, "INVALID_ACCOUNT_KEYS");
+  });
+
+  it("should deploy modular account via factory", async () => {
+    const aaFactoryContract = await fixtures.getAaFactory();
+    assert(aaFactoryContract != null, "No AA Factory deployed");
+
+    const factoryAddress = await aaFactoryContract.getAddress();
+    expect(factoryAddress, "the factory address").to.equal(await fixtures.getAaFactoryAddress(), "factory address match");
+
+    const bytecodeHash = await aaFactoryContract.beaconProxyBytecodeHash();
+    const deployedAccountContract = await fixtures.getAccountProxyContract();
+    const deployedAccountContractCode = await deployedAccountContract.getDeployedCode();
+    assert(deployedAccountContractCode != null, "No account code deployed");
+    const ssoBeaconBytecodeHash = ethers.hexlify(utils.hashBytecode(deployedAccountContractCode));
+    expect(bytecodeHash, "deployed account bytecode hash").to.equal(ssoBeaconBytecodeHash, "deployed account code doesn't match");
+
+    const args = await aaFactoryContract.getEncodedBeacon();
+    const deployedBeaconAddress = new ethers.AbiCoder().encode(["address"], [await fixtures.getBeaconAddress()]);
+    expect(args, "the beacon address").to.equal(deployedBeaconAddress, "the deployment beacon");
+
+    const randomSalt = randomBytes(32);
+    const uniqueSalt = keccak256(concat([randomSalt, toBytes(fixtures.wallet.address)]));
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, uniqueSalt, args);
+
+    const preDeployAccountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
+    expect(preDeployAccountCode, "expected deploy location").to.equal("0x", "nothing deployed here (yet)");
+
+    const deployTx = await aaFactoryContract.deployModularAccount(
+      randomSalt,
+      "0x",
+      "0x",
+      [fixtures.wallet.address],
+    );
+    const deployTxReceipt = await deployTx.wait();
+    proxyAccountAddress = deployTxReceipt!.contractAddress!;
+
+    expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
+    expect(proxyAccountAddress, "the proxy account location").to.equal(standardCreate2Address, "be what create2 returns");
+
+    const postDeployAccountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
+    expect(postDeployAccountCode, "expected deploy location").to.not.equal("0x", "deployment didn't match create2!");
+
+    const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
+    assert(await account.isK1Owner(fixtures.wallet.address));
+
+    const emptyDeployTx = aaFactoryContract.deployModularAccount(
+      randomBytes(32),
+      "0x",
+      "0x",
+      [],
+    );
+    await expect(emptyDeployTx).to.be.revertedWithCustomError(aaFactoryContract, "INVALID_ACCOUNT_KEYS");
   });
 
   it("should execute a simple transfer of ETH", async () => {
