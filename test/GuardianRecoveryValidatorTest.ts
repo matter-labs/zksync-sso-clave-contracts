@@ -79,12 +79,12 @@ describe("GuardianRecoveryValidator", function () {
     return [wallet, connected];
   };
 
-  describe("proposeValidationKey", () => {
+  describe("proposeGuardian", () => {
     it("can propose a guardian", async function () {
       const [user1, user1ConnectedValidator] = await randomWallet();
       const [guardian] = await randomWallet();
 
-      const tx = await user1ConnectedValidator.proposeValidationKey(hashedOriginDomain, guardian.address);
+      const tx = await user1ConnectedValidator.proposeGuardian(hashedOriginDomain, guardian.address);
       await tx.wait();
 
       const res = await user1ConnectedValidator.guardiansFor(hashedOriginDomain, user1.address);
@@ -93,11 +93,18 @@ describe("GuardianRecoveryValidator", function () {
       expect(res[0].isReady).to.equal(false);
       expect(tx).to.emit(user1ConnectedValidator, "GuardianProposed");
     });
+
+    it("Reverts if attempts to add zero address", async function () {
+      const [user1, user1ConnectedValidator] = await randomWallet();
+
+      await expect(user1ConnectedValidator.proposeGuardian(hashedOriginDomain, ethers.ZeroAddress))
+        .to.be.revertedWithCustomError(user1ConnectedValidator, "InvalidGuardianAddress");
+    });
   });
 
-  describe("addValidationKey", () => {
-    function callAddValidationKey(contract: GuardianRecoveryValidator, hashedOriginDomain: `0x${string}`, account: string): Promise<ethers.ContractTransactionResponse> {
-      return contract.addValidationKey(hashedOriginDomain, account, { gasLimit: "80000000" });
+  describe("addGuardian", () => {
+    function callAddGuardian(contract: GuardianRecoveryValidator, hashedOriginDomain: `0x${string}`, account: string): Promise<ethers.ContractTransactionResponse> {
+      return contract.addGuardian(hashedOriginDomain, account);
     }
 
     it("fails when tries to confirm a guardian that was not proposed.", async function () {
@@ -105,8 +112,16 @@ describe("GuardianRecoveryValidator", function () {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const [_, guardianConnection] = await randomWallet();
 
-      await expect(callAddValidationKey(guardianConnection, hashedOriginDomain, user1.address))
+      await expect(callAddGuardian(guardianConnection, hashedOriginDomain, user1.address))
         .to.reverted;
+    });
+
+    it("fails when tries to confirm a guardian for zero address.", async function () {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const [_, guardianConnection] = await randomWallet();
+
+      await expect(callAddGuardian(guardianConnection, hashedOriginDomain, ethers.ZeroAddress))
+        .to.revertedWithCustomError(guardianConnection, "InvalidAccountToGuardAddress");
     });
 
     it("fails when tries to confirm a was proposed for a different account.", async function () {
@@ -115,10 +130,10 @@ describe("GuardianRecoveryValidator", function () {
       const [user2] = await randomWallet();
       const [guardian, guardianConnection] = await randomWallet();
 
-      const tx1 = await user1Connection.proposeValidationKey(hashedOriginDomain, guardian.address);
+      const tx1 = await user1Connection.proposeGuardian(hashedOriginDomain, guardian.address);
       await tx1.wait();
 
-      await expect(callAddValidationKey(guardianConnection, hashedOriginDomain, user2.address))
+      await expect(callAddGuardian(guardianConnection, hashedOriginDomain, user2.address))
         .to.reverted;
     });
 
@@ -126,9 +141,9 @@ describe("GuardianRecoveryValidator", function () {
       const [user1, user1Connected] = await randomWallet();
       const [guardian, guardianConnected] = await randomWallet();
 
-      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian.address);
+      await user1Connected.proposeGuardian(hashedOriginDomain, guardian.address);
 
-      const tx = await callAddValidationKey(guardianConnected, hashedOriginDomain, user1.address);
+      const tx = await callAddGuardian(guardianConnected, hashedOriginDomain, user1.address);
 
       const res = await user1Connected.guardiansFor(hashedOriginDomain, user1.address);
       expect(res.length).to.equal(1);
@@ -138,7 +153,7 @@ describe("GuardianRecoveryValidator", function () {
     });
   });
 
-  describe("removeValidationKey", () => {
+  describe("removeGuardian", () => {
     let guardian: ethers.Signer;
     let user1: ethers.Signer;
 
@@ -147,12 +162,12 @@ describe("GuardianRecoveryValidator", function () {
       guardian = guardianWallet;
       const [user1Wallet, user1Connected] = await randomWallet();
       user1 = user1Wallet;
-      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian.getAddress());
-      await guardianConnected.addValidationKey(hashedOriginDomain, user1.getAddress());
+      await user1Connected.proposeGuardian(hashedOriginDomain, guardian.getAddress());
+      await guardianConnected.addGuardian(hashedOriginDomain, user1.getAddress());
     });
 
     const sut = async (guardianToRemove: string) => {
-      return guardianValidator.connect(user1).removeValidationKey(hashedOriginDomain, guardianToRemove);
+      return guardianValidator.connect(user1).removeGuardian(hashedOriginDomain, guardianToRemove);
     };
 
     it("fails when tries to remove non existing guardian.", async function () {
@@ -160,6 +175,13 @@ describe("GuardianRecoveryValidator", function () {
 
       await expect(sut(await randomGeneratedWallet.getAddress()))
         .to.be.revertedWithCustomError(guardianValidator, "GuardianNotFound");
+    });
+
+    it("fails when tries to remove zero address guardian.", async function () {
+      const [randomGeneratedWallet] = await randomWallet();
+
+      await expect(sut(ethers.ZeroAddress))
+        .to.be.revertedWithCustomError(guardianValidator, "InvalidGuardianAddress");
     });
 
     it("works to remove existing guardian.", async function () {
@@ -215,10 +237,10 @@ describe("GuardianRecoveryValidator", function () {
       guardian2 = guardian2Wallet;
       const [user1Wallet, user1Connected] = await randomWallet();
       user1 = user1Wallet;
-      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian.getAddress());
-      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian2.getAddress());
-      await guardianConnected.addValidationKey(hashedOriginDomain, user1.getAddress());
-      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian2.getAddress());
+      await user1Connected.proposeGuardian(hashedOriginDomain, guardian.getAddress());
+      await user1Connected.proposeGuardian(hashedOriginDomain, guardian2.getAddress());
+      await guardianConnected.addGuardian(hashedOriginDomain, user1.getAddress());
+      await guardian2Connected.addGuardian(hashedOriginDomain, user1.getAddress());
     });
 
     const sut = async () => {
@@ -241,6 +263,7 @@ describe("GuardianRecoveryValidator", function () {
     describe("And there is a pending recovery", () => {
       cacheBeforeEach(async () => {
         const key = await generatePassKey("0x1234", keyDomain);
+        await helpers.time.increase(3 * 24 * 60 * 60 + 1 * 60 * 60); // Increase by > 72 hours
         await guardianValidator.connect(guardian).initRecovery(
           user1.getAddress(), ethers.keccak256(key.args[0]), key.args[1], hashedOriginDomain,
         );
@@ -257,12 +280,39 @@ describe("GuardianRecoveryValidator", function () {
     });
   });
 
+  describe("validateTransaction", () => {
+    const sut = async (data: ethers.BytesLike) => {
+      return guardianValidator.validateTransaction(ethers.zeroPadBytes("0x", 32), {
+        data,
+        to: ethers.ZeroAddress,
+        value: 0n,
+        txType: 113n,
+        from: ethers.ZeroAddress,
+        reserved: [0n, 0n, 0n, 0n],
+        reservedDynamic: "0x",
+        signature: "0x",
+        gasLimit: 8_000_0000n,
+        gasPerPubdataByteLimit: 50000n,
+        maxFeePerGas: 0n,
+        maxPriorityFeePerGas: 0n,
+        paymaster: 0n,
+        nonce: 0n,
+        factoryDeps: [],
+        paymasterInput: "0x",
+      });
+    };
+
+    it("Should revert when passed non function call data.", async function () {
+      await expect(sut("0x1234")).to.be.revertedWithCustomError(guardianValidator, "NonFunctionCallTransaction");
+    });
+  });
+
   describe("When attached to SsoAccount", () => {
     describe("When initiating new guardian addition operation", () => {
       it("it adds guardian as non ready one.", async function () {
         const [newGuardianWallet] = await randomWallet();
         const functionData = guardianValidator.interface.encodeFunctionData(
-          "proposeValidationKey",
+          "proposeGuardian",
           [hashedOriginDomain, newGuardianWallet.address],
         );
         const txToSign = {
@@ -284,7 +334,7 @@ describe("GuardianRecoveryValidator", function () {
     describe("When approving existing guardian addition operation", () => {
       cacheBeforeEach(async () => {
         const functionData = guardianValidator.interface.encodeFunctionData(
-          "proposeValidationKey",
+          "proposeGuardian",
           [hashedOriginDomain, guardianWallet.address],
         );
         const txToSign = {
@@ -299,7 +349,7 @@ describe("GuardianRecoveryValidator", function () {
       });
       const sut = async () => {
         return guardianValidator.connect(guardianWallet)
-          .addValidationKey(hashedOriginDomain, newGuardianConnectedSsoAccount.address);
+          .addGuardian(hashedOriginDomain, newGuardianConnectedSsoAccount.address);
       };
       it("it makes guardian active one.", async function () {
         await sut();
@@ -312,7 +362,7 @@ describe("GuardianRecoveryValidator", function () {
     describe("When having active guardian", () => {
       cacheBeforeEach(async () => {
         const functionData = guardianValidator.interface.encodeFunctionData(
-          "proposeValidationKey",
+          "proposeGuardian",
           [hashedOriginDomain, guardianWallet.address],
         );
         const txToSign = {
@@ -324,42 +374,58 @@ describe("GuardianRecoveryValidator", function () {
         const txData = await ownerConnectedSsoAccount.signTransaction(txToSign);
         const tx = await provider.broadcastTransaction(txData);
         await tx.wait();
-        await guardianValidator.connect(guardianWallet).addValidationKey(hashedOriginDomain, newGuardianConnectedSsoAccount.address);
+        await guardianValidator.connect(guardianWallet).addGuardian(hashedOriginDomain, newGuardianConnectedSsoAccount.address);
       });
 
       describe("And initiating recovery process", () => {
-        let newKeyArgs: Awaited<ReturnType<typeof generatePassKey>>["args"];
-        let hashDomain: Awaited<ReturnType<typeof generatePassKey>>["hashedOriginDomain"];
+        let newKey: Awaited<ReturnType<typeof generatePassKey>>;
         let refTimestamp: number;
         let accountId: `0x${string}`;
 
         cacheBeforeEach(async () => {
           accountId = `0x${Buffer.from(ethers.toUtf8Bytes(`id-${randomBytes(32).toString()}`)).toString("hex")}`;
-          const key = await generatePassKey(accountId, keyDomain);
-          newKeyArgs = key.args;
-          hashDomain = key.hashedOriginDomain;
+          newKey = await generatePassKey(accountId, keyDomain);
+          await helpers.time.increase(4 * 24 * 60 * 60); // This is to avoid the edge case where block.timestamp is around 0
           refTimestamp = (await provider.getBlock("latest")).timestamp;
         });
-        const sut = async (signer: ethers.Signer = guardianWallet) => {
+        const sut = async (signer: ethers.Signer = guardianWallet, key: Awaited<ReturnType<typeof generatePassKey>> = newKey) => {
           const tx = await guardianValidator.connect(signer).initRecovery(
-            ssoAccountInstance.getAddress(), ethers.keccak256(accountId), newKeyArgs[1], hashDomain,
+            ssoAccountInstance.getAddress(), ethers.keccak256(accountId), key.args[1], key.hashedOriginDomain,
           );
           return tx;
         };
-        it("it creates new recovery process.", async function () {
-          await sut();
-
+        const validatePendingRecovery = async (key: Awaited<ReturnType<typeof generatePassKey>> = newKey, timestamp: number = refTimestamp) => {
           const pendingRecoveryData = (await guardianValidator.getPendingRecoveryData(
-            hashDomain,
+            key.hashedOriginDomain,
             newGuardianConnectedSsoAccount.address,
           ));
-          expect(pendingRecoveryData.rawPublicKey[0]).to.eq(toHex(newKeyArgs[1][0]));
-          expect(pendingRecoveryData.rawPublicKey[1]).to.eq(toHex(newKeyArgs[1][1]));
-          expect(Math.abs(Number(pendingRecoveryData.timestamp) - refTimestamp)).to.lt(10);
+          expect(pendingRecoveryData.rawPublicKey[0]).to.eq(toHex(key.args[1][0]));
+          expect(pendingRecoveryData.rawPublicKey[1]).to.eq(toHex(key.args[1][1]));
+          expect(Math.abs(Number(pendingRecoveryData.timestamp) - timestamp)).to.lt(10);
+        }
+        it("it creates new recovery process.", async function () {
+          await sut();
+          await validatePendingRecovery();
         });
         it("it prohibits non guardian from starting recovery process", async function () {
           await expect(sut(externalUserWallet)).to.be.reverted;
         });
+        it("it reverts due to active recovery process", async () => {
+          await sut();
+          await validatePendingRecovery();
+          await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "AccountRecoveryInProgress");
+          await helpers.time.increase(3 * 24 * 60 * 60 - 1 * 60 * 60); // Increase by < 72 hours
+          await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "AccountRecoveryInProgress");
+        })
+        it("it overwrites expired recovery process", async () => {
+          await sut();
+          await validatePendingRecovery();
+          await helpers.time.increase(3 * 24 * 60 * 60 + 1 * 60 * 60); // Increase by > 72 hours
+          const anotherKey = await generatePassKey(accountId, keyDomain);
+          const anotherTimestamp = (await provider.getBlock("latest")).timestamp;
+          await sut(guardianWallet, anotherKey);
+          await validatePendingRecovery(anotherKey, anotherTimestamp);
+        })
       });
 
       describe("And has active recovery process and trying to execute", () => {
@@ -374,6 +440,7 @@ describe("GuardianRecoveryValidator", function () {
           const hashDomain = key.hashedOriginDomain;
           const hashedAccountId = ethers.keccak256(newKeyArgs[0]);
 
+          await helpers.time.increase(4 * 24 * 60 * 60); // This is to avoid the recovery process being active
           await guardianValidator.connect(guardianWallet)
             .initRecovery(newGuardianConnectedSsoAccount.address, hashedAccountId, newKeyArgs[1], hashDomain);
         });
@@ -404,7 +471,11 @@ describe("GuardianRecoveryValidator", function () {
           });
         });
         describe("and passing correct new key", () => {
-          it("it should clean up pending request.", async function () {
+          it("it should revert due to expired recovery process.", async function () {
+            await helpers.time.increase(4 * 24 * 60 * 60);
+            await expect(sut(newKeyArgs)).to.be.reverted;
+          });
+          it("it should clean up pending request if recovery process is active.", async function () {
             await helpers.time.increase(2 * 24 * 60 * 60);
             await sut(newKeyArgs);
 
