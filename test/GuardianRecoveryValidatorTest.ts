@@ -6,7 +6,7 @@ import { Address, parseEther, toHex } from "viem";
 import { Provider, SmartAccount, utils, Wallet } from "zksync-ethers";
 
 import { GuardianRecoveryValidator, GuardianRecoveryValidator__factory, SsoAccount, SsoAccount__factory, WebAuthValidator } from "../typechain-types";
-import { encodeKeyFromBytes, generateES256R1Key, getRawPublicKeyFromCrpyto } from "./PasskeyModule";
+import { encodeKeyFromBytes, generateES256R1Key, getRawPublicKeyFromCrypto } from "./PasskeyModule";
 import { cacheBeforeEach, ContractFixtures, getProvider } from "./utils";
 
 describe("GuardianRecoveryValidator", function () {
@@ -401,7 +401,7 @@ describe("GuardianRecoveryValidator", function () {
           expect(pendingRecoveryData.rawPublicKey[0]).to.eq(toHex(key.args[1][0]));
           expect(pendingRecoveryData.rawPublicKey[1]).to.eq(toHex(key.args[1][1]));
           expect(Math.abs(Number(pendingRecoveryData.timestamp) - timestamp)).to.lt(10);
-        }
+        };
         it("it creates new recovery process.", async function () {
           await sut();
           await validatePendingRecovery();
@@ -415,7 +415,7 @@ describe("GuardianRecoveryValidator", function () {
           await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "AccountRecoveryInProgress");
           await helpers.time.increase(3 * 24 * 60 * 60 - 1 * 60 * 60); // Increase by < 72 hours
           await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "AccountRecoveryInProgress");
-        })
+        });
         it("it overwrites expired recovery process", async () => {
           await sut();
           await validatePendingRecovery();
@@ -424,7 +424,7 @@ describe("GuardianRecoveryValidator", function () {
           const anotherTimestamp = (await provider.getBlock("latest")).timestamp;
           await sut(guardianWallet, anotherKey);
           await validatePendingRecovery(anotherKey, anotherTimestamp);
-        })
+        });
       });
 
       describe("And has active recovery process and trying to execute", () => {
@@ -517,7 +517,7 @@ describe("GuardianRecoveryValidator", function () {
 export async function generatePassKey(accountId: `0x${string}`, keyDomain: string) {
   const hashedOriginDomain = keccak256(toHex(keyDomain)) as `0x${string}`;
   const generatedR1Key = await generateES256R1Key();
-  const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
+  const [generatedX, generatedY] = await getRawPublicKeyFromCrypto(generatedR1Key);
   const generatedKey = encodeKeyFromBytes(accountId, [generatedX, generatedY], keyDomain);
   return {
     generatedKey,
