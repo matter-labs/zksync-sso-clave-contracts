@@ -267,7 +267,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     accountData[targetAccount].pendingPasskeyHash = data.pendingPasskeyHash;
     accountData[targetAccount].recoverNonce += 1;
     accountData[targetAccount].readyToRecover = true;
-    
+
     emit RecoveryStarted(msg.sender, targetAccount, data.pendingPasskeyHash);
   }
 
