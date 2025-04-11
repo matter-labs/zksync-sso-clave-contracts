@@ -22,6 +22,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice The number of public inputs for the zk proof.
   uint256 constant PUB_SIGNALS_LENGTH = 20;
 
+  /// @dev Size of a byte in bits. Used for byte shifting operations across the contract.
+  uint256 private constant BITS_IN_A_BYTE = 8;
+
   /// @notice Emitted when an SSO account updates their associated OIDC account.
   /// @param account The address of the SSO account that updated their OIDC data.
   /// @param oidcDigest Digest generated from data that identifies the user. Calculated as: PoseidonHash(sub || aud || iss || salt).
@@ -228,7 +231,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     // Lastly the sender hash split into two 31-byte chunks (fields)
     // Reverse ensures correct little-endian representation
-    publicInputs[index] = _reverse(uint256(senderHash) >> 8) >> 8;
+    publicInputs[index] = _reverse(uint256(senderHash) >> BITS_IN_A_BYTE) >> BITS_IN_A_BYTE;
     ++index;
     publicInputs[index] = (uint256(senderHash) << 248) >> 248;
 
@@ -332,8 +335,8 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     uint256 mask = 0xff;
 
     for (uint256 i = 0; i < 32; ++i) {
-      uint256 oneByte = (shifted & mask) << ((32 - i - 1) * 8);
-      shifted = shifted >> 8;
+      uint256 oneByte = (shifted & mask) << ((32 - i - 1) * BITS_IN_A_BYTE);
+      shifted = shifted >> BITS_IN_A_BYTE;
       res = res + oneByte;
     }
 
