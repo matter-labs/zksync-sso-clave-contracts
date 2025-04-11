@@ -24,6 +24,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
   /// @dev Size of a byte in bits. Used for byte shifting operations across the contract.
   uint256 private constant BITS_IN_A_BYTE = 8;
+  uint256 private constant BITS_IN_A_WORD = 256;
 
   /// @notice Emitted when an SSO account updates their associated OIDC account.
   /// @param account The address of the SSO account that updated their OIDC data.
@@ -233,7 +234,10 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     // Reverse ensures correct little-endian representation
     publicInputs[index] = _reverse(uint256(senderHash) >> BITS_IN_A_BYTE) >> BITS_IN_A_BYTE;
     ++index;
-    publicInputs[index] = (uint256(senderHash) << 248) >> 248;
+
+    // Here we shift left and right to discard
+    uint256 bitsToShift = BITS_IN_A_WORD - BITS_IN_A_BYTE;
+    publicInputs[index] = (uint256(senderHash) << bitsToShift) >> bitsToShift;
 
     if (!verifierContract.verifyProof(data.zkProof.pA, data.zkProof.pB, data.zkProof.pC, publicInputs)) {
       revert ZkProofVerificationFailed();
