@@ -10,11 +10,11 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 /// @dev This contract is used to store OIDC keys for the OIDC recovery validator.
 contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   /// @dev The maximum number of keys that can be added to the registry.
-  uint8 public constant MAX_KEYS = 8;
+  uint256 public constant MAX_KEYS = 8;
 
   /// @dev The number of 128-bit chunks needed to represent RSA public key modulus in the ZK circuit.
   /// @dev This matches the Circom circuit's bigint configuration for RSA verification.
-  uint8 public constant CIRCOM_BIGINT_CHUNKS = 17;
+  uint256 public constant CIRCOM_BIGINT_CHUNKS = 17;
 
   /// @notice The structure representing an OIDC key.
   /// @param issHash The issuer hash.
@@ -56,21 +56,21 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
 
   /// @notice Thrown when the key ID is zero, which is not allowed.
   /// @param index The index of the key in the batch being validated.
-  error KeyIdCannotBeZero(uint8 index);
+  error KeyIdCannotBeZero(uint256 index);
 
   /// @notice Thrown when the exponent is zero, which is not allowed.
   /// @param index The index of the key in the batch being validated.
-  error ExponentCannotBeZero(uint8 index);
+  error ExponentCannotBeZero(uint256 index);
 
   /// @notice Thrown when the modulus is zero, which is not allowed.
   /// @param index The index of the key in the batch being validated.
-  error ModulusCannotBeZero(uint8 index);
+  error ModulusCannotBeZero(uint256 index);
 
   /// @notice Thrown when a modulus chunk exceeds the maximum allowed size of 121 bits.
   /// @param index The index of the key in the batch being validated.
   /// @param chunkIndex The index of the chunk that exceeded the limit.
   /// @param chunkValue The value of the chunk that exceeded the limit.
-  error ModulusChunkTooLarge(uint8 index, uint256 chunkIndex, uint256 chunkValue);
+  error ModulusChunkTooLarge(uint256 index, uint256 chunkIndex, uint256 chunkValue);
 
   /// @notice The mapping of issuer hash to keys.
   /// @dev Each issuer has an array of length MAX_KEYS, which is a circular buffer.
@@ -78,7 +78,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
 
   /// @notice The index of the last key added per issuer.
   /// @dev This is used to determine the next index to add a key to in the circular buffer.
-  mapping(bytes32 issHash => uint8 keyIndex) public keyIndexes;
+  mapping(bytes32 issHash => uint256 keyIndex) public keyIndexes;
 
   constructor() {
     _disableInitializers();
@@ -114,7 +114,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   /// @param kid The key ID.
   /// @return key The key.
   function getKey(bytes32 issHash, bytes32 kid) external view returns (Key memory) {
-    for (uint8 i = 0; i < MAX_KEYS; ++i) {
+    for (uint256 i = 0; i < MAX_KEYS; ++i) {
       if (OIDCKeys[issHash][i].kid == kid) {
         return OIDCKeys[issHash][i];
       }
@@ -142,10 +142,10 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   /// @param newKeys The keys to add.
   function _addKeys(Key[] memory newKeys) private {
     _validateKeyBatch(newKeys);
-    for (uint8 i = 0; i < newKeys.length; ++i) {
+    for (uint256 i = 0; i < newKeys.length; ++i) {
       bytes32 issHash = newKeys[i].issHash;
-      uint8 keyIndex = keyIndexes[issHash];
-      uint8 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
+      uint256 keyIndex = keyIndexes[issHash];
+      uint256 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
       OIDCKeys[issHash][nextIndex] = newKeys[i];
       keyIndexes[issHash] = nextIndex;
       emit KeyAdded(issHash, newKeys[i].kid, newKeys[i].n);
@@ -157,12 +157,12 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   /// @param issHash The issuer hash.
   function _compactKeys(bytes32 issHash) private {
     Key[MAX_KEYS] memory keys;
-    uint8 keyCount = 0;
-    uint8 currentIndex = keyIndexes[issHash];
+    uint256 keyCount = 0;
+    uint256 currentIndex = keyIndexes[issHash];
 
     // Collect non-empty keys in order
-    for (uint8 i = 0; i < MAX_KEYS; ++i) {
-      uint8 circularIndex = (currentIndex + i) % MAX_KEYS;
+    for (uint256 i = 0; i < MAX_KEYS; ++i) {
+      uint256 circularIndex = (currentIndex + i) % MAX_KEYS;
       if (OIDCKeys[issHash][circularIndex].kid != 0) {
         keys[keyCount] = OIDCKeys[issHash][circularIndex];
         keyCount++;
@@ -170,12 +170,12 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     }
 
     // Reassign the collected keys in order back to storage
-    for (uint8 i = 0; i < keyCount; ++i) {
+    for (uint256 i = 0; i < keyCount; ++i) {
       OIDCKeys[issHash][i] = keys[i];
     }
 
     // Delete remaining keys that are no longer needed
-    for (uint8 i = keyCount; i < MAX_KEYS; ++i) {
+    for (uint256 i = keyCount; i < MAX_KEYS; ++i) {
       delete OIDCKeys[issHash][i];
     }
 
@@ -187,7 +187,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   /// @param issHash The issuer hash.
   /// @param kid The key ID.
   function _deleteKey(bytes32 issHash, bytes32 kid) private {
-    for (uint8 i = 0; i < MAX_KEYS; ++i) {
+    for (uint256 i = 0; i < MAX_KEYS; ++i) {
       if (OIDCKeys[issHash][i].kid == kid) {
         delete OIDCKeys[issHash][i];
         return;
@@ -212,7 +212,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       return;
     }
     bytes32 issHash = newKeys[0].issHash;
-    for (uint8 i = 0; i < newKeys.length; ++i) {
+    for (uint256 i = 0; i < newKeys.length; ++i) {
       if (newKeys[i].issHash != issHash) {
         revert IssuerHashMismatch(issHash, newKeys[i].issHash);
       }
@@ -248,11 +248,11 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   /// @dev It validates that the modulus chunks are not bigger than 121 bits.
   /// @param modulus The modulus to validate.
   /// @param index The index of the key in the batch being validated.
-  function _validateModulus(uint256[CIRCOM_BIGINT_CHUNKS] memory modulus, uint8 index) private pure {
+  function _validateModulus(uint256[CIRCOM_BIGINT_CHUNKS] memory modulus, uint256 index) private pure {
     uint256 limit = (1 << 121) - 1;
     bool hasNonZero = false;
 
-    for (uint8 i = 0; i < CIRCOM_BIGINT_CHUNKS; ++i) {
+    for (uint256 i = 0; i < CIRCOM_BIGINT_CHUNKS; ++i) {
       if (modulus[i] > limit) {
         revert ModulusChunkTooLarge(index, i, modulus[i]);
       }
