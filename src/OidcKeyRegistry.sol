@@ -12,9 +12,16 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   /// @dev The maximum number of keys that can be added to the registry.
   uint256 public constant MAX_KEYS = 8;
 
-  /// @dev The number of 128-bit chunks needed to represent RSA public key modulus in the ZK circuit.
+  /// @dev The number of chunks needed to represent RSA public key modulus in the ZK circuit.
   /// @dev This matches the Circom circuit's bigint configuration for RSA verification.
   uint256 public constant CIRCOM_BIGINT_CHUNKS = 17;
+
+  /// @dev The size in bits of each chunk needed to represent RSA public key modulus in the ZK circuit.
+  /// @dev This matches the Circom circuit's bigint configuration for RSA verification.
+  uint256 public constant CIRCOM_BIGINT_CHUNK_SIZE = 121;
+
+  /// @dev Max value that an rsa chunk can take. Used to validate new keys.
+  uint256 private constant VALIDATE_MODULUS_LIMIT = (1 << CIRCOM_BIGINT_CHUNK_SIZE) - 1;
 
   /// @notice The structure representing an OIDC key.
   /// @param issHash The issuer hash.
@@ -253,7 +260,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     bool hasNonZero = false;
 
     for (uint256 i = 0; i < CIRCOM_BIGINT_CHUNKS; ++i) {
-      if (modulus[i] > limit) {
+      if (modulus[i] > VALIDATE_MODULUS_LIMIT) {
         revert ModulusChunkTooLarge(index, i, modulus[i]);
       }
       if (modulus[i] != 0) {
