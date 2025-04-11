@@ -83,9 +83,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
   /// @notice The data for a zk proof. pB is expected to be already in the order needed for the verifier.
   struct ZkProof {
-    uint[2] pA;
-    uint[2][2] pB;
-    uint[2] pC;
+    uint256[2] pA;
+    uint256[2][2] pB;
+    uint256[2] pC;
   }
 
   /// @notice The data for starting a recovery process.
@@ -214,16 +214,16 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     // Fill public inputs
     uint256 index = 0;
-    uint[PUB_SIGNALS_LENGTH] memory publicInputs;
+    uint256[PUB_SIGNALS_LENGTH] memory publicInputs;
 
     // First CIRCOM_BIGINT_CHUNKS elements are the oidc provider public key.
     for (uint256 i = 0; i < key.n.length; ++i) {
-      publicInputs[index] = uint(key.n[i]);
+      publicInputs[index] = uint256(key.n[i]);
       ++index;
     }
 
     // Then the digest
-    publicInputs[index] = uint(oidcData.oidcDigest);
+    publicInputs[index] = uint256(oidcData.oidcDigest);
     ++index;
 
     // Lastly the sender hash split into two 31-byte chunks (fields)
@@ -331,7 +331,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     uint256 shifted = input;
     uint256 mask = 0xff;
 
-    for (uint i = 0; i < 32; ++i) {
+    for (uint256 i = 0; i < 32; ++i) {
       uint256 oneByte = (shifted & mask) << ((32 - i - 1) * 8);
       shifted = shifted >> 8;
       res = res + oneByte;
