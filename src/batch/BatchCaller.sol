@@ -81,6 +81,7 @@ abstract contract BatchCaller is SelfAuth {
     assembly {
       let size := returndatasize()
       data := mload(0x40)
+      mstore(0x40, add(data, add(size, 0x20)))
       mstore(data, size)
       returndatacopy(add(data, 0x20), 0, size)
     }
