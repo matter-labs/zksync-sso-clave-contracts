@@ -95,7 +95,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     require(oidcDigest != bytes32(0), "oidcDigest cannot be empty");
     require(bytes(iss).length > 0, "oidcDigest cannot be empty");
 
-    bool isNew = uint256(accountData[msg.sender].oidcDigest) == 0;
+    bool isNew = accountData[msg.sender].oidcDigest == bytes32(0);
 
     if (!isNew) {
       bytes32 old = accountData[msg.sender].oidcDigest;
