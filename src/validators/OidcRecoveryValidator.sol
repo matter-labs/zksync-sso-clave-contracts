@@ -95,7 +95,13 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     if (oidcDigest == bytes32(0)) revert EmptyOidcDigest();
     if (bytes(iss).length == 0) revert EmptyOidcIssuer();
 
-    bool isNew = accountData[msg.sender].oidcDigest.length == 0;
+    bool isNew = uint256(accountData[msg.sender].oidcDigest) == 0;
+
+    if (!isNew) {
+      bytes32 old = accountData[msg.sender].oidcDigest;
+      delete digestIndex[old];
+    }
+
     if (digestIndex[oidcDigest] != address(0)) {
       revert OidcDigestAlreadyRegisteredInAnotherAccount(digestIndex[oidcDigest]);
     }
