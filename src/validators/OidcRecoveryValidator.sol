@@ -248,24 +248,33 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   }
 
   /// @notice Reverses the byte order of a given uint256.
+  /// @dev Algorithm taken from https://graphics.stanford.edu/%7Eseander/bithacks.html#ReverseParallel
   /// @param input The uint256 to reverse.
-  /// @return uint256 The reversed version of the input.
-  function _reverse(uint256 input) private pure returns (uint256) {
-    uint256 res = 0;
-    // this number will be consumed byte by byte
-    uint256 shifted = input;
+  /// @return v The reversed uint256.
+  function _reverse(uint256 input) internal pure returns (uint256 v) {
+    v = input;
 
-    for (uint256 i = 0; i < BYTES_IN_A_WORD; ++i) {
-      // Take last byte
-      uint256 oneByte = (shifted & LAST_BYTE_MASK);
-      // Move byte to next empty position
-      oneByte = oneByte << ((BYTES_IN_A_WORD - i - 1) * BITS_IN_A_BYTE);
-      // Accumulate result
-      res = res + oneByte;
-      // Advance to next byte;
-      shifted = shifted >> BITS_IN_A_BYTE;
-    }
+    // swap bytes
+    v =
+      ((v & 0xFF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00) >> 8) |
+      ((v & 0x00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF) << 8);
 
-    return res;
+    // swap 2-byte long pairs
+    v =
+      ((v & 0xFFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000) >> 16) |
+      ((v & 0x0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF) << 16);
+
+    // swap 4-byte long pairs
+    v =
+      ((v & 0xFFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000) >> 32) |
+      ((v & 0x00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF) << 32);
+
+    // swap 8-byte long pairs
+    v =
+      ((v & 0xFFFFFFFFFFFFFFFF0000000000000000FFFFFFFFFFFFFFFF0000000000000000) >> 64) |
+      ((v & 0x0000000000000000FFFFFFFFFFFFFFFF0000000000000000FFFFFFFFFFFFFFFF) << 64);
+
+    // swap 16-byte long pairs
+    v = (v >> 128) | (v << 128);
   }
 }
