@@ -83,8 +83,8 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   /// @dev Each issuer has an array of length MAX_KEYS, which is a circular buffer.
   mapping(bytes32 issHash => Key[MAX_KEYS] keys) public OIDCKeys;
 
-  /// @notice The index of the last key added per issuer.
-  /// @dev This is used to determine the next index to add a key to in the circular buffer.
+  /// @notice The index where the next key is going to be added.
+  /// @dev Because keys are stored in a circular buffer this information needs to be stored.
   mapping(bytes32 issHash => uint256 keyIndex) public keyIndexes;
 
   constructor() {
@@ -152,8 +152,8 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     for (uint256 i = 0; i < newKeys.length; ++i) {
       bytes32 issHash = newKeys[i].issHash;
       uint256 keyIndex = keyIndexes[issHash];
+      OIDCKeys[issHash][keyIndex] = newKeys[i];
       uint256 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
-      OIDCKeys[issHash][nextIndex] = newKeys[i];
       keyIndexes[issHash] = nextIndex;
       emit KeyAdded(issHash, newKeys[i].kid, newKeys[i].n);
     }
@@ -168,6 +168,8 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     uint256 currentIndex = keyIndexes[issHash];
 
     // Collect non-empty keys in order
+    // At the end of this loop `keyCount` it's in the currentIndex
+    // for the next key.
     for (uint256 i = 0; i < MAX_KEYS; ++i) {
       uint256 circularIndex = (currentIndex + i) % MAX_KEYS;
       if (OIDCKeys[issHash][circularIndex].kid != 0) {
@@ -186,8 +188,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       delete OIDCKeys[issHash][i];
     }
 
-    // Adding MAX_KEYS to avoid underflow
-    keyIndexes[issHash] = (keyCount + MAX_KEYS - 1) % MAX_KEYS;
+    keyIndexes[issHash] = keyCount % MAX_KEYS;
   }
 
   /// @notice Deletes a key from the registry.
