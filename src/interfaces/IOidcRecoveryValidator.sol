@@ -53,6 +53,7 @@ interface IOidcRecoveryValidator is IModuleValidator {
     string iss;
     bool readyToRecover;
     bytes32 pendingPasskeyHash;
+    uint256 recoveryStartedAt;
     uint256 recoverNonce;
     uint256 addedOn;
   }

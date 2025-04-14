@@ -15,6 +15,7 @@ import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { IOidcRecoveryValidator } from "../interfaces/IOidcRecoveryValidator.sol";
 import { IOidcKeyRegistry } from "../interfaces/IOidcKeyRegistry.sol";
 import { IZkVerifier } from "../interfaces/IZkVerifier.sol";
+import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 
 /// @title OidcRecoveryValidator
 /// @author Matter Labs
@@ -28,6 +29,8 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   uint256 private constant BITS_IN_A_BYTE = 8;
   uint256 private constant BYTES_IN_A_WORD = 32;
   uint256 private constant LAST_BYTE_MASK = uint256(0xff);
+
+  uint256 private constant RECOVERY_VALIDITY_TIME = 10 * 60; // 10 minutes
 
   /// @notice The mapping of account addresses to their OIDC data.
   mapping(address account => OidcData oidcData) accountData;
@@ -159,6 +162,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     }
 
     accountData[targetAccount].pendingPasskeyHash = data.pendingPasskeyHash;
+    accountData[targetAccount].recoveryStartedAt = block.timestamp;
     accountData[targetAccount].recoverNonce += 1;
     accountData[targetAccount].readyToRecover = true;
   }
@@ -200,8 +204,14 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
       return false;
     }
 
+    TimestampAsserterLocator.locate().assertTimestampInRange(
+      oidcData.recoveryStartedAt,
+      oidcData.recoveryStartedAt + RECOVERY_VALIDITY_TIME
+    );
+
     // Reset pending passkey hash
     accountData[msg.sender].pendingPasskeyHash = bytes32(0);
+    accountData[msg.sender].recoveryStartedAt = 0;
     accountData[msg.sender].readyToRecover = false;
     return true;
   }
