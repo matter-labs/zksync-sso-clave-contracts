@@ -138,26 +138,21 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce, data.timeLimit));
 
     // Fill public inputs
-    uint256 index = 0;
     uint256[PUB_SIGNALS_LENGTH] memory publicInputs;
 
     // First CIRCOM_BIGINT_CHUNKS elements are the oidc provider public key.
     for (uint256 i = 0; i < key.n.length; ++i) {
-      publicInputs[index] = uint256(key.n[i]);
-      ++index;
+      publicInputs[i] = key.n[i];
     }
+    uint256 pubSignalsIndex = key.n.length;
 
     // Then the digest
-    publicInputs[index] = uint256(oidcData.oidcDigest);
-    ++index;
+    publicInputs[pubSignalsIndex] = uint256(oidcData.oidcDigest);
 
     // Lastly the sender hash split into two 31-byte chunks (fields)
     // Reverse ensures correct little-endian representation
-    publicInputs[index] = _reverse(uint256(senderHash) >> BITS_IN_A_BYTE) >> BITS_IN_A_BYTE;
-    ++index;
-
-    // Here we shift left and right to discard
-    publicInputs[index] = uint256(senderHash) & LAST_BYTE_MASK;
+    publicInputs[pubSignalsIndex + 1] = _reverse(uint256(senderHash) >> BITS_IN_A_BYTE) >> BITS_IN_A_BYTE;
+    publicInputs[pubSignalsIndex + 2] = uint256(senderHash) & LAST_BYTE_MASK;
 
     if (!verifier.verifyProof(data.zkProof.pA, data.zkProof.pB, data.zkProof.pC, publicInputs)) {
       revert ZkProofVerificationFailed();
