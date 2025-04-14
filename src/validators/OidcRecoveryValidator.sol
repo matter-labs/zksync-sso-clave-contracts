@@ -108,6 +108,9 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
 
     accountData[msg.sender].oidcDigest = oidcDigest;
     accountData[msg.sender].iss = iss;
+    accountData[msg.sender].readyToRecover = false;
+    accountData[msg.sender].pendingPasskeyHash = bytes32(0);
+    accountData[msg.sender].recoveryStartedAt = 0;
     accountData[msg.sender].addedOn = block.timestamp;
     digestIndex[oidcDigest] = msg.sender;
 
