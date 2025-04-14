@@ -94,7 +94,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
 
     bool isNew = accountData[msg.sender].oidcDigest.length == 0;
     if (digestIndex[oidcDigest] != address(0)) {
-      revert OidcDigestAlreadyRegisteredInAnotherAccount(oidcDigest);
+      revert OidcDigestAlreadyRegisteredInAnotherAccount(digestIndex[oidcDigest]);
     }
 
     accountData[msg.sender].oidcDigest = oidcDigest;
