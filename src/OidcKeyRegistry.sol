@@ -26,11 +26,11 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, OwnableUpgradeable 
 
   /// @notice The mapping of issuer hash to keys.
   /// @dev Each issuer has an array of length MAX_KEYS, which is a circular buffer.
-  mapping(bytes32 issHash => Key[MAX_KEYS] keys) public OIDCKeys;
+  mapping(bytes32 issHash => Key[MAX_KEYS] keys) internal OIDCKeys;
 
   /// @notice The index where the next key is going to be added.
   /// @dev Because keys are stored in a circular buffer this information needs to be stored.
-  mapping(bytes32 issHash => uint256 keyIndex) public keyIndexes;
+  mapping(bytes32 issHash => uint256 keyIndex) internal keyIndexes;
 
   constructor() {
     _disableInitializers();
