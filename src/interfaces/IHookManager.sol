@@ -20,6 +20,8 @@ interface IHookManager {
 
   /**
    * @notice Add a hook to the list of hooks and call its init function
+   * @notice BEWARE: These global hooks can easily lock an account if a single hook always fails,
+   * @notice  or if there are too many hooks to execute within the gas limit. USE WITH EXTREME CAUTION!
    * @dev Can only be called by self
    * @param hook - Address of the hook
    * @param isValidation bool          - True if the hook is a validation hook, false otherwise

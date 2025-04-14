@@ -24,10 +24,10 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
   bytes4 constant SESSION_CREATE_SELECTOR = SessionKeyValidator.createSession.selector;
   bytes4 constant SESSION_REVOKE_KEY_SELECTOR = SessionKeyValidator.revokeKey.selector;
   bytes4 constant SESSION_REVOKE_KEYS_SELECTOR = SessionKeyValidator.revokeKeys.selector;
-  bytes4 constant GUARDIAN_RECOVERY_ADD_KEY_SELECTOR = GuardianRecoveryValidator.addValidationKey.selector;
-  bytes4 constant GUARDIAN_RECOVERY_PROPOSE_KEY_SELECTOR = GuardianRecoveryValidator.proposeValidationKey.selector;
+  bytes4 constant GUARDIAN_RECOVERY_ADD_GUARDIAN_SELECTOR = GuardianRecoveryValidator.addGuardian.selector;
+  bytes4 constant GUARDIAN_RECOVERY_PROPOSE_GUARDIAN_SELECTOR = GuardianRecoveryValidator.proposeGuardian.selector;
   bytes4 constant GUARDIAN_RECOVERY_DISCARD_RECOVERY_SELECTOR = GuardianRecoveryValidator.discardRecovery.selector;
-  bytes4 constant GUARDIAN_RECOVERY_REMOVE_KEY_SELECTOR = GuardianRecoveryValidator.removeValidationKey.selector;
+  bytes4 constant GUARDIAN_RECOVERY_REMOVE_GUARDIAN_SELECTOR = GuardianRecoveryValidator.removeGuardian.selector;
   bytes4 constant GUARDIAN_RECOVERY_INIT_RECOVERY_SELECTOR = GuardianRecoveryValidator.initRecovery.selector;
   bytes4 constant WEB_AUTH_VALIDATOR_REMOVE_KEY_SELECTOR = WebAuthValidator.removeValidationKey.selector;
   bytes4 constant WEB_AUTH_VALIDATOR_ADD_KEY_SELECTOR = WebAuthValidator.addValidationKey.selector;
@@ -86,10 +86,10 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
 
     if (to == ACCOUNT_RECOVERY_VALIDATOR_CONTRACT_ADDRESS) {
       require(
-        methodSelector == GUARDIAN_RECOVERY_ADD_KEY_SELECTOR ||
-          methodSelector == GUARDIAN_RECOVERY_PROPOSE_KEY_SELECTOR ||
+        methodSelector == GUARDIAN_RECOVERY_ADD_GUARDIAN_SELECTOR ||
+          methodSelector == GUARDIAN_RECOVERY_PROPOSE_GUARDIAN_SELECTOR ||
           methodSelector == GUARDIAN_RECOVERY_DISCARD_RECOVERY_SELECTOR ||
-          methodSelector == GUARDIAN_RECOVERY_REMOVE_KEY_SELECTOR ||
+          methodSelector == GUARDIAN_RECOVERY_REMOVE_GUARDIAN_SELECTOR ||
           methodSelector == GUARDIAN_RECOVERY_INIT_RECOVERY_SELECTOR,
         "Unsupported method"
       );
