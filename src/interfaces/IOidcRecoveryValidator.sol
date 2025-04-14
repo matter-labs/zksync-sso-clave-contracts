@@ -31,8 +31,8 @@ interface IOidcRecoveryValidator is IModuleValidator {
   event RecoveryStarted(address indexed initiator, address indexed targetAccount, bytes32 pendingPasskeyHash);
 
   /// @notice Thrown when trying to add an OIDC account with an OIDC digest that is already registered in another account.
-  /// @param digest The OIDC digest.
-  error OidcDigestAlreadyRegisteredInAnotherAccount(bytes32 digest);
+  /// @param currentAccount The address that is currently associated with that oidc account.
+  error OidcDigestAlreadyRegisteredInAnotherAccount(address currentAccount);
 
   /// @notice Thrown when there is no OIDC data for a given address.
   /// @param account The address.
