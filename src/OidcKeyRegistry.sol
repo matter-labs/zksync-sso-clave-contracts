@@ -2,14 +2,14 @@
 pragma solidity ^0.8.24;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { IOidcKeyRegistry } from "./interfaces/IOidcKeyRegistry.sol";
 
 /// @title OidcKeyRegistry
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract is used to store OIDC keys for the OIDC recovery validator.
-contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, OwnableUpgradeable {
+contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgradeable {
   /// @dev The maximum number of keys that can be added to the registry.
   uint256 public constant MAX_KEYS = 8;
 
