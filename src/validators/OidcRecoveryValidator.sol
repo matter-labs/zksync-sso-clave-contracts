@@ -23,7 +23,10 @@ import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.so
 /// @dev This contract allows secure account recovery for an SSO account using OIDC (Open Id Connect) protocol.
 contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   /// @notice The number of public inputs for the zk proof.
-  uint256 private constant PUB_SIGNALS_LENGTH = 20;
+  uint256 public constant PUB_SIGNALS_LENGTH = 20;
+
+  /// @notice Max length for iss (defined in circuit)
+  uint256 public constant MAX_ISS_LENGTH = 31;
 
   /// @dev Size of a byte in bits. Used for byte shifting operations across the contract.
   uint256 private constant BITS_IN_A_BYTE = 8;
@@ -94,7 +97,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   function addOidcAccount(bytes32 oidcDigest, string memory iss) public returns (bool) {
     if (oidcDigest == bytes32(0)) revert EmptyOidcDigest();
     if (bytes(iss).length == 0) revert EmptyOidcIssuer();
-    if (bytes(iss).length > 31) revert OidcIssuerTooLong();
+    if (bytes(iss).length > MAX_ISS_LENGTH) revert OidcIssuerTooLong();
 
     bool isNew = accountData[msg.sender].oidcDigest == bytes32(0);
 
