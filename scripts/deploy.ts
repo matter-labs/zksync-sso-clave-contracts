@@ -113,7 +113,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const accountPaymaster = await deploy(PAYMASTER_NAME, deployer, false, [accountFactory, session, recovery, passkey]);
       await fundPaymaster(deployer, accountPaymaster, cmd.fund);
       if (cmd.file) {
-        writeFileSync(cmd.file, JSON.stringify({ session, passkey, accountFactory, accountPaymaster }));
+        writeFileSync(cmd.file, JSON.stringify({ session, passkey, accountFactory, accountPaymaster, recovery }));
       }
     } else {
       const args = getArgs(cmd);
