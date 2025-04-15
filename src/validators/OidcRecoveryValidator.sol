@@ -20,7 +20,7 @@ import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 /// @dev This contract allows secure account recovery for an SSO account using OIDC (Open Id Connect) protocol.
 contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializable {
   /// @notice The number of public inputs for the zk proof.
-  uint256 constant PUB_SIGNALS_LENGTH = 20;
+  uint256 private constant PUB_SIGNALS_LENGTH = 20;
 
   /// @dev Size of a byte in bits. Used for byte shifting operations across the contract.
   uint256 private constant BITS_IN_A_BYTE = 8;
@@ -128,10 +128,10 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   }
 
   /// @notice The mapping of account addresses to their OIDC data.
-  mapping(address account => OidcData oidcData) accountData;
+  mapping(address account => OidcData oidcData) internal accountData;
 
   /// @notice The mapping of OIDC digests to their corresponding account addresses, used to retrieve the user's address during the recovery process.
-  mapping(bytes32 oidcDigest => address account) digestIndex;
+  mapping(bytes32 oidcDigest => address account) internal digestIndex;
 
   /// @notice The address of the OIDC key registry.
   address public keyRegistry;
