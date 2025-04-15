@@ -94,6 +94,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   function addOidcAccount(bytes32 oidcDigest, string memory iss) public returns (bool) {
     if (oidcDigest == bytes32(0)) revert EmptyOidcDigest();
     if (bytes(iss).length == 0) revert EmptyOidcIssuer();
+    if (bytes(iss).length > 31) revert OidcIssuerTooLong();
 
     bool isNew = accountData[msg.sender].oidcDigest == bytes32(0);
 
