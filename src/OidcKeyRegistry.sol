@@ -96,11 +96,20 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, OwnableUpgradeable 
     _validateKeyBatch(newKeys);
     for (uint256 i = 0; i < newKeys.length; ++i) {
       bytes32 issHash = newKeys[i].issHash;
+      _ensureUniqueKid(newKeys[i].kid, issHash);
       uint256 keyIndex = keyIndexes[issHash];
       OIDCKeys[issHash][keyIndex] = newKeys[i];
       uint256 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
       keyIndexes[issHash] = nextIndex;
       emit KeyAdded(issHash, newKeys[i].kid, newKeys[i].n);
+    }
+  }
+
+  function _ensureUniqueKid(bytes32 kid, bytes32 issHash) internal {
+    for (uint256 i = 0; i < MAX_KEYS; i++) {
+      if (OIDCKeys[issHash][i].kid == kid) {
+        revert KidAlreadyRegistered(kid, issHash);
+      }
     }
   }
 

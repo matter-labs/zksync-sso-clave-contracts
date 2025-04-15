@@ -11,6 +11,7 @@ describe("OidcKeyRegistry", function () {
   let oidcKeyRegistry: OidcKeyRegistry;
   const JWK_MODULUS_64 = "y8TPCPz2Fp0OhBxsxu6d_7erT9f9XJ7mx7ZJPkkeZRxhdnKtg327D4IGYsC4fLAfpkC8qN58sZGkwRTNs-i7yaoD5_8nupq1tPYvnt38ddVghG9vws-2MvxfPQ9m2uxBEdRHmels8prEYGCH6oFKcuWVsNOt4l_OPoJRl4uiuiwd6trZik2GqDD_M6bn21_w6AD_jmbzN4mh8Od4vkA1Z9lKb3Qesksxdog-LWHsljN8ieiz1NhbG7M-GsIlzu-typJfud3tSJ1QHb-E_dEfoZ1iYK7pMcojb5ylMkaCj5QySRdJESq9ngqVRDjF4nX8DK5RQUS7AkrpHiwqyW0Csw";
   const JWK_MODULUS = base64ToCircomBigInt(JWK_MODULUS_64);
+  const JWK_MODULUS2 = base64ToCircomBigInt("up_Ts3ztawVy5mKB9fFwdj_AtqtYWWLh_feqL-PGY7aMF0DXpw0su6g90nvp-ODLSbc4OJac7iNYcJ2Fk_25nWqDLAC_LiRClSkfQXMTPQPl3jFs8jaDHxLjM_jOXacTxnWxFFFfUTBvz5p5GrmH504nfNAmNTvrUEJFlYHOG8TF3TbgD4h7MzZDjGCYvfcO47BVMLBPflX4fSYD6QHaYlrdwXUyMwjwaoVHxFaK4_T_MScjPEER3JrS26Dd9kzmzMRX0Dy49HHCtX7NYedHSDf51uRmVSNXefJYp1_RbPwi7U40dY57ufuqxXcihTmmZvKUHpfxHJRBXktgkD2RFQ");
 
   this.beforeEach(async () => {
     fixtures = new ContractFixtures();
@@ -293,6 +294,55 @@ describe("OidcKeyRegistry", function () {
     await expect(oidcKeyRegistry.addKey(key))
       .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyIdCannotBeZero")
       .withArgs(0);
+  });
+
+  it("reverts when adding a repeated kid", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+
+    const key = {
+      issHash,
+      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      n: JWK_MODULUS,
+      e: "0x010001",
+    };
+    await oidcKeyRegistry.addKey(key);
+
+    const key2 = {
+      issHash,
+      kid: key.kid,
+      n: JWK_MODULUS,
+      e: "0x010001",
+    };
+
+    await expect(oidcKeyRegistry.addKey(key2)).to.revertedWithCustomError(
+      oidcKeyRegistry,
+      "KidAlreadyRegistered",
+    ).withArgs(key2.kid, key2.issHash);
+  });
+
+  it("reverts when adding a repeated kid in the same tx", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+
+    const kid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+    const key1 = {
+      issHash,
+      kid,
+      n: JWK_MODULUS,
+      e: "0x010001",
+    };
+    const key2 = {
+      issHash,
+      kid,
+      n: JWK_MODULUS2,
+      e: "0x010001",
+    };
+
+    await expect(oidcKeyRegistry.addKeys([key1, key2])).to.revertedWithCustomError(
+      oidcKeyRegistry,
+      "KidAlreadyRegistered",
+    ).withArgs(key2.kid, key2.issHash);
   });
 
   it("should revert when adding a key with a modulus chunk too large", async () => {
