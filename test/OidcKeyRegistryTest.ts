@@ -296,6 +296,51 @@ describe("OidcKeyRegistry", function () {
       .withArgs(0);
   });
 
+  it("reverts when e is not 0x010001", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const key = {
+      issHash,
+      kid: pad("0x02"),
+      n: JWK_MODULUS,
+      e: "0x010002",
+    };
+
+    await expect(oidcKeyRegistry.addKey(key))
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "InvalidExponent")
+      .withArgs(key.kid);
+  });
+
+  it("reverts when e has extra bytes at the beginning", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const key = {
+      issHash,
+      kid: pad("0x02"),
+      n: JWK_MODULUS,
+      e: "0x00010001",
+    };
+
+    await expect(oidcKeyRegistry.addKey(key))
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "InvalidExponent")
+      .withArgs(key.kid);
+  });
+
+  it("reverts when e has extra bytes at the end", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const key = {
+      issHash,
+      kid: pad("0x02"),
+      n: JWK_MODULUS,
+      e: "0x01000100",
+    };
+
+    await expect(oidcKeyRegistry.addKey(key))
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "InvalidExponent")
+      .withArgs(key.kid);
+  });
+
   it("reverts when adding a repeated kid", async () => {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);

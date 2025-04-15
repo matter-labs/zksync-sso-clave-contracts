@@ -60,6 +60,10 @@ interface IOidcKeyRegistry {
   /// @param issHash hash if the user where the conflict occurred
   error KidAlreadyRegistered(bytes32 kid, bytes32 issHash);
 
+  /// @notice Thrown when a provided key has an invalid exponent
+  /// @dev At the moment the only exponent allowed is 65537
+  error InvalidExponent(bytes32 kid);
+
   function hashIssuer(string memory iss) external pure returns (bytes32);
   function getKey(bytes32 issHash, bytes32 kid) external view returns (Key memory);
   function addKey(Key memory newKey) external;

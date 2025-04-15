@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { IOidcKeyRegistry } from "./interfaces/IOidcKeyRegistry.sol";
+import "hardhat/console.sol";
 
 /// @title OidcKeyRegistry
 /// @author Matter Labs
@@ -185,6 +186,10 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
 
       if (!_hasNonZeroExponent(newKeys[i].e)) {
         revert ExponentCannotBeZero(i);
+      }
+
+      if (newKeys[i].e.length != 3 || uint24(bytes3(newKeys[i].e)) != 0x010001) {
+        revert InvalidExponent(newKeys[i].kid);
       }
 
       _validateModulus(newKeys[i].n, i);
