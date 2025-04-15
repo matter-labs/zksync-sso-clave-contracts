@@ -203,8 +203,12 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     }
 
     // Decode the key from the transaction data and check against the pending passkey hash
-    (, bytes32[2] memory newPasskeyPubKey, ) = abi.decode(transaction.data[4:], (bytes, bytes32[2], string));
-    bytes32 passkeyHash = keccak256(abi.encode(newPasskeyPubKey[0], newPasskeyPubKey[1]));
+    (bytes memory credentialId, bytes32[2] memory newPasskeyPubKey, string memory originDomain) = abi.decode(
+      transaction.data[4:],
+      (bytes, bytes32[2], string)
+    );
+    bytes32 passkeyHash = keccak256(abi.encode(credentialId, newPasskeyPubKey, originDomain));
+
     OidcData memory oidcData = accountData[msg.sender];
 
     if (!oidcData.readyToRecover) {
