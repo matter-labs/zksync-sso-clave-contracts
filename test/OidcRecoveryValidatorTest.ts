@@ -53,6 +53,17 @@ describe("OidcRecoveryValidator", function () {
       expect(storedData.recoverNonce).to.equal(0);
     });
 
+    it("reverts if iss too long", async () => {
+      const oidcDigest = ethers.hexlify(randomBytes(32));
+      const iss = `https://${"a".repeat(100)}.com`;
+
+      const connected = oidcValidator.connect(testWallet);
+      await expect(connected.addOidcAccount(oidcDigest, iss)).to.revertedWithCustomError(
+        connected,
+        "OidcIssuerTooLong",
+      );
+    });
+
     it("should prevent duplicate oidc_digest registration", async function () {
       const oidcDigest = ethers.hexlify(randomBytes(32));
       const iss = "https://issuer.com";
