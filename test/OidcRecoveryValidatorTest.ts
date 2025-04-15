@@ -75,6 +75,26 @@ describe("OidcRecoveryValidator", function () {
     });
   });
 
+  it("removes old digest from index on update", async () => {
+    const oidcDigest = ethers.hexlify(randomBytes(32));
+    const oidcDigest2 = ethers.hexlify(randomBytes(32));
+    const iss = "https://issuer.com";
+
+    // First registration should succeed
+    const connected = oidcValidator.connect(testWallet);
+
+    await connected.addOidcAccount(oidcDigest, iss);
+    const returnedAddress = await connected.addressForDigest(oidcDigest);
+    expect(returnedAddress).to.equal(testWallet.address);
+    await connected.addOidcAccount(oidcDigest2, iss);
+    const returnedAddress2 = await connected.addressForDigest(oidcDigest2);
+    expect(returnedAddress2).to.equal(testWallet.address);
+    await expect(connected.addressForDigest(oidcDigest)).to.revertedWithCustomError(
+      connected,
+      "AddressNotFoundForDigest",
+    ).withArgs(oidcDigest);
+  });
+
   describe("deleteOidcAccount", () => {
     it("should delete OIDC account", async function () {
       const oidcDigest = ethers.hexlify(randomBytes(32));
