@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "ethers";
-import { numberToHex, pad } from "viem";
+import { hexToBigInt, numberToHex, pad } from "viem";
 import { Wallet } from "zksync-ethers";
 
 import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
@@ -241,6 +241,7 @@ describe("OidcKeyRegistry", function () {
   it("should revert when adding a key with a zero modulus", async () => {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const kid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
     const key = {
       issHash,
       kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
@@ -249,7 +250,7 @@ describe("OidcKeyRegistry", function () {
 
     await expect(oidcKeyRegistry.addKey(key))
       .to.be.revertedWithCustomError(oidcKeyRegistry, "ModulusCannotBeZero")
-      .withArgs(0);
+      .withArgs(kid);
   });
 
   it("should revert when adding a key with a zero kid", async () => {
@@ -311,20 +312,44 @@ describe("OidcKeyRegistry", function () {
     ).withArgs(key2.kid, key2.issHash);
   });
 
+  it("reverts if an even modulus is added", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+
+    const modulus = hexToBigInt(`0x${Buffer.from(JWK_MODULUS_64, "base64url").toString("hex")}`);
+    const evenModulus = modulus - modulus % 2n;
+    const serializedEvenModulus = base64ToCircomBigInt(
+      Buffer.from(evenModulus.toString(16), "hex").toString("base64url"),
+    );
+
+    const kid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+    const key = {
+      issHash,
+      kid,
+      rsaModulus: serializedEvenModulus,
+    };
+
+    await expect(oidcKeyRegistry.addKeys([key])).to.revertedWithCustomError(
+      oidcKeyRegistry,
+      "EvenRsaModulus",
+    ).withArgs(kid);
+  });
+
   it("should revert when adding a key with a modulus chunk too large", async () => {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
     const rsaModulus = [...JWK_MODULUS];
     rsaModulus[2] += 1 << 121;
+    const kid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
     const key = {
       issHash,
-      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      kid,
       rsaModulus,
     };
 
     await expect(oidcKeyRegistry.addKey(key))
       .to.be.revertedWithCustomError(oidcKeyRegistry, "ModulusChunkTooLarge")
-      .withArgs(0, 2, rsaModulus[2]);
+      .withArgs(kid, 2, rsaModulus[2]);
   });
 
   it("should remove a key", async () => {
