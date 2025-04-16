@@ -102,7 +102,7 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
       OIDCKeys[issHash][keyIndex] = newKeys[i];
       uint256 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
       keyIndexes[issHash] = nextIndex;
-      emit KeyAdded(issHash, newKeys[i].kid, newKeys[i].n);
+      emit KeyAdded(issHash, newKeys[i].kid, newKeys[i].rsaModulus);
     }
   }
 
@@ -184,15 +184,7 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
         revert KeyIdCannotBeZero(i);
       }
 
-      if (!_hasNonZeroExponent(newKeys[i].e)) {
-        revert ExponentCannotBeZero(i);
-      }
-
-      if (newKeys[i].e.length != 3 || uint24(bytes3(newKeys[i].e)) != 0x010001) {
-        revert InvalidExponent(newKeys[i].kid);
-      }
-
-      _validateModulus(newKeys[i].n, i);
+      _validateModulus(newKeys[i].rsaModulus, i);
     }
   }
 
