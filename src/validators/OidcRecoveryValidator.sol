@@ -151,7 +151,9 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     bytes32 issHash = keyRegistry.hashIssuer(oidcData.iss);
     OidcKeyRegistry.Key memory key = keyRegistry.getKey(issHash, data.kid);
 
-    bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce, data.timeLimit));
+    bytes32 senderHash = keccak256(
+      abi.encode(msg.sender, targetAccount, data.pendingPasskeyHash, oidcData.recoverNonce, data.timeLimit)
+    );
 
     // Fill public inputs
     uint256[PUB_SIGNALS_LENGTH] memory publicInputs;
