@@ -6,14 +6,14 @@ import { AsnParser } from "@peculiar/asn1-schema";
 import { bigintToBuf, bufToBigint } from "bigint-conversion";
 import { assert, expect } from "chai";
 import { randomBytes } from "crypto";
-import { parseEther, TypedDataEncoder, ZeroAddress } from "ethers";
+import { parseEther, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
-import { encodeAbiParameters, Hex, hexToBytes, pad, toHex } from "viem";
+import { encodeAbiParameters, hashMessage, Hex, hexToBytes, pad, toBytes, toHex } from "viem";
 import { SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 
 import type { WebAuthValidator } from "../typechain-types";
-import { ERC1271Caller, IERC165__factory, IModuleValidator__factory, SsoAccount__factory, WebAuthValidator__factory } from "../typechain-types";
+import { IERC165__factory, IModuleValidator__factory, SsoAccount__factory, WebAuthValidator__factory } from "../typechain-types";
 import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
 /**
@@ -550,47 +550,54 @@ describe("Passkey validation", function () {
       logInfo(`passkey transaction gas used: ${transactionReceipt?.gasUsed.toString()}`);
     });
 
-    it("should verify signature with EIP1271", async () => {
-      const { proxyAccountAddress, signPayload } = await deployAccount();
+    describe("isValidSignature", () => {
+      it("should return bytes success (0x1626ba7e) for a valid signature from the owner", async () => {
+        const { proxyAccountAddress, signPayload } = await deployAccount();
+        const message = "Hello, world!";
+        const messageHash = hashMessage(message);
+        const signature = await signPayload(messageHash);
+        const smartAccount = SsoAccount__factory.connect(proxyAccountAddress, provider);
+        const result = await smartAccount.isValidSignature(
+          toBytes(messageHash),
+          signature,
+        );
+        expect(result).to.equal("0x1626ba7e"); // Magic value for valid signature
+      });
 
-      const erc1271Caller = await fixtures.deployERC1271Caller();
-      const testStruct: ERC1271Caller.TestStructStruct = {
-        message: "test",
-        value: 42,
-      };
-      const innerDomain = await erc1271Caller.eip712Domain();
-      const innerDigest = TypedDataEncoder.hash(
-        {
-          name: innerDomain.name,
-          version: innerDomain.version,
-          chainId: innerDomain.chainId,
-          verifyingContract: innerDomain.verifyingContract,
-        },
-        {
-          TestStruct: [
-            { name: "message", type: "string" },
-            { name: "value", type: "uint256" },
-          ],
-        },
-        testStruct,
-      );
+      it("should return bytes failure (not 0x1626ba7e) for an invalid signature", async () => {
+        const { proxyAccountAddress, signPayload } = await deployAccount();
+        const message = "Hello, world!";
+        const wrongMessage = "Wrong message";
+        const messageHash = hashMessage(message);
+        const wrongMessageHash = hashMessage(wrongMessage);
+        const smartAccount = SsoAccount__factory.connect(proxyAccountAddress, provider);
+        const invalidSignature = await signPayload(wrongMessageHash);
+        const result = await smartAccount.isValidSignature(
+          toBytes(messageHash),
+          invalidSignature,
+        );
+        expect(result).to.not.equal("0x1626ba7e");
+      });
 
-      const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
-      const domain = await account.eip712Domain();
-      const digest = TypedDataEncoder.hash(
-        {
-          name: domain.name,
-          version: domain.version,
-          chainId: domain.chainId,
-          verifyingContract: domain.verifyingContract,
-        },
-        { SsoMessage: [{ name: "signedHash", type: "bytes32" }] },
-        { signedHash: innerDigest },
-      );
+      it("should return bytes failure for a signature from a non-owner", async () => {
+        const signingAccount = await deployAccount();
+        const verifiyingAccount = await deployAccount();
+        const messageHash = hashMessage("Hello, world!");
+        const signature = await signingAccount.signPayload(messageHash);
+        const smartAccount = SsoAccount__factory.connect(verifiyingAccount.proxyAccountAddress, provider);
+        const result = await smartAccount.isValidSignature(
+          toBytes(messageHash),
+          signature,
+        );
+        expect(result).to.not.equal("0x1626ba7e");
+      });
 
-      const signature = await signPayload(digest as Hex);
-      const isValid = await erc1271Caller.validateStruct(testStruct, proxyAccountAddress, signature);
-      expect(isValid).to.be.true;
+      it("should return bytes failure for an empty signature", async () => {
+        const smartAccount = SsoAccount__factory.connect(proxyAccountAddress, provider);
+        const messageHash = hashMessage("Hello, world!");
+        await expect(
+          smartAccount.isValidSignature(toBytes(messageHash), "0x")).to.be.reverted;
+      });
     });
   });
 
