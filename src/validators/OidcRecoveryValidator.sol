@@ -160,10 +160,10 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
 
     // First 17 elements are the oidc provider public key modulus (circuit assumes 65537 as exponent).
     // key.n is always 17 elements long.
-    for (uint256 i = 0; i < key.n.length; ++i) {
-      publicInputs[i] = key.n[i];
+    for (uint256 i = 0; i < key.rsaModulus.length; ++i) {
+      publicInputs[i] = key.rsaModulus[i];
     }
-    uint256 pubSignalsIndex = key.n.length;
+    uint256 pubSignalsIndex = key.rsaModulus.length;
 
     // 18th element is the the digest
     publicInputs[pubSignalsIndex] = uint256(oidcData.oidcDigest);
