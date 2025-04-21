@@ -17,7 +17,10 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, OwnerManager, Validator
   bytes4 private constant _ERC1271_MAGIC = 0x1626ba7e;
 
   /**
-   * @dev Should return whether the signature provided is valid for the provided data. Does not run validation hooks.
+   * @notice Returns whether the signature provided is valid for the provided hash.
+   * @notice It is responsibility of the caller to ensure that no cross-chain or
+   * cross-contract signature replay attacks are possible (e.g. by using EIP-712).
+   * @dev Does not run validation hooks.
    * @param hash bytes32 - Hash of the data that is signed
    * @param signature bytes calldata - K1 owner signature OR validator address concatenated to signature
    * @return magicValue bytes4 - Magic value if the signature is valid, 0 otherwise
