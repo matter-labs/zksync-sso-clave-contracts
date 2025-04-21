@@ -65,6 +65,9 @@ interface IOidcRecoveryValidator is IModuleValidator {
   /// @notice Thrown when an OIDC issuer is empty.
   error OidcIssuerTooLong();
 
+  /// @notice Thrown when a user tries to cancel a recovery but no recovery was started
+  error NoRecoveryStarted();
+
   /// @notice The data for an OIDC account.
   /// @param oidcDigest Digest that identifies an account. It's calculated as: PoseidonHash(sub || aud || iss || salt) of the OIDC key.
   /// @param iss The OIDC issuer.
@@ -113,6 +116,7 @@ interface IOidcRecoveryValidator is IModuleValidator {
   function addOidcAccount(bytes32 oidcDigest, string memory iss) external;
   function deleteOidcAccount() external;
   function startRecovery(StartRecoveryData calldata data, address targetAccount) external;
+  function cancelRecovery() external;
   function addressForDigest(bytes32 digest) external returns (address);
   function oidcDataForAddress(address account) external returns (OidcData memory);
 }

@@ -142,8 +142,7 @@ describe("OidcRecoveryValidator", function () {
       const key = {
         issHash,
         kid: pad("0x914fb9b087180bc0303284500c5f540c6d4f5e2f"),
-        n: JWK_MODULUS,
-        e: "0x010001",
+        rsaModulus: JWK_MODULUS,
       };
       await keyRegistry.addKey(key);
 

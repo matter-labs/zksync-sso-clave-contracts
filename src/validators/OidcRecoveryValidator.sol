@@ -182,6 +182,16 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     emit RecoveryStarted(msg.sender, targetAccount, data.pendingPasskeyHash);
   }
 
+  function cancelRecovery() external {
+    if (!accountData[msg.sender].readyToRecover) {
+      revert NoRecoveryStarted();
+    }
+
+    delete accountData[targetAccount].pendingPasskeyHash;
+    delete accountData[targetAccount].recoveryStartedAt;
+    accountData[targetAccount].readyToRecover = false;
+  }
+
   /// @notice Only allows transaction setting a new passkey for the sender, and only if `startRecovery` was successfully
   ///         called before
   /// @dev Only allows calls to `addValidationKey` on the `WebAuthValidator` contract.
