@@ -187,9 +187,9 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
       revert NoRecoveryStarted();
     }
 
-    delete accountData[targetAccount].pendingPasskeyHash;
-    delete accountData[targetAccount].recoveryStartedAt;
-    accountData[targetAccount].readyToRecover = false;
+    delete accountData[msg.sender].pendingPasskeyHash;
+    delete accountData[msg.sender].recoveryStartedAt;
+    accountData[msg.sender].readyToRecover = false;
   }
 
   /// @notice Only allows transaction setting a new passkey for the sender, and only if `startRecovery` was successfully
