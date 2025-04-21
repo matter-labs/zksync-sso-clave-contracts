@@ -93,8 +93,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   /// @notice Adds an `OidcData` for the caller.
   /// @param oidcDigest PoseidonHash(sub || aud || iss || salt).
   /// @param iss The OIDC issuer.
-  /// @return true if the key was added, false if it was updated.
-  function addOidcAccount(bytes32 oidcDigest, string memory iss) public returns (bool) {
+  function addOidcAccount(bytes32 oidcDigest, string memory iss) public {
     if (oidcDigest == bytes32(0)) revert EmptyOidcDigest();
     if (bytes(iss).length == 0) revert EmptyOidcIssuer();
     if (bytes(iss).length > MAX_ISS_LENGTH) revert OidcIssuerTooLong();
@@ -119,7 +118,6 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     digestIndex[oidcDigest] = msg.sender;
 
     emit OidcAccountUpdated(msg.sender, oidcDigest, iss, isNew);
-    return isNew;
   }
 
   /// @notice Deletes the OIDC account for the caller, freeing it for use by another SSO account.

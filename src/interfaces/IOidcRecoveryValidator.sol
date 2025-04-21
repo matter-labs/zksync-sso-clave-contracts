@@ -110,7 +110,7 @@ interface IOidcRecoveryValidator is IModuleValidator {
     uint256 timeLimit;
   }
 
-  function addOidcAccount(bytes32 oidcDigest, string memory iss) external returns (bool);
+  function addOidcAccount(bytes32 oidcDigest, string memory iss) external;
   function deleteOidcAccount() external;
   function startRecovery(StartRecoveryData calldata data, address targetAccount) external;
   function addressForDigest(bytes32 digest) external returns (address);
