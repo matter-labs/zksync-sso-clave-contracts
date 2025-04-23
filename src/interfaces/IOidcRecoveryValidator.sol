@@ -30,6 +30,11 @@ interface IOidcRecoveryValidator is IModuleValidator {
   /// @param pendingPasskeyHash The hash of the pending passkey to be added.
   event RecoveryStarted(address indexed initiator, address indexed targetAccount, bytes32 pendingPasskeyHash);
 
+  /// @notice Emitted when an ongoing recovery process is cancelled for an account.
+  /// @param targetAccount The address of the account that cancelled the recovery.
+  /// @param pendingPasskeyHash The passkey hash used in the cancelled recovery attempt.
+  event RecoveryCancelled(address indexed targetAccount, bytes32 pendingPasskeyHash);
+
   /// @notice Thrown when trying to add an OIDC account with an OIDC digest that is already registered in another account.
   /// @param currentAccount The address that is currently associated with that oidc account.
   error OidcDigestAlreadyRegisteredInAnotherAccount(address currentAccount);
