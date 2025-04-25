@@ -29,14 +29,13 @@ import {
   AAFactory__factory,
   AccountProxy__factory,
   ERC20__factory,
-  ExampleAuthServerPaymaster__factory,
+  ERC1271Caller__factory, ExampleAuthServerPaymaster__factory,
   GuardianRecoveryValidator__factory,
   SessionKeyValidator__factory,
   SsoAccount__factory,
   SsoBeacon__factory,
   TestPaymaster__factory,
-  WebAuthValidator__factory,
-  ERC1271Caller__factory } from "../typechain-types";
+  WebAuthValidator__factory } from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
   205, 241, 161, 186, 101, 105, 79,
