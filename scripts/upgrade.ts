@@ -7,7 +7,7 @@ import { deployCmd, getArgs, getDeployer, GUARDIAN_RECOVERY_NAME } from "./deplo
 
 task("upgrade", "Upgrades ZKsync SSO contracts")
   .addParam("proxyfile", "location of the file with proxy contract addresses")
-  .addOptionalParam("artifactName", "name of the artifact to upgrade to, if not upgrade all")
+  .addOptionalParam("artifactname", "name of the artifact to upgrade to, if not upgrade all")
   .setAction(async (cmd, hre) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { LOCAL_RICH_WALLETS, getProvider } = require("../test/utils");
@@ -28,7 +28,7 @@ task("upgrade", "Upgrades ZKsync SSO contracts")
       await hre.artifacts.readArtifact(GUARDIAN_RECOVERY_NAME),
       getArgs(cmd),
       getDeployer(hre, cmd),
-      cmd.artifactName,
+      cmd.artifactname,
       true,
       0,
       "");

@@ -86,3 +86,28 @@ smart account by signing to verify the legitimacy of the recovery process.
 6. **Cancelling recovery**\
    A pending recovery can be discarded using `discardRecovery`, which:
    1. Removes the recovery request from storage.
+
+## Deployment
+
+Chain operators can use the `deploy` script to _initially_ deploy the contracts,
+ensuring that the proxy addresses are added to the storage slot exception allow
+list. (api_web3_json_rpc: whitelisted_tokens_for_aa)
+
+```bash
+pnpm run deploy --file chainname.json
+```
+
+This list of contracts can be included into the parent SSO-SDK project for
+automatic chain support. Then subsquent updates can be made using the `upgrade`
+script, which will use the deployed proxies:
+
+```bash
+pnpm run upgrade --proxyfile chainname.json
+```
+
+Non-chain operators should use the deploy script with the no proxy flag to avoid
+the storage slot validation errors.
+
+```bash
+pnpm run deploy --file chainname.json --direct
+```

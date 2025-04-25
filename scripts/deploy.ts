@@ -139,7 +139,7 @@ export async function deployCmd(
 
 task("deploy", "Deploys ZKsync SSO contracts")
   .addOptionalParam("only", "name of a specific contract to deploy")
-  .addFlag("noProxy", "do not deploy transparent proxies for factory and modules")
+  .addFlag("direct", "do not deploy transparent proxies for factory and modules")
   .addOptionalParam("implementation", "address of the account implementation to use in the beacon")
   .addOptionalParam("factory", "address of the factory to use in the paymaster")
   .addOptionalParam("sessions", "address of the sessions module to use in the paymaster")
@@ -155,7 +155,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       args,
       deployer,
       cmd.only,
-      cmd.noProxy,
+      cmd.direct,
       cmd.fund,
       cmd.file);
   });
