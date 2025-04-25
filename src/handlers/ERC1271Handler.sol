@@ -21,6 +21,12 @@ abstract contract ERC1271Handler is ERC1271, OwnerManager, ValidatorManager {
     return ("SSO1271", "1.0.0");
   }
 
+  /// @notice Indicates whether or not the contract may cache the domain name and version.
+  /// @return bool - Whether the domain name and version may change.
+  function _domainNameAndVersionMayChange() internal pure override returns (bool) {
+    return true;
+  }
+
   // @notice Returns whether the signature provided is valid for the provided hash.
   // @dev Does not run validation hooks. Is used internally after ERC7739 unwrapping.
   // @param hash bytes32 - Hash of the data that is signed
