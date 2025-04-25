@@ -38,7 +38,7 @@ abstract contract ERC1271Handler is ERC1271, OwnerManager, ValidatorManager {
   ) internal view override returns (bool) {
     if (signature.length == 65) {
       (address signer, ECDSA.RecoverError err) = ECDSA.tryRecover(hash, signature);
-      return signer != address(0) && err == ECDSA.RecoverError.NoError && _isK1Owner(signer);
+      return err == ECDSA.RecoverError.NoError && _isK1Owner(signer);
     }
 
     (bytes memory decodedSignature, address validator) = SignatureDecoder.decodeSignatureNoHookData(signature);
@@ -48,5 +48,12 @@ abstract contract ERC1271Handler is ERC1271, OwnerManager, ValidatorManager {
   /// @notice This function is not used anywhere in the contract, but is required to be implemented.
   function _erc1271Signer() internal pure override returns (address) {
     revert();
+  }
+
+  /// @dev Returns whether the `msg.sender` is considered safe, such
+  /// that we don't need to use the nested EIP-712 workflow.
+  /// @return bool - currently, always returns false
+  function _erc1271CallerIsSafe() internal pure override returns (bool) {
+    return false;
   }
 }
