@@ -101,7 +101,7 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
       OIDCKeys[issHash][keyIndex] = newKeys[i];
       uint256 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
       keyIndexes[issHash] = nextIndex;
-      emit KeyAdded(issHash, newKeys[i].kid, newKeys[i].n);
+      emit KeyAdded(issHash, newKeys[i].kid, newKeys[i].rsaModulus);
     }
   }
 
@@ -183,11 +183,7 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
         revert KeyIdCannotBeZero(i);
       }
 
-      if (!_hasNonZeroExponent(newKeys[i].e)) {
-        revert ExponentCannotBeZero(i);
-      }
-
-      _validateModulus(newKeys[i].n, i);
+      _validateModulus(newKeys[i].rsaModulus, newKeys[i].kid);
     }
   }
 
@@ -209,14 +205,14 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
   /// @dev It validates that the modulus is not zero.
   /// @dev It validates that the modulus chunks are not bigger than 121 bits.
   /// @param modulus The modulus to validate.
-  /// @param index The index of the key in the batch being validated.
-  function _validateModulus(uint256[CIRCOM_BIGINT_CHUNKS] memory modulus, uint256 index) private pure {
+  /// @param kid The id of the key in the batch being validated.
+  function _validateModulus(uint256[CIRCOM_BIGINT_CHUNKS] memory modulus, bytes32 kid) private pure {
     uint256 limit = (1 << 121) - 1;
     bool hasNonZero = false;
 
     for (uint256 i = 0; i < CIRCOM_BIGINT_CHUNKS; ++i) {
       if (modulus[i] > VALIDATE_MODULUS_LIMIT) {
-        revert ModulusChunkTooLarge(index, i, modulus[i]);
+        revert ModulusChunkTooLarge(kid, i, modulus[i]);
       }
       if (modulus[i] != 0) {
         hasNonZero = true;
@@ -224,7 +220,11 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
     }
 
     if (!hasNonZero) {
-      revert ModulusCannotBeZero(index);
+      revert ModulusCannotBeZero(kid);
+    }
+
+    if (modulus[0] % 2 == 0) {
+      revert EvenRsaModulus(kid);
     }
   }
 }

@@ -150,16 +150,18 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     bytes32 issHash = keyRegistry.hashIssuer(oidcData.iss);
     OidcKeyRegistry.Key memory key = keyRegistry.getKey(issHash, data.kid);
 
-    bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce, data.timeLimit));
+    bytes32 senderHash = keccak256(
+      abi.encode(msg.sender, targetAccount, data.pendingPasskeyHash, oidcData.recoverNonce, data.timeLimit)
+    );
 
     // Fill public inputs
     uint256[PUB_SIGNALS_LENGTH] memory publicInputs;
 
     // First CIRCOM_BIGINT_CHUNKS elements are the oidc provider public key.
-    for (uint256 i = 0; i < key.n.length; ++i) {
-      publicInputs[i] = key.n[i];
+    for (uint256 i = 0; i < key.rsaModulus.length; ++i) {
+      publicInputs[i] = key.rsaModulus[i];
     }
-    uint256 pubSignalsIndex = key.n.length;
+    uint256 pubSignalsIndex = key.rsaModulus.length;
 
     // Then the digest
     publicInputs[pubSignalsIndex] = uint256(oidcData.oidcDigest);
