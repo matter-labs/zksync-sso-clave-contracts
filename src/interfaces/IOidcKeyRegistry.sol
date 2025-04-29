@@ -57,6 +57,11 @@ interface IOidcKeyRegistry {
 
   error EvenRsaModulus(bytes32 kid);
 
+  /// @notice Thrown when trying to register a key with a kid already known
+  /// @param kid key id that caused the conflict
+  /// @param issHash hash if the user where the conflict occurred
+  error KidAlreadyRegistered(bytes32 kid, bytes32 issHash);
+
   function hashIssuer(string memory iss) external pure returns (bytes32);
   function getKey(bytes32 issHash, bytes32 kid) external view returns (Key memory);
   function addKey(Key memory newKey) external;

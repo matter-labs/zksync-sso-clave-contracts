@@ -335,6 +335,55 @@ describe("OidcKeyRegistry", function () {
     ).withArgs(kid);
   });
 
+  it("reverts when adding a repeated kid", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+
+    const key = {
+      issHash,
+      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      n: JWK_MODULUS,
+      e: "0x010001",
+    };
+    await oidcKeyRegistry.addKey(key);
+
+    const key2 = {
+      issHash,
+      kid: key.kid,
+      n: JWK_MODULUS,
+      e: "0x010001",
+    };
+
+    await expect(oidcKeyRegistry.addKey(key2)).to.revertedWithCustomError(
+      oidcKeyRegistry,
+      "KidAlreadyRegistered",
+    ).withArgs(key2.kid, key2.issHash);
+  });
+
+  it("reverts when adding a repeated kid in the same tx", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+
+    const kid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+    const key1 = {
+      issHash,
+      kid,
+      n: JWK_MODULUS,
+      e: "0x010001",
+    };
+    const key2 = {
+      issHash,
+      kid,
+      n: JWK_MODULUS2,
+      e: "0x010001",
+    };
+
+    await expect(oidcKeyRegistry.addKeys([key1, key2])).to.revertedWithCustomError(
+      oidcKeyRegistry,
+      "KidAlreadyRegistered",
+    ).withArgs(key2.kid, key2.issHash);
+  });
+
   it("should revert when adding a key with a modulus chunk too large", async () => {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
