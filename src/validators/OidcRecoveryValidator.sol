@@ -91,7 +91,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   }
 
   /// @notice Adds an `OidcData` for the caller.
-  /// @param oidcDigest PoseidonHash(sub || aud || iss || salt).
+  /// @param oidcDigest PoseidonHash(iss || aud || sub || salt).
   /// @param iss The OIDC issuer.
   function addOidcAccount(bytes32 oidcDigest, string memory iss) public {
     if (oidcDigest == bytes32(0)) revert EmptyOidcDigest();
@@ -99,7 +99,6 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     if (bytes(iss).length > MAX_ISS_LENGTH) revert OidcIssuerTooLong();
 
     bool isNew = accountData[msg.sender].oidcDigest == bytes32(0);
-
     if (!isNew) {
       bytes32 old = accountData[msg.sender].oidcDigest;
       delete digestIndex[old];

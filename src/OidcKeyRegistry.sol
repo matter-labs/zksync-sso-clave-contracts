@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { IOidcKeyRegistry } from "./interfaces/IOidcKeyRegistry.sol";
-import "hardhat/console.sol";
 
 /// @title OidcKeyRegistry
 /// @author Matter Labs
@@ -114,6 +113,14 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
     }
   }
 
+  function _ensureUniqueKid(bytes32 kid, bytes32 issHash) internal {
+    for (uint256 i = 0; i < MAX_KEYS; i++) {
+      if (OIDCKeys[issHash][i].kid == kid) {
+        revert KidAlreadyRegistered(kid, issHash);
+      }
+    }
+  }
+
   /// @notice Compacts the keys for a given issuer hash.
   /// @dev This function is called when a key is deleted from the registry.
   /// @param issHash The issuer hash.
@@ -208,7 +215,6 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
   /// @param modulus The modulus to validate.
   /// @param kid The id of the key in the batch being validated.
   function _validateModulus(uint256[CIRCOM_BIGINT_CHUNKS] memory modulus, bytes32 kid) private pure {
-    uint256 limit = (1 << 121) - 1;
     bool hasNonZero = false;
 
     for (uint256 i = 0; i < CIRCOM_BIGINT_CHUNKS; ++i) {
