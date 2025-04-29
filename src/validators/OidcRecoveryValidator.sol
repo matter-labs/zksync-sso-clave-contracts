@@ -85,7 +85,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   }
 
   /// @notice Adds an `OidcData` for the caller.
-  /// @param oidcDigest PoseidonHash(sub || aud || iss || salt).
+  /// @param oidcDigest PoseidonHash(iss || aud || sub || salt).
   /// @param iss The OIDC issuer.
   /// @return true if the key was added, false if it was updated.
   function addOidcAccount(bytes32 oidcDigest, string memory iss) public returns (bool) {
