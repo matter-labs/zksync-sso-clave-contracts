@@ -20,7 +20,7 @@ import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 /// @dev This contract allows secure account recovery for an SSO account using OIDC (Open Id Connect) protocol.
 contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializable {
   /// @notice The number of public inputs for the zk proof.
-  uint8 constant PUB_SIGNALS_LENGTH = 20;
+  uint256 constant PUB_SIGNALS_LENGTH = 20;
 
   /// @notice Emitted when an SSO account updates their associated OIDC account.
   /// @param account The address of the SSO account that updated their OIDC data.
@@ -213,11 +213,11 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce, data.timeLimit));
 
     // Fill public inputs
-    uint8 index = 0;
+    uint256 index = 0;
     uint[PUB_SIGNALS_LENGTH] memory publicInputs;
 
     // First CIRCOM_BIGINT_CHUNKS elements are the oidc provider public key.
-    for (uint8 i = 0; i < key.n.length; ++i) {
+    for (uint256 i = 0; i < key.n.length; ++i) {
       publicInputs[index] = uint(key.n[i]);
       ++index;
     }
