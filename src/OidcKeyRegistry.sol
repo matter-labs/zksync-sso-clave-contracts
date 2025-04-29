@@ -256,7 +256,6 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   /// @param modulus The modulus to validate.
   /// @param index The index of the key in the batch being validated.
   function _validateModulus(uint256[CIRCOM_BIGINT_CHUNKS] memory modulus, uint256 index) private pure {
-    uint256 limit = (1 << 121) - 1;
     bool hasNonZero = false;
 
     for (uint256 i = 0; i < CIRCOM_BIGINT_CHUNKS; ++i) {
