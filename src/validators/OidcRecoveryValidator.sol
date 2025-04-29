@@ -39,6 +39,12 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @param oidcDigest The PoseidonHash(iss || aud || sub || salt) of the OIDC key.
   event OidcAccountDeleted(address indexed account, bytes32 oidcDigest);
 
+  /// @notice Emitted when a recovery process is started for an account.
+  /// @param initiator The address that initiated the recovery process.
+  /// @param targetAccount The address of the account being recovered.
+  /// @param pendingPasskeyHash The hash of the pending passkey to be added.
+  event RecoveryStarted(address indexed initiator, address indexed targetAccount, bytes32 pendingPasskeyHash);
+
   /// @notice Thrown when calling `validateSignature` since it is not implemented.
   error ValidateSignatureNotImplemented();
 
@@ -261,6 +267,8 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     accountData[targetAccount].pendingPasskeyHash = data.pendingPasskeyHash;
     accountData[targetAccount].recoverNonce += 1;
     accountData[targetAccount].readyToRecover = true;
+
+    emit RecoveryStarted(msg.sender, targetAccount, data.pendingPasskeyHash);
   }
 
   /// @notice Only allows transaction setting a new passkey for the sender, and only if `startRecovery` was successfully
