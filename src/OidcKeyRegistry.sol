@@ -113,14 +113,6 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
     }
   }
 
-  function _ensureUniqueKid(bytes32 kid, bytes32 issHash) internal {
-    for (uint256 i = 0; i < MAX_KEYS; i++) {
-      if (OIDCKeys[issHash][i].kid == kid) {
-        revert KidAlreadyRegistered(kid, issHash);
-      }
-    }
-  }
-
   /// @notice Compacts the keys for a given issuer hash.
   /// @dev This function is called when a key is deleted from the registry.
   /// @param issHash The issuer hash.
