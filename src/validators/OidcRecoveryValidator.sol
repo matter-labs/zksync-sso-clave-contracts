@@ -62,6 +62,21 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
   error WebAuthValidatorNotPresentInAccount(address account);
 
+  /// @notice Thrown when the key registry address is zero.
+  error KeyRegistryCannotBeZeroAddress();
+
+  /// @notice Thrown when the verifier address is zero.
+  error VerifierCannotBeZeroAddress();
+
+  /// @notice Thrown when the web auth validator address is zero.
+  error WebAuthValidatorCannotBeZeroAddress();
+
+  /// @notice Thrown when an OIDC digest is empty.
+  error EmptyOidcDigest();
+
+  /// @notice Thrown when an OIDC issuer is empty.
+  error EmptyOidcIssuer();
+
   /// @notice The data for an OIDC account.
   /// @param oidcDigest Digest that identifies an account. It's calculated as: PoseidonHash(iss || aud || sub || salt) of the OIDC key.
   /// @param iss The OIDC issuer.
@@ -130,9 +145,9 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @param _verifier The address of the zk verifier.
   /// @param _webAuthValidator The address of the web authentication validator.
   function initialize(address _keyRegistry, address _verifier, address _webAuthValidator) external initializer {
-    require(_keyRegistry != address(0), "_keyRegistry cannot be zero address");
-    require(_verifier != address(0), "_verifier cannot be zero address");
-    require(_webAuthValidator != address(0), "_webAuthValidator cannot be zero address");
+    if (_keyRegistry == address(0)) revert KeyRegistryCannotBeZeroAddress();
+    if (_verifier == address(0)) revert VerifierCannotBeZeroAddress();
+    if (_webAuthValidator == address(0)) revert WebAuthValidatorCannotBeZeroAddress();
 
     keyRegistry = _keyRegistry;
     verifier = _verifier;
@@ -166,8 +181,8 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @param iss The OIDC issuer.
   /// @return true if the key was added, false if it was updated.
   function addOidcAccount(bytes32 oidcDigest, string memory iss) public returns (bool) {
-    require(oidcDigest != bytes32(0), "oidcDigest cannot be empty");
-    require(bytes(iss).length > 0, "oidcDigest cannot be empty");
+    if (oidcDigest == bytes32(0)) revert EmptyOidcDigest();
+    if (bytes(iss).length == 0) revert EmptyOidcIssuer();
 
     bool isNew = accountData[msg.sender].oidcDigest.length == 0;
     if (digestIndex[oidcDigest] != address(0)) {
