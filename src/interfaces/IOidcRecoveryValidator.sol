@@ -30,6 +30,11 @@ interface IOidcRecoveryValidator is IModuleValidator {
   /// @param pendingPasskeyHash The hash of the pending passkey to be added.
   event RecoveryStarted(address indexed initiator, address indexed targetAccount, bytes32 pendingPasskeyHash);
 
+  /// @notice Emitted when an ongoing recovery process is cancelled for an account.
+  /// @param targetAccount The address of the account that cancelled the recovery.
+  /// @param pendingPasskeyHash The passkey hash used in the cancelled recovery attempt.
+  event RecoveryCancelled(address indexed targetAccount, bytes32 pendingPasskeyHash);
+
   /// @notice Thrown when trying to add an OIDC account with an OIDC digest that is already registered in another account.
   /// @param currentAccount The address that is currently associated with that oidc account.
   error OidcDigestAlreadyRegisteredInAnotherAccount(address currentAccount);
@@ -64,6 +69,9 @@ interface IOidcRecoveryValidator is IModuleValidator {
 
   /// @notice Thrown when an OIDC issuer is empty.
   error OidcIssuerTooLong();
+
+  /// @notice Thrown when a user tries to cancel a recovery but no recovery was started
+  error NoRecoveryStarted();
 
   /// @notice The data for an OIDC account.
   /// @param oidcDigest Digest that identifies an account. It's calculated as: PoseidonHash(sub || aud || iss || salt) of the OIDC key.
@@ -113,6 +121,7 @@ interface IOidcRecoveryValidator is IModuleValidator {
   function addOidcAccount(bytes32 oidcDigest, string memory iss) external;
   function deleteOidcAccount() external;
   function startRecovery(StartRecoveryData calldata data, address targetAccount) external;
+  function cancelRecovery() external;
   function addressForDigest(bytes32 digest) external returns (address);
   function oidcDataForAddress(address account) external returns (OidcData memory);
 }
