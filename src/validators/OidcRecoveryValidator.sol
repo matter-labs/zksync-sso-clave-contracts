@@ -64,7 +64,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
 
   /// @notice Runs on module install
   /// @param data ABI-encoded OidcCreationData key to add immediately, or empty if not needed
-  function onInstall(bytes calldata data) external override {
+  function onInstall(bytes calldata data) external {
     IValidatorManager asValidator = IValidatorManager(msg.sender);
 
     bool passKeyModuleIsPresent = asValidator.isModuleValidator(webAuthValidator);
@@ -80,7 +80,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
 
   /// @notice Runs on module uninstall
   /// @dev Deletes the OIDC account for the caller, freeing it for use by another SSO account.
-  function onUninstall(bytes calldata) external override {
+  function onUninstall(bytes calldata) external {
     _deleteOidcAccount();
   }
 
