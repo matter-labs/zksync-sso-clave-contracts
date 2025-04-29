@@ -22,6 +22,11 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @notice The number of public inputs for the zk proof.
   uint256 constant PUB_SIGNALS_LENGTH = 20;
 
+  /// @dev Size of a byte in bits. Used for byte shifting operations across the contract.
+  uint256 private constant BITS_IN_A_BYTE = 8;
+  uint256 private constant BYTES_IN_A_WORD = 32;
+  uint256 private constant LAST_BYTE_MASK = uint256(0xff);
+
   /// @notice Emitted when an SSO account updates their associated OIDC account.
   /// @param account The address of the SSO account that updated their OIDC data.
   /// @param oidcDigest Digest generated from data that identifies the user. Calculated as: PoseidonHash(iss || aud || sub || salt).
@@ -228,9 +233,11 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
     // Lastly the sender hash split into two 31-byte chunks (fields)
     // Reverse ensures correct little-endian representation
-    publicInputs[index] = _reverse(uint256(senderHash) >> 8) >> 8;
+    publicInputs[index] = _reverse(uint256(senderHash) >> BITS_IN_A_BYTE) >> BITS_IN_A_BYTE;
     ++index;
-    publicInputs[index] = (uint256(senderHash) << 248) >> 248;
+
+    // Here we shift left and right to discard
+    publicInputs[index] = uint256(senderHash) & LAST_BYTE_MASK;
 
     if (!verifierContract.verifyProof(data.zkProof.pA, data.zkProof.pB, data.zkProof.pC, publicInputs)) {
       revert ZkProofVerificationFailed();
@@ -328,13 +335,18 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   /// @return uint256 The reversed version of the input.
   function _reverse(uint256 input) private pure returns (uint256) {
     uint256 res = 0;
+    // this number will be consumed byte by byte
     uint256 shifted = input;
-    uint256 mask = 0xff;
 
-    for (uint256 i = 0; i < 32; ++i) {
-      uint256 oneByte = (shifted & mask) << ((32 - i - 1) * 8);
-      shifted = shifted >> 8;
+    for (uint256 i = 0; i < BYTES_IN_A_WORD; ++i) {
+      // Take last byte
+      uint256 oneByte = (shifted & LAST_BYTE_MASK);
+      // Move byte to next empty position
+      oneByte = oneByte << ((BYTES_IN_A_WORD - i - 1) * BITS_IN_A_BYTE);
+      // Accumulate result
       res = res + oneByte;
+      // Advance to next byte;
+      shifted = shifted >> BITS_IN_A_BYTE;
     }
 
     return res;
