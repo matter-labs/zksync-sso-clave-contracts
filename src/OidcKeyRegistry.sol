@@ -3,12 +3,13 @@ pragma solidity ^0.8.24;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { IOidcKeyRegistry } from "./interfaces/IOidcKeyRegistry.sol";
 
 /// @title OidcKeyRegistry
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract is used to store OIDC keys for the OIDC recovery validator.
-contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
+contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, OwnableUpgradeable {
   /// @dev The maximum number of keys that can be added to the registry.
   uint256 public constant MAX_KEYS = 8;
 
@@ -23,68 +24,12 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
   /// @dev Max value that an rsa chunk can take. Used to validate new keys.
   uint256 private constant VALIDATE_MODULUS_LIMIT = (1 << CIRCOM_BIGINT_CHUNK_SIZE) - 1;
 
-  /// @notice The structure representing an OIDC key.
-  /// @param issHash The issuer hash.
-  /// @param kid The key ID.
-  /// @param n The RSA modulus.
-  /// @param e The RSA exponent.
-  struct Key {
-    bytes32 issHash;
-    bytes32 kid;
-    uint256[CIRCOM_BIGINT_CHUNKS] n;
-    bytes e;
-  }
-
-  /// @notice Emitted when a key is added to the registry.
-  /// @param issHash The issuer hash.
-  /// @param kid The key ID.
-  /// @param n The RSA modulus.
-  event KeyAdded(bytes32 indexed issHash, bytes32 indexed kid, uint256[CIRCOM_BIGINT_CHUNKS] n);
-
-  /// @notice Emitted when a key is deleted from the registry.
-  /// @param issHash The issuer hash.
-  /// @param kid The key ID.
-  event KeyDeleted(bytes32 indexed issHash, bytes32 indexed kid);
-
-  /// @notice Thrown when a key is not found for the given issuer hash and key ID.
-  /// @param issHash The issuer hash associated with the key.
-  /// @param kid The key ID that was not found.
-  error KeyNotFound(bytes32 issHash, bytes32 kid);
-
-  /// @notice Thrown when the number of keys exceeds the maximum allowed limit (MAX_KEYS).
-  /// @param count The number of keys that exceeded the limit.
-  error KeyCountLimitExceeded(uint256 count);
-
-  /// @notice Thrown when the issuer hash of the keys being added does not match the expected issuer hash.
-  /// @dev This is to ensure that all added keys are for the same issuer.
-  /// @param expectedIssHash The expected issuer hash.
-  /// @param actualIssHash The actual issuer hash provided.
-  error IssuerHashMismatch(bytes32 expectedIssHash, bytes32 actualIssHash);
-
-  /// @notice Thrown when the key ID is zero, which is not allowed.
-  /// @param index The index of the key in the batch being validated.
-  error KeyIdCannotBeZero(uint256 index);
-
-  /// @notice Thrown when the exponent is zero, which is not allowed.
-  /// @param index The index of the key in the batch being validated.
-  error ExponentCannotBeZero(uint256 index);
-
-  /// @notice Thrown when the modulus is zero, which is not allowed.
-  /// @param index The index of the key in the batch being validated.
-  error ModulusCannotBeZero(uint256 index);
-
-  /// @notice Thrown when a modulus chunk exceeds the maximum allowed size of 121 bits.
-  /// @param index The index of the key in the batch being validated.
-  /// @param chunkIndex The index of the chunk that exceeded the limit.
-  /// @param chunkValue The value of the chunk that exceeded the limit.
-  error ModulusChunkTooLarge(uint256 index, uint256 chunkIndex, uint256 chunkValue);
-
   /// @notice The mapping of issuer hash to keys.
   /// @dev Each issuer has an array of length MAX_KEYS, which is a circular buffer.
   mapping(bytes32 issHash => Key[MAX_KEYS] keys) public OIDCKeys;
 
-  /// @notice The index of the last key added per issuer.
-  /// @dev This is used to determine the next index to add a key to in the circular buffer.
+  /// @notice The index where the next key is going to be added.
+  /// @dev Because keys are stored in a circular buffer this information needs to be stored.
   mapping(bytes32 issHash => uint256 keyIndex) public keyIndexes;
 
   constructor() {
@@ -151,11 +96,20 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     _validateKeyBatch(newKeys);
     for (uint256 i = 0; i < newKeys.length; ++i) {
       bytes32 issHash = newKeys[i].issHash;
+      _ensureUniqueKid(newKeys[i].kid, issHash);
       uint256 keyIndex = keyIndexes[issHash];
+      OIDCKeys[issHash][keyIndex] = newKeys[i];
       uint256 nextIndex = (keyIndex + 1) % MAX_KEYS; // Circular buffer
-      OIDCKeys[issHash][nextIndex] = newKeys[i];
       keyIndexes[issHash] = nextIndex;
       emit KeyAdded(issHash, newKeys[i].kid, newKeys[i].n);
+    }
+  }
+
+  function _ensureUniqueKid(bytes32 kid, bytes32 issHash) internal {
+    for (uint256 i = 0; i < MAX_KEYS; i++) {
+      if (OIDCKeys[issHash][i].kid == kid) {
+        revert KidAlreadyRegistered(kid, issHash);
+      }
     }
   }
 
@@ -168,6 +122,8 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
     uint256 currentIndex = keyIndexes[issHash];
 
     // Collect non-empty keys in order
+    // At the end of this loop `keyCount` it's in the currentIndex
+    // for the next key.
     for (uint256 i = 0; i < MAX_KEYS; ++i) {
       uint256 circularIndex = (currentIndex + i) % MAX_KEYS;
       if (OIDCKeys[issHash][circularIndex].kid != 0) {
@@ -186,8 +142,7 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       delete OIDCKeys[issHash][i];
     }
 
-    // Adding MAX_KEYS to avoid underflow
-    keyIndexes[issHash] = (keyCount + MAX_KEYS - 1) % MAX_KEYS;
+    keyIndexes[issHash] = keyCount % MAX_KEYS;
   }
 
   /// @notice Deletes a key from the registry.
