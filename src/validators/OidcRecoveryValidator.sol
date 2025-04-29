@@ -234,10 +234,9 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     return true;
   }
 
-  /// @notice Unimplemented because signature validation is not required.
-  /// @dev This module is only used to set new passkeys, arbitrary signature validation is out of the scope of this module.
-  function validateSignature(bytes32, bytes memory) external pure returns (bool) {
-    revert ValidateSignatureNotImplemented();
+  /// @inheritdoc IModuleValidator
+  function validateSignature(bytes32, bytes calldata) external pure returns (bool) {
+    return false;
   }
 
   /// @inheritdoc IERC165

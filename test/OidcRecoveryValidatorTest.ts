@@ -35,6 +35,13 @@ describe("OidcRecoveryValidator", function () {
     })).wait();
   });
 
+  describe("validateSignature", () => {
+    it("returns false", async () => {
+      const res = await oidcValidator.connect(testWallet).validateSignature(pad("0x01"), "0x02");
+      expect(res).to.equal(false);
+    });
+  });
+
   describe("addValidationKey", () => {
     it("should add new OIDC validation key", async function () {
       const oidcDigest = ethers.hexlify(randomBytes(32));
