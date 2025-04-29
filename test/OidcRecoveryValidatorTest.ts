@@ -35,6 +35,13 @@ describe("OidcRecoveryValidator", function () {
     })).wait();
   });
 
+  describe("validateSignature", () => {
+    it("returns false", async () => {
+      const res = await oidcValidator.connect(testWallet).validateSignature(pad("0x01"), "0x02");
+      expect(res).to.equal(false);
+    });
+  });
+
   describe("addValidationKey", () => {
     it("should add new OIDC validation key", async function () {
       const oidcDigest = ethers.hexlify(randomBytes(32));
@@ -51,6 +58,17 @@ describe("OidcRecoveryValidator", function () {
       expect(storedData.readyToRecover).to.be.false;
       expect(storedData.pendingPasskeyHash).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
       expect(storedData.recoverNonce).to.equal(0);
+    });
+
+    it("reverts if iss too long", async () => {
+      const oidcDigest = ethers.hexlify(randomBytes(32));
+      const iss = `https://${"a".repeat(100)}.com`;
+
+      const connected = oidcValidator.connect(testWallet);
+      await expect(connected.addOidcAccount(oidcDigest, iss)).to.revertedWithCustomError(
+        connected,
+        "OidcIssuerTooLong",
+      );
     });
 
     it("should prevent duplicate oidc_digest registration", async function () {

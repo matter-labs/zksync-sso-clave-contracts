@@ -23,7 +23,10 @@ import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.so
 /// @dev This contract allows secure account recovery for an SSO account using OIDC (Open Id Connect) protocol.
 contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   /// @notice The number of public inputs for the zk proof.
-  uint256 private constant PUB_SIGNALS_LENGTH = 20;
+  uint256 public constant PUB_SIGNALS_LENGTH = 20;
+
+  /// @notice Max length for iss (defined in circuit)
+  uint256 public constant MAX_ISS_LENGTH = 31;
 
   /// @dev Size of a byte in bits. Used for byte shifting operations across the contract.
   uint256 private constant BITS_IN_A_BYTE = 8;
@@ -94,9 +97,9 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   function addOidcAccount(bytes32 oidcDigest, string memory iss) public returns (bool) {
     if (oidcDigest == bytes32(0)) revert EmptyOidcDigest();
     if (bytes(iss).length == 0) revert EmptyOidcIssuer();
+    if (bytes(iss).length > MAX_ISS_LENGTH) revert OidcIssuerTooLong();
 
     bool isNew = accountData[msg.sender].oidcDigest == bytes32(0);
-
     if (!isNew) {
       bytes32 old = accountData[msg.sender].oidcDigest;
       delete digestIndex[old];
@@ -231,10 +234,9 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     return true;
   }
 
-  /// @notice Unimplemented because signature validation is not required.
-  /// @dev This module is only used to set new passkeys, arbitrary signature validation is out of the scope of this module.
-  function validateSignature(bytes32, bytes memory) external pure returns (bool) {
-    revert ValidateSignatureNotImplemented();
+  /// @inheritdoc IModuleValidator
+  function validateSignature(bytes32, bytes calldata) external pure returns (bool) {
+    return false;
   }
 
   /// @inheritdoc IERC165

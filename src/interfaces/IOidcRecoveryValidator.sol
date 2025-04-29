@@ -62,6 +62,9 @@ interface IOidcRecoveryValidator is IModuleValidator {
   /// @notice Thrown when an OIDC issuer is empty.
   error EmptyOidcIssuer();
 
+  /// @notice Thrown when an OIDC issuer is empty.
+  error OidcIssuerTooLong();
+
   /// @notice The data for an OIDC account.
   /// @param oidcDigest Digest that identifies an account. It's calculated as: PoseidonHash(sub || aud || iss || salt) of the OIDC key.
   /// @param iss The OIDC issuer.
