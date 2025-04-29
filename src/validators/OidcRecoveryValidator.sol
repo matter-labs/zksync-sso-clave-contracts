@@ -100,7 +100,6 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     if (bytes(iss).length > MAX_ISS_LENGTH) revert OidcIssuerTooLong();
 
     bool isNew = accountData[msg.sender].oidcDigest == bytes32(0);
-
     if (!isNew) {
       bytes32 old = accountData[msg.sender].oidcDigest;
       delete digestIndex[old];
