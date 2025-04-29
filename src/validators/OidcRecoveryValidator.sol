@@ -24,14 +24,14 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
   /// @notice Emitted when an SSO account updates their associated OIDC account.
   /// @param account The address of the SSO account that updated their OIDC data.
-  /// @param oidcDigest Digest generated from data that identifies the user. Calculated as: PoseidonHash(sub || aud || iss || salt).
+  /// @param oidcDigest Digest generated from data that identifies the user. Calculated as: PoseidonHash(iss || aud || sub || salt).
   /// @param iss The OIDC issuer.
   /// @param isNew True if the OIDC key is new, false if it is an update.
   event OidcAccountUpdated(address indexed account, bytes32 oidcDigest, string iss, bool isNew);
 
   /// @notice Emitted when an OIDC account is deleted.
   /// @param account The address of the SSO account that deleted the associated OIDC data.
-  /// @param oidcDigest The PoseidonHash(sub || aud || iss || salt) of the OIDC key.
+  /// @param oidcDigest The PoseidonHash(iss || aud || sub || salt) of the OIDC key.
   event OidcAccountDeleted(address indexed account, bytes32 oidcDigest);
 
   /// @notice Thrown when calling `validateSignature` since it is not implemented.
@@ -58,7 +58,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   error WebAuthValidatorNotPresentInAccount(address account);
 
   /// @notice The data for an OIDC account.
-  /// @param oidcDigest Digest that identifies an account. It's calculated as: PoseidonHash(sub || aud || iss || salt) of the OIDC key.
+  /// @param oidcDigest Digest that identifies an account. It's calculated as: PoseidonHash(iss || aud || sub || salt) of the OIDC key.
   /// @param iss The OIDC issuer.
   /// @param readyToRecover Indicating if recovery is active (true after `startRecovery` and false once recovery is completed).
   /// @param pendingPasskeyHash The hash of the pending passkey.
@@ -74,7 +74,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   }
 
   /// @notice Data needed to associate a new oidc account to an sso account.
-  /// @param oidcDigest The PoseidonHash(sub || aud || iss || salt) of the OIDC key.
+  /// @param oidcDigest The PoseidonHash(iss || aud || sub || salt) of the OIDC key.
   /// @param iss The OIDC issuer. See https://openid.net/specs/openid-connect-core-1_0.html#IDToken
   struct OidcCreationData {
     bytes32 oidcDigest;
@@ -157,7 +157,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
   }
 
   /// @notice Adds an `OidcData` for the caller.
-  /// @param oidcDigest PoseidonHash(sub || aud || iss || salt).
+  /// @param oidcDigest PoseidonHash(iss || aud || sub || salt).
   /// @param iss The OIDC issuer.
   /// @return true if the key was added, false if it was updated.
   function addOidcAccount(bytes32 oidcDigest, string memory iss) public returns (bool) {
