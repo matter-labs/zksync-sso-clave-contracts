@@ -105,8 +105,9 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
       delete digestIndex[old];
     }
 
-    if (digestIndex[oidcDigest] != address(0)) {
-      revert OidcDigestAlreadyRegisteredInAnotherAccount(digestIndex[oidcDigest]);
+    address previousOwner = digestIndex[oidcDigest];
+    if (previousOwner != address(0)) {
+      revert OidcDigestAlreadyRegisteredInAnotherAccount(previousOwner);
     }
 
     accountData[msg.sender].oidcDigest = oidcDigest;
