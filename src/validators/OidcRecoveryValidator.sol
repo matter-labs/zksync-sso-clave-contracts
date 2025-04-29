@@ -15,6 +15,7 @@ import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { IOidcRecoveryValidator } from "../interfaces/IOidcRecoveryValidator.sol";
 import { IOidcKeyRegistry } from "../interfaces/IOidcKeyRegistry.sol";
 import { IZkVerifier } from "../interfaces/IZkVerifier.sol";
+import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 
 /// @title OidcRecoveryValidator
 /// @author Matter Labs
@@ -22,12 +23,17 @@ import { IZkVerifier } from "../interfaces/IZkVerifier.sol";
 /// @dev This contract allows secure account recovery for an SSO account using OIDC (Open Id Connect) protocol.
 contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   /// @notice The number of public inputs for the zk proof.
-  uint256 private constant PUB_SIGNALS_LENGTH = 20;
+  uint256 public constant PUB_SIGNALS_LENGTH = 20;
+
+  /// @notice Max length for iss (defined in circuit)
+  uint256 public constant MAX_ISS_LENGTH = 31;
 
   /// @dev Size of a byte in bits. Used for byte shifting operations across the contract.
   uint256 private constant BITS_IN_A_BYTE = 8;
   uint256 private constant BYTES_IN_A_WORD = 32;
   uint256 private constant LAST_BYTE_MASK = uint256(0xff);
+
+  uint256 private constant RECOVERY_VALIDITY_TIME = 10 * 60; // 10 minutes
 
   /// @notice The mapping of account addresses to their OIDC data.
   mapping(address account => OidcData oidcData) internal accountData;
@@ -87,12 +93,16 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   /// @notice Adds an `OidcData` for the caller.
   /// @param oidcDigest PoseidonHash(iss || aud || sub || salt).
   /// @param iss The OIDC issuer.
-  /// @return true if the key was added, false if it was updated.
-  function addOidcAccount(bytes32 oidcDigest, string memory iss) public returns (bool) {
+  function addOidcAccount(bytes32 oidcDigest, string memory iss) public {
     if (oidcDigest == bytes32(0)) revert EmptyOidcDigest();
     if (bytes(iss).length == 0) revert EmptyOidcIssuer();
+    if (bytes(iss).length > MAX_ISS_LENGTH) revert OidcIssuerTooLong();
 
-    bool isNew = accountData[msg.sender].oidcDigest.length == 0;
+    bool isNew = accountData[msg.sender].oidcDigest == bytes32(0);
+    if (!isNew) {
+      bytes32 old = accountData[msg.sender].oidcDigest;
+      delete digestIndex[old];
+    }
 
     address previousOwner = digestIndex[oidcDigest];
     if (previousOwner != address(0)) {
@@ -101,11 +111,13 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
 
     accountData[msg.sender].oidcDigest = oidcDigest;
     accountData[msg.sender].iss = iss;
+    accountData[msg.sender].readyToRecover = false;
+    accountData[msg.sender].pendingPasskeyHash = bytes32(0);
+    accountData[msg.sender].recoveryStartedAt = 0;
     accountData[msg.sender].addedOn = block.timestamp;
     digestIndex[oidcDigest] = msg.sender;
 
     emit OidcAccountUpdated(msg.sender, oidcDigest, iss, isNew);
-    return isNew;
   }
 
   /// @notice Deletes the OIDC account for the caller, freeing it for use by another SSO account.
@@ -137,23 +149,25 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     bytes32 issHash = keyRegistry.hashIssuer(oidcData.iss);
     OidcKeyRegistry.Key memory key = keyRegistry.getKey(issHash, data.kid);
 
-    bytes32 senderHash = keccak256(abi.encode(msg.sender, oidcData.recoverNonce, data.timeLimit));
+    bytes32 senderHash = keccak256(
+      abi.encode(msg.sender, targetAccount, data.pendingPasskeyHash, oidcData.recoverNonce, data.timeLimit)
+    );
 
     // Fill public inputs
     uint256[PUB_SIGNALS_LENGTH] memory publicInputs;
 
-    // First CIRCOM_BIGINT_CHUNKS elements are the oidc provider public key.
-    for (uint256 i = 0; i < key.n.length; ++i) {
-      publicInputs[i] = key.n[i];
+    // First 17 elements are the oidc provider public key modulus (circuit assumes 65537 as exponent).
+    // key.rsaModulus is always 17 elements long.
+    for (uint256 i = 0; i < key.rsaModulus.length; ++i) {
+      publicInputs[i] = key.rsaModulus[i];
     }
-    uint256 pubSignalsIndex = key.n.length;
+    uint256 pubSignalsIndex = key.rsaModulus.length;
 
-    // Then the digest
+    // 18th element is the the digest
     publicInputs[pubSignalsIndex] = uint256(oidcData.oidcDigest);
 
-    // Lastly the sender hash split into two 31-byte chunks (fields)
-    // Reverse ensures correct little-endian representation
-    publicInputs[pubSignalsIndex + 1] = _reverse(uint256(senderHash) >> BITS_IN_A_BYTE) >> BITS_IN_A_BYTE;
+    // 19th and 20th (the last 2) are the jwt nonce content, split in 31 byte chunks
+    publicInputs[pubSignalsIndex + 1] = uint256(senderHash) >> BITS_IN_A_BYTE;
     publicInputs[pubSignalsIndex + 2] = uint256(senderHash) & LAST_BYTE_MASK;
 
     if (!verifier.verifyProof(data.zkProof.pA, data.zkProof.pB, data.zkProof.pC, publicInputs)) {
@@ -161,10 +175,24 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     }
 
     accountData[targetAccount].pendingPasskeyHash = data.pendingPasskeyHash;
+    accountData[targetAccount].recoveryStartedAt = block.timestamp;
     accountData[targetAccount].recoverNonce += 1;
     accountData[targetAccount].readyToRecover = true;
 
     emit RecoveryStarted(msg.sender, targetAccount, data.pendingPasskeyHash);
+  }
+
+  function cancelRecovery() external {
+    if (!accountData[msg.sender].readyToRecover) {
+      revert NoRecoveryStarted();
+    }
+
+    bytes32 pendingPasskeyHash = accountData[msg.sender].pendingPasskeyHash;
+    delete accountData[msg.sender].pendingPasskeyHash;
+    delete accountData[msg.sender].recoveryStartedAt;
+    accountData[msg.sender].readyToRecover = false;
+
+    emit RecoveryCancelled(msg.sender, pendingPasskeyHash);
   }
 
   /// @notice Only allows transaction setting a new passkey for the sender, and only if `startRecovery` was successfully
@@ -192,8 +220,12 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     }
 
     // Decode the key from the transaction data and check against the pending passkey hash
-    (, bytes32[2] memory newPasskeyPubKey, ) = abi.decode(transaction.data[4:], (bytes, bytes32[2], string));
-    bytes32 passkeyHash = keccak256(abi.encode(newPasskeyPubKey[0], newPasskeyPubKey[1]));
+    (bytes memory credentialId, bytes32[2] memory newPasskeyPubKey, string memory originDomain) = abi.decode(
+      transaction.data[4:],
+      (bytes, bytes32[2], string)
+    );
+    bytes32 passkeyHash = keccak256(abi.encode(credentialId, newPasskeyPubKey, originDomain));
+
     OidcData memory oidcData = accountData[msg.sender];
 
     if (!oidcData.readyToRecover) {
@@ -204,16 +236,21 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
       return false;
     }
 
+    TimestampAsserterLocator.locate().assertTimestampInRange(
+      oidcData.recoveryStartedAt,
+      oidcData.recoveryStartedAt + RECOVERY_VALIDITY_TIME
+    );
+
     // Reset pending passkey hash
     accountData[msg.sender].pendingPasskeyHash = bytes32(0);
+    accountData[msg.sender].recoveryStartedAt = 0;
     accountData[msg.sender].readyToRecover = false;
     return true;
   }
 
-  /// @notice Unimplemented because signature validation is not required.
-  /// @dev This module is only used to set new passkeys, arbitrary signature validation is out of the scope of this module.
-  function validateSignature(bytes32, bytes memory) external pure returns (bool) {
-    revert ValidateSignatureNotImplemented();
+  /// @inheritdoc IModuleValidator
+  function validateSignature(bytes32, bytes calldata) external pure returns (bool) {
+    return false;
   }
 
   /// @inheritdoc IERC165
@@ -247,36 +284,5 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     }
 
     return data;
-  }
-
-  /// @notice Reverses the byte order of a given uint256.
-  /// @dev Algorithm taken from https://graphics.stanford.edu/%7Eseander/bithacks.html#ReverseParallel
-  /// @param input The uint256 to reverse.
-  /// @return v The reversed uint256.
-  function _reverse(uint256 input) internal pure returns (uint256 v) {
-    v = input;
-
-    // swap bytes
-    v =
-      ((v & 0xFF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00) >> 8) |
-      ((v & 0x00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF) << 8);
-
-    // swap 2-byte long pairs
-    v =
-      ((v & 0xFFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000) >> 16) |
-      ((v & 0x0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF) << 16);
-
-    // swap 4-byte long pairs
-    v =
-      ((v & 0xFFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000) >> 32) |
-      ((v & 0x00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF) << 32);
-
-    // swap 8-byte long pairs
-    v =
-      ((v & 0xFFFFFFFFFFFFFFFF0000000000000000FFFFFFFFFFFFFFFF0000000000000000) >> 64) |
-      ((v & 0x0000000000000000FFFFFFFFFFFFFFFF0000000000000000FFFFFFFFFFFFFFFF) << 64);
-
-    // swap 16-byte long pairs
-    v = (v >> 128) | (v << 128);
   }
 }

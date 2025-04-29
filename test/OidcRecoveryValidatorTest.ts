@@ -35,6 +35,13 @@ describe("OidcRecoveryValidator", function () {
     })).wait();
   });
 
+  describe("validateSignature", () => {
+    it("returns false", async () => {
+      const res = await oidcValidator.connect(testWallet).validateSignature(pad("0x01"), "0x02");
+      expect(res).to.equal(false);
+    });
+  });
+
   describe("addValidationKey", () => {
     it("should add new OIDC validation key", async function () {
       const oidcDigest = ethers.hexlify(randomBytes(32));
@@ -51,6 +58,17 @@ describe("OidcRecoveryValidator", function () {
       expect(storedData.readyToRecover).to.be.false;
       expect(storedData.pendingPasskeyHash).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
       expect(storedData.recoverNonce).to.equal(0);
+    });
+
+    it("reverts if iss too long", async () => {
+      const oidcDigest = ethers.hexlify(randomBytes(32));
+      const iss = `https://${"a".repeat(100)}.com`;
+
+      const connected = oidcValidator.connect(testWallet);
+      await expect(connected.addOidcAccount(oidcDigest, iss)).to.revertedWithCustomError(
+        connected,
+        "OidcIssuerTooLong",
+      );
     });
 
     it("should prevent duplicate oidc_digest registration", async function () {
@@ -73,6 +91,26 @@ describe("OidcRecoveryValidator", function () {
       ).to.be.revertedWithCustomError(oidcValidator, "OidcDigestAlreadyRegisteredInAnotherAccount")
         .withArgs(testWallet.address);
     });
+  });
+
+  it("removes old digest from index on update", async () => {
+    const oidcDigest = ethers.hexlify(randomBytes(32));
+    const oidcDigest2 = ethers.hexlify(randomBytes(32));
+    const iss = "https://issuer.com";
+
+    // First registration should succeed
+    const connected = oidcValidator.connect(testWallet);
+
+    await connected.addOidcAccount(oidcDigest, iss);
+    const returnedAddress = await connected.addressForDigest(oidcDigest);
+    expect(returnedAddress).to.equal(testWallet.address);
+    await connected.addOidcAccount(oidcDigest2, iss);
+    const returnedAddress2 = await connected.addressForDigest(oidcDigest2);
+    expect(returnedAddress2).to.equal(testWallet.address);
+    await expect(connected.addressForDigest(oidcDigest)).to.revertedWithCustomError(
+      connected,
+      "AddressNotFoundForDigest",
+    ).withArgs(oidcDigest);
   });
 
   describe("deleteOidcAccount", () => {
@@ -104,8 +142,7 @@ describe("OidcRecoveryValidator", function () {
       const key = {
         issHash,
         kid: pad("0x914fb9b087180bc0303284500c5f540c6d4f5e2f"),
-        n: JWK_MODULUS,
-        e: "0x010001",
+        rsaModulus: JWK_MODULUS,
       };
       await keyRegistry.addKey(key);
 

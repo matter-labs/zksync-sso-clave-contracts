@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "ethers";
-import { numberToHex, pad } from "viem";
+import { hexToBigInt, numberToHex, pad } from "viem";
 import { Wallet } from "zksync-ethers";
 
 import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
@@ -35,19 +35,17 @@ describe("OidcKeyRegistry", function () {
     const key = {
       issHash,
       kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     };
 
     await expect(oidcKeyRegistry.addKey(key))
       .to.emit(oidcKeyRegistry, "KeyAdded")
-      .withArgs(issHash, key.kid, key.n);
+      .withArgs(issHash, key.kid, key.rsaModulus);
 
     const storedKey = await oidcKeyRegistry.getKey(issHash, key.kid);
     expect(storedKey.kid).to.equal(key.kid);
-    const expectedN = key.n.map((n) => BigInt(n));
-    expect(storedKey.n).to.deep.equal(expectedN);
-    expect(storedKey.e).to.equal(key.e);
+    const expectedN = key.rsaModulus.map((n) => BigInt(n));
+    expect(storedKey.rsaModulus).to.deep.equal(expectedN);
   });
 
   it("saves first key in first slot", async () => {
@@ -57,8 +55,7 @@ describe("OidcKeyRegistry", function () {
     const key = {
       issHash,
       kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     };
     await oidcKeyRegistry.addKey(key);
 
@@ -77,20 +74,17 @@ describe("OidcKeyRegistry", function () {
     const key1 = {
       issHash,
       kid: pad("0x01"),
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     };
     const key2 = {
       issHash,
       kid: pad("0x02"),
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     };
     const key3 = {
       issHash,
       kid: pad("0x03"),
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     };
     await oidcKeyRegistry.addKey(key1);
     await oidcKeyRegistry.addKey(key2);
@@ -112,14 +106,13 @@ describe("OidcKeyRegistry", function () {
     const newKeys = Array.from({ length: 8 }, (_, i) => ({
       issHash,
       kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}`)),
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     }));
 
     for (let i = 0; i < newKeys.length; i++) {
       await expect(oidcKeyRegistry.addKeys([newKeys[i]]))
         .to.emit(oidcKeyRegistry, "KeyAdded")
-        .withArgs(issHash, newKeys[i].kid, newKeys[i].n);
+        .withArgs(issHash, newKeys[i].kid, newKeys[i].rsaModulus);
     }
 
     for (let i = 0; i < 8; i++) {
@@ -134,8 +127,7 @@ describe("OidcKeyRegistry", function () {
     const key = {
       issHash,
       kid: "0x3333333333333333333333333333333333333333333333333333333333333333",
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     };
 
     const nonOwner = Wallet.createRandom(getProvider());
@@ -151,8 +143,7 @@ describe("OidcKeyRegistry", function () {
     const keys = Array.from({ length: 8 }, (_, i) => ({
       issHash,
       kid: pad(numberToHex(i + 1)),
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     }));
 
     await oidcKeyRegistry.addKeys(keys);
@@ -166,8 +157,7 @@ describe("OidcKeyRegistry", function () {
     const moreKeys = Array.from({ length: 8 }, (_, i) => ({
       issHash,
       kid: pad(numberToHex(i + 9)),
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     }));
 
     await oidcKeyRegistry.addKeys(moreKeys);
@@ -195,8 +185,7 @@ describe("OidcKeyRegistry", function () {
       const keys = Array.from({ length: keysPerIssuer }, (_, i) => ({
         issHash,
         kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}-${issuer}`)),
-        n: JWK_MODULUS,
-        e: "0x010001",
+        rsaModulus: JWK_MODULUS,
       }));
 
       await oidcKeyRegistry.addKeys(keys);
@@ -221,8 +210,7 @@ describe("OidcKeyRegistry", function () {
     const keys = Array.from({ length: 9 }, (_, i) => ({
       issHash,
       kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}`)),
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     }));
 
     await expect(oidcKeyRegistry.addKeys(keys))
@@ -233,15 +221,14 @@ describe("OidcKeyRegistry", function () {
   it("should revert when adding two different issuers", async () => {
     const issuers = ["https://issuer1.com", "https://issuer2.com"];
     const keysPerIssuer = 4; // Adding the limit for 2 issuers
-    const allKeys: { issHash: string; kid: string; n: string[]; e: string }[] = [];
+    const allKeys: { issHash: string; kid: string; rsaModulus: string[] }[] = [];
 
     for (const issuer of issuers) {
       const issHash = await oidcKeyRegistry.hashIssuer(issuer);
       const keys = Array.from({ length: keysPerIssuer }, (_, i) => ({
         issHash,
         kid: ethers.keccak256(ethers.toUtf8Bytes(`key${i + 1}-${issuer}`)),
-        n: JWK_MODULUS,
-        e: "0x010001",
+        rsaModulus: JWK_MODULUS,
       }));
       allKeys.push(...keys);
     }
@@ -251,34 +238,19 @@ describe("OidcKeyRegistry", function () {
       .withArgs(allKeys[0].issHash, allKeys[4].issHash);
   });
 
-  it("should revert when adding a key with a zero exponent", async () => {
-    const issuer = "https://example.com";
-    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
-    const key = {
-      issHash,
-      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      n: JWK_MODULUS,
-      e: "0x000000",
-    };
-
-    await expect(oidcKeyRegistry.addKey(key))
-      .to.be.revertedWithCustomError(oidcKeyRegistry, "ExponentCannotBeZero")
-      .withArgs(0);
-  });
-
   it("should revert when adding a key with a zero modulus", async () => {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+    const kid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
     const key = {
       issHash,
-      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      n: base64ToCircomBigInt(""),
-      e: "0x010001",
+      kid,
+      rsaModulus: base64ToCircomBigInt(""),
     };
 
     await expect(oidcKeyRegistry.addKey(key))
       .to.be.revertedWithCustomError(oidcKeyRegistry, "ModulusCannotBeZero")
-      .withArgs(0);
+      .withArgs(kid);
   });
 
   it("should revert when adding a key with a zero kid", async () => {
@@ -287,8 +259,7 @@ describe("OidcKeyRegistry", function () {
     const key = {
       issHash,
       kid: "0x0000000000000000000000000000000000000000000000000000000000000000",
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     };
 
     await expect(oidcKeyRegistry.addKey(key))
@@ -303,16 +274,14 @@ describe("OidcKeyRegistry", function () {
     const key = {
       issHash,
       kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     };
     await oidcKeyRegistry.addKey(key);
 
     const key2 = {
       issHash,
       kid: key.kid,
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     };
 
     await expect(oidcKeyRegistry.addKey(key2)).to.revertedWithCustomError(
@@ -329,14 +298,12 @@ describe("OidcKeyRegistry", function () {
     const key1 = {
       issHash,
       kid,
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     };
     const key2 = {
       issHash,
       kid,
-      n: JWK_MODULUS2,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS2,
     };
 
     await expect(oidcKeyRegistry.addKeys([key1, key2])).to.revertedWithCustomError(
@@ -345,21 +312,44 @@ describe("OidcKeyRegistry", function () {
     ).withArgs(key2.kid, key2.issHash);
   });
 
+  it("reverts if an even modulus is added", async () => {
+    const issuer = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(issuer);
+
+    const modulus = hexToBigInt(`0x${Buffer.from(JWK_MODULUS_64, "base64url").toString("hex")}`);
+    const evenModulus = modulus - modulus % 2n;
+    const serializedEvenModulus = base64ToCircomBigInt(
+      Buffer.from(evenModulus.toString(16), "hex").toString("base64url"),
+    );
+
+    const kid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+    const key = {
+      issHash,
+      kid,
+      rsaModulus: serializedEvenModulus,
+    };
+
+    await expect(oidcKeyRegistry.addKeys([key])).to.revertedWithCustomError(
+      oidcKeyRegistry,
+      "EvenRsaModulus",
+    ).withArgs(kid);
+  });
+
   it("should revert when adding a key with a modulus chunk too large", async () => {
     const issuer = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(issuer);
-    const n = [...JWK_MODULUS];
-    n[2] += 1 << 121;
+    const rsaModulus = [...JWK_MODULUS];
+    rsaModulus[2] += 1 << 121;
+    const kid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
     const key = {
       issHash,
-      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      n,
-      e: "0x010001",
+      kid,
+      rsaModulus,
     };
 
     await expect(oidcKeyRegistry.addKey(key))
       .to.be.revertedWithCustomError(oidcKeyRegistry, "ModulusChunkTooLarge")
-      .withArgs(0, 2, n[2]);
+      .withArgs(kid, 2, rsaModulus[2]);
   });
 
   it("should remove a key", async () => {
@@ -369,8 +359,7 @@ describe("OidcKeyRegistry", function () {
     const key = {
       issHash,
       kid,
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     };
 
     await oidcKeyRegistry.addKey(key);
@@ -388,8 +377,7 @@ describe("OidcKeyRegistry", function () {
     const key = {
       issHash,
       kid,
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     };
 
     await oidcKeyRegistry.addKey(key);
@@ -416,8 +404,7 @@ describe("OidcKeyRegistry", function () {
     const keys = Array.from({ length: 8 }, (_, i) => ({
       issHash,
       kid: pad(numberToHex(i + 1)),
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     }));
 
     await oidcKeyRegistry.addKeys(keys);
@@ -444,8 +431,7 @@ describe("OidcKeyRegistry", function () {
     const newKeys = Array.from({ length: 2 }, (_, i) => ({
       issHash,
       kid: pad(numberToHex(i + 9)),
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     }));
 
     await oidcKeyRegistry.addKeys(newKeys);
@@ -471,16 +457,14 @@ describe("OidcKeyRegistry", function () {
     const keys = Array.from({ length: 8 }, (_, i) => ({
       issHash,
       kid: pad(numberToHex(i + 1)),
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     }));
     await oidcKeyRegistry.addKeys(keys);
     // Add 4 more
     const moreKeys = Array.from({ length: 4 }, (_, i) => ({
       issHash,
       kid: pad(numberToHex(i + 9)),
-      n: JWK_MODULUS,
-      e: "0x010001",
+      rsaModulus: JWK_MODULUS,
     }));
     await oidcKeyRegistry.addKeys(moreKeys);
 
@@ -502,6 +486,42 @@ describe("OidcKeyRegistry", function () {
     );
   });
 
+  it("uses first empty space after delete", async () => {
+    const iss = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(iss);
+
+    // Fill the buffer
+    const keys = Array.from({ length: 5 }, (_, i) => ({
+      issHash,
+      kid: pad(numberToHex(i + 1)),
+      rsaModulus: JWK_MODULUS,
+    }));
+    await oidcKeyRegistry.addKeys(keys);
+
+    await oidcKeyRegistry.deleteKey(issHash, keys[2].kid);
+
+    const extraKey = {
+      issHash,
+      kid: pad(numberToHex(100)),
+      rsaModulus: JWK_MODULUS,
+    };
+    await oidcKeyRegistry.addKeys([extraKey]);
+
+    const allKeys = await oidcKeyRegistry.getKeys(issHash);
+    expect(allKeys.map((key) => key.kid)).to.deep.equal(
+      [
+        keys[0].kid,
+        keys[1].kid,
+        keys[3].kid,
+        keys[4].kid,
+        extraKey.kid,
+        pad("0x00"),
+        pad("0x00"),
+        pad("0x00"),
+      ],
+    );
+  });
+
   it("delete leaves intuitive order 2", async () => {
     const iss = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(iss);
@@ -510,7 +530,7 @@ describe("OidcKeyRegistry", function () {
     const keys = Array.from({ length: 8 }, (_, i) => ({
       issHash,
       kid: pad(numberToHex(i + 1)),
-      n: JWK_MODULUS,
+      rsaModulus: JWK_MODULUS,
       e: "0x010001",
     }));
     await oidcKeyRegistry.addKeys(keys);
@@ -518,7 +538,7 @@ describe("OidcKeyRegistry", function () {
     const moreKeys = Array.from({ length: 4 }, (_, i) => ({
       issHash,
       kid: pad(numberToHex(i + 9)),
-      n: JWK_MODULUS,
+      rsaModulus: JWK_MODULUS,
       e: "0x010001",
     }));
     await oidcKeyRegistry.addKeys(moreKeys);
