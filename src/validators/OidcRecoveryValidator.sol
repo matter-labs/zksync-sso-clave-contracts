@@ -158,16 +158,17 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     // Fill public inputs
     uint256[PUB_SIGNALS_LENGTH] memory publicInputs;
 
-    // First CIRCOM_BIGINT_CHUNKS elements are the oidc provider public key.
+    // First 17 elements are the oidc provider public key modulus (circuit assumes 65537 as exponent).
+    // key.rsaModulus is always 17 elements long.
     for (uint256 i = 0; i < key.rsaModulus.length; ++i) {
       publicInputs[i] = key.rsaModulus[i];
     }
     uint256 pubSignalsIndex = key.rsaModulus.length;
 
-    // Then the digest
+    // 18th element is the the digest
     publicInputs[pubSignalsIndex] = uint256(oidcData.oidcDigest);
 
-    // Lastly the sender hash split into two 31 byte chunks
+    // 19th and 20th (the last 2) are the jwt nonce content, split in 31 byte chunks
     publicInputs[pubSignalsIndex + 1] = uint256(senderHash) >> BITS_IN_A_BYTE;
     publicInputs[pubSignalsIndex + 2] = uint256(senderHash) & LAST_BYTE_MASK;
 

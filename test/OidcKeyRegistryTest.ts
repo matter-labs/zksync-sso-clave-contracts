@@ -244,7 +244,7 @@ describe("OidcKeyRegistry", function () {
     const kid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
     const key = {
       issHash,
-      kid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      kid,
       rsaModulus: base64ToCircomBigInt(""),
     };
 
