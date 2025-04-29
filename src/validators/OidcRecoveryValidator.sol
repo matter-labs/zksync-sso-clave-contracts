@@ -93,8 +93,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   /// @notice Adds an `OidcData` for the caller.
   /// @param oidcDigest PoseidonHash(sub || aud || iss || salt).
   /// @param iss The OIDC issuer.
-  /// @return true if the key was added, false if it was updated.
-  function addOidcAccount(bytes32 oidcDigest, string memory iss) public returns (bool) {
+  function addOidcAccount(bytes32 oidcDigest, string memory iss) public {
     if (oidcDigest == bytes32(0)) revert EmptyOidcDigest();
     if (bytes(iss).length == 0) revert EmptyOidcIssuer();
     if (bytes(iss).length > MAX_ISS_LENGTH) revert OidcIssuerTooLong();
@@ -119,7 +118,6 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     digestIndex[oidcDigest] = msg.sender;
 
     emit OidcAccountUpdated(msg.sender, oidcDigest, iss, isNew);
-    return isNew;
   }
 
   /// @notice Deletes the OIDC account for the caller, freeing it for use by another SSO account.
@@ -182,6 +180,19 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     accountData[targetAccount].readyToRecover = true;
 
     emit RecoveryStarted(msg.sender, targetAccount, data.pendingPasskeyHash);
+  }
+
+  function cancelRecovery() external {
+    if (!accountData[msg.sender].readyToRecover) {
+      revert NoRecoveryStarted();
+    }
+
+    bytes32 pendingPasskeyHash = accountData[msg.sender].pendingPasskeyHash;
+    delete accountData[msg.sender].pendingPasskeyHash;
+    delete accountData[msg.sender].recoveryStartedAt;
+    accountData[msg.sender].readyToRecover = false;
+
+    emit RecoveryCancelled(msg.sender, pendingPasskeyHash);
   }
 
   /// @notice Only allows transaction setting a new passkey for the sender, and only if `startRecovery` was successfully
