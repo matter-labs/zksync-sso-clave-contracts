@@ -157,7 +157,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     uint256[PUB_SIGNALS_LENGTH] memory publicInputs;
 
     // First 17 elements are the oidc provider public key modulus (circuit assumes 65537 as exponent).
-    // key.n is always 17 elements long.
+    // key.rsaModulus is always 17 elements long.
     for (uint256 i = 0; i < key.rsaModulus.length; ++i) {
       publicInputs[i] = key.rsaModulus[i];
     }
