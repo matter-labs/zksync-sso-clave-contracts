@@ -502,6 +502,44 @@ describe("OidcKeyRegistry", function () {
     );
   });
 
+  it("uses first empty space after delete", async () => {
+    const iss = "https://example.com";
+    const issHash = await oidcKeyRegistry.hashIssuer(iss);
+
+    // Fill the buffer
+    const keys = Array.from({ length: 5 }, (_, i) => ({
+      issHash,
+      kid: pad(numberToHex(i + 1)),
+      n: JWK_MODULUS,
+      e: "0x010001",
+    }));
+    await oidcKeyRegistry.addKeys(keys);
+
+    await oidcKeyRegistry.deleteKey(issHash, keys[2].kid);
+
+    const extraKey = {
+      issHash,
+      kid: pad(numberToHex(100)),
+      n: JWK_MODULUS,
+      e: "0x010001",
+    };
+    await oidcKeyRegistry.addKeys([extraKey]);
+
+    const allKeys = await oidcKeyRegistry.getKeys(issHash);
+    expect(allKeys.map((key) => key.kid)).to.deep.equal(
+      [
+        keys[0].kid,
+        keys[1].kid,
+        keys[3].kid,
+        keys[4].kid,
+        extraKey.kid,
+        pad("0x00"),
+        pad("0x00"),
+        pad("0x00"),
+      ],
+    );
+  });
+
   it("delete leaves intuitive order 2", async () => {
     const iss = "https://example.com";
     const issHash = await oidcKeyRegistry.hashIssuer(iss);
