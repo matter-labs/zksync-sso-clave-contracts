@@ -44,6 +44,7 @@ async function deployKeyRegistry(deployer: Wallet, keyRegistryOwner: Wallet, hre
   const keyRegistryContract = await hre.ethers.getContractAt(OIDC_KEY_REGISTRY_NAME, keyRegistry, keyRegistryOwner);
   try {
     await keyRegistryContract.initialize();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     console.log("Key registry already initialized\n");
   }

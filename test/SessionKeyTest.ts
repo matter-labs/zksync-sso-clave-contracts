@@ -7,7 +7,7 @@ import { SmartAccount, utils } from "zksync-ethers";
 
 import type { ERC20 } from "../typechain-types";
 import type { IPaymasterFlow, SsoBeacon, TestPaymaster } from "../typechain-types";
-import { SessionKeyValidator__factory, SsoAccount__factory, SsoBeacon__factory, TestPaymaster__factory } from "../typechain-types";
+import { SessionKeyValidator__factory, SsoAccount__factory, SsoBeacon__factory } from "../typechain-types";
 import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
 import { ContractFixtures, getProvider, logInfo } from "./utils";
 
@@ -314,11 +314,14 @@ describe("SessionKeyModule tests", function () {
     assert(factoryContract != null, "No AA Factory deployed");
     const guardianRecoveryContract = await fixtures.getGuardianRecoveryValidator();
     assert(guardianRecoveryContract != null, "No Guardian Recovery deployed");
+    const oidcRecoveryContract = await fixtures.getOidcRecoveryValidator();
+    assert(oidcRecoveryContract != null, "No Oidc Recovery deployed");
     const authServerPaymaster = await fixtures.deployExampleAuthServerPaymaster(
       await factoryContract.getAddress(),
       await sessionModuleContract.getAddress(),
       await guardianRecoveryContract.getAddress(),
       await verifierContract.getAddress(),
+      await oidcRecoveryContract.getAddress(),
     );
     assert(authServerPaymaster != null, "No Auth Server Paymaster deployed");
 
