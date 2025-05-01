@@ -50,7 +50,9 @@ task("publish", "copies abi to a typescript file")
   .setAction(async (cmd) => {
     createIndex(cmd.destPath, [
       copyContractAbiToTsPath("", "AAFactory", cmd.destPath),
+      copyContractAbiToTsPath("", "SsoAccount", cmd.destPath),
       copyContractAbiToTsPath("/validators", "SessionKeyValidator", cmd.destPath),
       copyContractAbiToTsPath("/validators", "WebAuthValidator", cmd.destPath),
+      copyContractAbiToTsPath("/validators", "GuardianRecoveryValidator", cmd.destPath),
     ]);
   });
