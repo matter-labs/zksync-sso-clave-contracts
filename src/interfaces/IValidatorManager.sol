@@ -36,6 +36,7 @@ interface IValidatorManager {
 
   /**
    * @notice Removes a validator from the list of modular validators while ignoring reverts from its `onUninstall` teardown function.
+   * @notice BEWARE: intended for exceptional cases only, uncleared account data on validators could result in undesired consequences if re-attached.
    * @dev Can only be called by self
    * @param validator address - Address of the validator to remove
    * @param deinitData - Data to pass to the validator's `onUninstall` function

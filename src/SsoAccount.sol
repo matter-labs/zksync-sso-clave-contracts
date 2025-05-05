@@ -54,9 +54,13 @@ contract SsoAccount is
   /// @notice Initializer function that sets account initial configuration. Expected to be used in the proxy.
   /// @dev Sets passkey and passkey validator within account storage
   /// @param initialValidators An array of module validator addresses and initial validation keys
-  /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey))`.
+  /// in an ABI encoded format of `abi.encode(validatorAddr,validationKey)`.
   /// @param initialK1Owners An array of addresses with full control over the account.
   function initialize(bytes[] calldata initialValidators, address[] calldata initialK1Owners) external initializer {
+    if (initialValidators.length == 0 && initialK1Owners.length == 0) {
+      revert Errors.INVALID_ACCOUNT_KEYS();
+    }
+
     address validatorAddr;
     bytes memory initData;
     for (uint256 i = 0; i < initialValidators.length; ++i) {
@@ -64,7 +68,7 @@ contract SsoAccount is
       _addModuleValidator(validatorAddr, initData);
     }
     for (uint256 i = 0; i < initialK1Owners.length; ++i) {
-      _k1AddOwner(initialK1Owners[i]);
+      _addK1Owner(initialK1Owners[i]);
     }
   }
 
@@ -90,8 +94,9 @@ contract SsoAccount is
 
     // If there is not enough balance for the transaction, the account should reject it
     // on the validation step to prevent paying fees for revertable transactions.
-    if (_transaction.totalRequiredBalance() > address(this).balance) {
-      revert Errors.INSUFFICIENT_FUNDS(_transaction.totalRequiredBalance(), address(this).balance);
+    uint256 requiredBalance = _transaction.totalRequiredBalance();
+    if (requiredBalance > address(this).balance) {
+      revert Errors.INSUFFICIENT_FUNDS(requiredBalance, address(this).balance);
     }
 
     // While the suggested signed hash is usually provided, it is generally
@@ -124,7 +129,7 @@ contract SsoAccount is
     uint32 gas = Utils.safeCastToU32(gasleft());
     bool success;
 
-    if (_to == address(DEPLOYER_SYSTEM_CONTRACT)) {
+    if (_to == address(DEPLOYER_SYSTEM_CONTRACT) && _data.length >= 4) {
       bytes4 selector = bytes4(_data[:4]);
       // Check that called function is the deployment method,
       // the other deployer methods are not supposed to be called from the account.
@@ -203,13 +208,15 @@ contract SsoAccount is
     if (_transaction.signature.length == 65) {
       (address signer, ECDSA.RecoverError err) = ECDSA.tryRecover(_signedHash, _transaction.signature);
       return
-        signer == address(0) || err != ECDSA.RecoverError.NoError || !_k1IsOwner(signer)
+        signer == address(0) || err != ECDSA.RecoverError.NoError || !_isK1Owner(signer)
           ? bytes4(0)
           : ACCOUNT_VALIDATION_SUCCESS_MAGIC;
     }
 
     // Extract the signature, validator address and hook data from the _transaction.signature
-    (bytes memory signature, address validator) = SignatureDecoder.decodeSignatureNoHookData(_transaction.signature);
+    //  the signature value is not necessary, omitting it
+    // slither-disable-next-line unused-return
+    (, address validator) = SignatureDecoder.decodeSignatureNoHookData(_transaction.signature);
 
     bool validationSuccess = _isModuleValidator(validator) &&
       IModuleValidator(validator).validateTransaction(_signedHash, _transaction);

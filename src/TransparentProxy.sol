@@ -12,7 +12,10 @@ import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/trans
 /// cheap delegate calls on ZKsync.
 /// @dev This proxy is placed in front of `AAFactory` and all modules (`WebAuthValidator`, `SessionKeyValidator`).
 contract TransparentProxy is TransparentUpgradeableProxy, EfficientProxy {
-  constructor(address implementation) TransparentUpgradeableProxy(implementation, msg.sender, bytes("")) {}
+  constructor(
+    address implementation,
+    bytes memory data
+  ) TransparentUpgradeableProxy(implementation, msg.sender, data) {}
 
   function _delegate(address implementation) internal override(EfficientProxy, Proxy) {
     EfficientProxy._delegate(implementation);

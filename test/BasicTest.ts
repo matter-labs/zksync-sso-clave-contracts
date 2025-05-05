@@ -2,12 +2,17 @@ import { assert, expect } from "chai";
 import { concat, ethers, keccak256, parseEther, randomBytes } from "ethers";
 import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
-import { toBytes } from "viem";
 import { SmartAccount, utils } from "zksync-ethers";
 
 import { SsoAccount__factory, Dummy__factory } from "../typechain-types";
 import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
 import { ContractFixtures, getProvider, create2, ethersStaticSalt } from "./utils";
+import { ERC1271Caller } from "../typechain-types/src/test/ERC1271Caller";
+import * as hre from "hardhat";
+
+import { createWalletClient, http, type Hex, toBytes } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+import { erc7739Actions } from 'viem/experimental'
 
 describe("Basic tests", function () {
   const fixtures = new ContractFixtures();
@@ -60,7 +65,6 @@ describe("Basic tests", function () {
 
     const deployTx = await aaFactoryContract.deployProxySsoAccount(
       randomSalt,
-      "id" + randomBytes(32).toString(),
       [],
       [fixtures.wallet.address],
     );
@@ -74,7 +78,67 @@ describe("Basic tests", function () {
     expect(proxyAccountAddress, "the proxy account location").to.equal(standardCreate2Address, "be what create2 returns");
 
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
-    assert(await account.k1IsOwner(fixtures.wallet.address));
+    assert(await account.isK1Owner(fixtures.wallet.address));
+
+    const emptyDeployTx = aaFactoryContract.deployProxySsoAccount(
+      randomBytes(32),
+      [],
+      [],
+    );
+
+    await expect(emptyDeployTx).to.be.revertedWithCustomError(aaFactoryContract, "INVALID_ACCOUNT_KEYS");
+  });
+
+  it("should deploy modular account via factory", async () => {
+    const aaFactoryContract = await fixtures.getAaFactory();
+    assert(aaFactoryContract != null, "No AA Factory deployed");
+
+    const factoryAddress = await aaFactoryContract.getAddress();
+    expect(factoryAddress, "the factory address").to.equal(await fixtures.getAaFactoryAddress(), "factory address match");
+
+    const bytecodeHash = await aaFactoryContract.beaconProxyBytecodeHash();
+    const deployedAccountContract = await fixtures.getAccountProxyContract();
+    const deployedAccountContractCode = await deployedAccountContract.getDeployedCode();
+    assert(deployedAccountContractCode != null, "No account code deployed");
+    const ssoBeaconBytecodeHash = ethers.hexlify(utils.hashBytecode(deployedAccountContractCode));
+    expect(bytecodeHash, "deployed account bytecode hash").to.equal(ssoBeaconBytecodeHash, "deployed account code doesn't match");
+
+    const args = await aaFactoryContract.getEncodedBeacon();
+    const deployedBeaconAddress = new ethers.AbiCoder().encode(["address"], [await fixtures.getBeaconAddress()]);
+    expect(args, "the beacon address").to.equal(deployedBeaconAddress, "the deployment beacon");
+
+    const randomSalt = randomBytes(32);
+    const uniqueSalt = keccak256(concat([randomSalt, toBytes(fixtures.wallet.address)]));
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, uniqueSalt, args);
+
+    const preDeployAccountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
+    expect(preDeployAccountCode, "expected deploy location").to.equal("0x", "nothing deployed here (yet)");
+
+    const deployTx = await aaFactoryContract.deployModularAccount(
+      randomSalt,
+      "0x",
+      "0x",
+      [fixtures.wallet.address],
+    );
+    const deployTxReceipt = await deployTx.wait();
+    proxyAccountAddress = deployTxReceipt!.contractAddress!;
+
+    expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
+    expect(proxyAccountAddress, "the proxy account location").to.equal(standardCreate2Address, "be what create2 returns");
+
+    const postDeployAccountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
+    expect(postDeployAccountCode, "expected deploy location").to.not.equal("0x", "deployment didn't match create2!");
+
+    const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
+    assert(await account.isK1Owner(fixtures.wallet.address));
+
+    const emptyDeployTx = aaFactoryContract.deployModularAccount(
+      randomBytes(32),
+      "0x",
+      "0x",
+      [],
+    );
+    await expect(emptyDeployTx).to.be.revertedWithCustomError(aaFactoryContract, "INVALID_ACCOUNT_KEYS");
   });
 
   it("should execute a simple transfer of ETH", async () => {
@@ -94,8 +158,7 @@ describe("Basic tests", function () {
     const aaTx = {
       ...await aaTxTemplate(),
       to: target,
-      value,
-      gasLimit: 300_000n,
+      value
     };
     aaTx.gasLimit = await provider.estimateGas(aaTx);
 
@@ -142,10 +205,8 @@ describe("Basic tests", function () {
       to: proxyAccountAddress,
       data: account.interface.encodeFunctionData("batchCall", [calls]),
       value: value * 2n,
-      gasLimit: 300_000n,
     };
-    // TODO: fix gas estimation
-    // aaTx.gasLimit = await provider.estimateGas(aaTx);
+    aaTx.gasLimit = await provider.estimateGas(aaTx);
 
     const signedTransaction = await smartAccount.signTransaction(aaTx);
     assert(signedTransaction != null, "valid transaction to sign");
@@ -215,5 +276,72 @@ describe("Basic tests", function () {
       expect(event?.args.index).to.equal(0);
       expect(event?.args.revertData).to.contain(revertMessage.slice(2));
     });
+  });
+
+  it("should verify signature with EIP1271 in an RPC call", async () => {
+    const erc1271Caller = await fixtures.deployERC1271Caller();
+    const testStruct: ERC1271Caller.TestStructStruct = {
+      message: "test",
+      value: 42
+    };
+    const domain = await erc1271Caller.eip712Domain();
+    const digest = ethers.TypedDataEncoder.hash(
+      {
+        name: domain.name,
+        version: domain.version,
+        chainId: domain.chainId,
+        verifyingContract: domain.verifyingContract,
+      },
+      {
+        TestStruct: [
+          { name: "message", type: "string" },
+          { name: "value", type: "uint256" }
+        ]
+      },
+      testStruct
+    );
+
+    const signature = fixtures.wallet.signingKey.sign(digest).serialized;
+    const isValid = await erc1271Caller.validateStruct(testStruct, proxyAccountAddress, signature);
+    expect(isValid).to.be.true;
+  });
+
+ it("should verify signature with EIP1271 using ERC7739", async () => {
+    const erc1271Caller = await fixtures.deployERC1271Caller();
+    const testStruct: ERC1271Caller.TestStructStruct = {
+      message: "test",
+      value: 42
+    };
+
+    const callerDomain = await erc1271Caller.eip712Domain();
+    const domain = {
+        name: callerDomain.name,
+        version: callerDomain.version,
+        chainId: Number(callerDomain.chainId),
+        verifyingContract: callerDomain.verifyingContract as Hex,
+    } as const;
+
+    const types = {
+      TestStruct: [
+        { name: "message", type: "string" },
+        { name: "value", type: "uint256" }
+      ]
+    };
+
+    const walletClient = createWalletClient({
+      account: privateKeyToAccount(fixtures.wallet.privateKey as Hex),
+      transport: http(hre.network.config["url"])
+    }).extend(erc7739Actions());
+
+    const signature = await walletClient.signTypedData({
+      domain,
+      types,
+      primaryType: 'TestStruct',
+      message: testStruct,
+      verifier: proxyAccountAddress as Hex,
+    });
+
+    const isValid = await erc1271Caller.validateStruct(testStruct, proxyAccountAddress, signature);
+    expect(isValid).to.be.true;
   });
 });
