@@ -7,7 +7,7 @@ import { SmartAccount, utils } from "zksync-ethers";
 
 import type { ERC20 } from "../typechain-types";
 import type { IPaymasterFlow, SsoBeacon, TestPaymaster } from "../typechain-types";
-import { SessionKeyValidator__factory, SsoAccount__factory, SsoBeacon__factory } from "../typechain-types";
+import { SessionKeyValidator__factory, SsoAccount__factory, SsoBeacon__factory, TestPaymaster__factory } from "../typechain-types";
 import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
 import { ContractFixtures, getProvider, logInfo } from "./utils";
 
