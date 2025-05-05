@@ -13,6 +13,7 @@ dockerized
 ethereum
 sepolia
 
+
 // examples/bank-demo
 ctap
 Aave
@@ -28,3 +29,13 @@ usdc
 // examples/nft-quest
 Fren
 fren
+
+// src/OidcKeyRegistry
+Oidc
+oidc
+Merkle
+merkle
+
+// src/validators/OidcRecoveryValidator
+pkop
+Zkemail

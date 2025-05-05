@@ -4,15 +4,19 @@ import { ethers } from "ethers";
 import { writeFileSync } from "fs";
 import { task } from "hardhat/config";
 import { Artifact } from "hardhat/types";
+import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Wallet } from "zksync-ethers";
 
 const WEBAUTH_NAME = "WebAuthValidator";
 const SESSIONS_NAME = "SessionKeyValidator";
+const OIDC_RECOVERY_NAME = "OidcRecoveryValidator";
+const OIDC_VERIFIER_NAME = "Groth16Verifier";
 const ACCOUNT_IMPL_NAME = "SsoAccount";
 const FACTORY_NAME = "AAFactory";
 const PAYMASTER_NAME = "ExampleAuthServerPaymaster";
 const BEACON_NAME = "SsoBeacon";
 export const GUARDIAN_RECOVERY_NAME = "GuardianRecoveryValidator";
+const OIDC_KEY_REGISTRY_NAME = "OidcKeyRegistry";
 
 async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any[], initArgs?: any): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -33,6 +37,25 @@ async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any
   const proxyAddress = await proxyContract.getAddress();
   console.log(name, "proxy contract deployed at:", proxyAddress, "\n");
   return proxyAddress;
+}
+
+async function deployKeyRegistry(deployer: Wallet, keyRegistryOwner: Wallet, hre: HardhatRuntimeEnvironment, noProxy: boolean) {
+  const keyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, !noProxy);
+  const keyRegistryContract = await hre.ethers.getContractAt(OIDC_KEY_REGISTRY_NAME, keyRegistry, keyRegistryOwner);
+  try {
+    await keyRegistryContract.initialize();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    console.log("Key registry already initialized\n");
+  }
+  return keyRegistry;
+}
+
+function getKeyRegistryOwner() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { LOCAL_RICH_WALLETS, getProvider } = require("../test/utils");
+  const provider = getProvider();
+  return new Wallet(LOCAL_RICH_WALLETS[1].privateKey, provider);
 }
 
 async function fundPaymaster(deployer: Wallet, paymaster: string, fund?: string | number) {
@@ -107,8 +130,11 @@ export async function deployCmd(
   artifactName: string,
   noProxy: boolean,
   fund: number,
-  file: string) {
+  file: string,
+  hre: HardhatRuntimeEnvironment,
+) {
   if (!artifactName) {
+    const keyRegistryOwner = getKeyRegistryOwner();
     const passkey = await deploy(WEBAUTH_NAME, deployer, !noProxy);
     const session = await deploy(SESSIONS_NAME, deployer, !noProxy);
     const implementation = await deploy(ACCOUNT_IMPL_NAME, deployer, false);
@@ -119,9 +145,13 @@ export async function deployCmd(
       "initialize(address)",
       [passkey],
     ));
-    const accountPaymaster = await deploy(PAYMASTER_NAME, deployer, false, [accountFactory, session, recovery, passkey]);
+    const oidcKeyRegistry = await deployKeyRegistry(deployer, keyRegistryOwner, hre, noProxy);
+    const oidcRecoveryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_RECOVERY_NAME)).abi);
+    const oidcVerifier = await deploy(OIDC_VERIFIER_NAME, deployer, false, []);
+    const recoveryOidc = await deploy(OIDC_RECOVERY_NAME, deployer, !noProxy, [], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier, passkey]));
+    const accountPaymaster = await deploy(PAYMASTER_NAME, deployer, false, [accountFactory, session, recovery, passkey, recoveryOidc]);
     await fundPaymaster(deployer, accountPaymaster, fund);
-    const deployedContracts = { beacon, session, passkey, accountFactory, accountPaymaster, recovery };
+    const deployedContracts = { beacon, session, passkey, accountFactory, accountPaymaster, recovery, recoveryOidc, oidcKeyRegistry };
     if (file) {
       writeFileSync(file, JSON.stringify(deployedContracts));
     }
@@ -157,5 +187,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       cmd.only,
       cmd.direct,
       cmd.fund,
-      cmd.file);
+      cmd.file,
+      hre,
+    );
   });

@@ -54,5 +54,6 @@ task("publish", "copies abi to a typescript file")
       copyContractAbiToTsPath("/validators", "SessionKeyValidator", cmd.destPath),
       copyContractAbiToTsPath("/validators", "WebAuthValidator", cmd.destPath),
       copyContractAbiToTsPath("/validators", "GuardianRecoveryValidator", cmd.destPath),
+      copyContractAbiToTsPath("/validators", "OidcRecoveryValidator", cmd.destPath),
     ]);
   });
