@@ -11,9 +11,10 @@ import * as hre from "hardhat";
 import { encodeAbiParameters, hashMessage, Hex, hexToBytes, pad, toBytes, toHex } from "viem";
 import { SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
+import { wrapTypedDataSignature, hashTypedData } from "viem/experimental/erc7739";
 
 import type { WebAuthValidator } from "../typechain-types";
-import { IERC165__factory, IModuleValidator__factory, SsoAccount__factory, WebAuthValidator__factory } from "../typechain-types";
+import { type ERC1271Caller, type SsoAccount, IERC165__factory, IModuleValidator__factory, SsoAccount__factory, WebAuthValidator__factory } from "../typechain-types";
 import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
 /**
@@ -551,16 +552,103 @@ describe("Passkey validation", function () {
     });
 
     describe("isValidSignature", () => {
-      it.skip("should return bytes success (0x1626ba7e) for a valid signature from the owner", async () => {
-        // TODO
+      async function signERC7739(
+        testStruct: ERC1271Caller.TestStructStruct,
+        smartAccount: SsoAccount,
+        erc1271Caller: ERC1271Caller,
+        signPayload: (hash: Hex) => Promise<Hex>,
+      ) {
+        const _callerDomain = await erc1271Caller.eip712Domain();
+        const callerDomain = {
+            name: _callerDomain.name,
+            version: _callerDomain.version,
+            chainId: Number(_callerDomain.chainId),
+            verifyingContract: _callerDomain.verifyingContract as Hex,
+        } as const;
+
+        const _verifierDomain = await smartAccount.eip712Domain();
+        const verifierDomain = {
+          name: _verifierDomain.name,
+          version: _verifierDomain.version,
+          chainId: Number(_verifierDomain.chainId),
+          verifyingContract: _verifierDomain.verifyingContract as Hex,
+          salt: _verifierDomain.salt as Hex,
+        } as const;
+
+        const types = {
+          TestStruct: [
+            { name: "message", type: "string" },
+            { name: "value", type: "uint256" }
+          ]
+        };
+
+        const typedData = hashTypedData({
+          domain: callerDomain,
+          types,
+          primaryType: 'TestStruct',
+          message: testStruct,
+          verifierDomain
+        })
+
+        const signature = await signPayload(typedData);
+        return wrapTypedDataSignature({
+          signature,
+          domain: callerDomain,
+          types,
+          primaryType: 'TestStruct',
+          message: testStruct,
+        });
+      }
+
+      it("should return bytes success (0x1626ba7e) for a valid signature from the owner", async () => {
+        const { proxyAccountAddress, signPayload } = await deployAccount();
+        const smartAccount = SsoAccount__factory.connect(proxyAccountAddress, provider);
+        const erc1271Caller = await fixtures.deployERC1271Caller();
+
+        const testStruct: ERC1271Caller.TestStructStruct = {
+          message: "test",
+          value: 42
+        };
+
+        const signature = await signERC7739(testStruct, smartAccount, erc1271Caller, signPayload);
+        const isValid = await erc1271Caller.validateStruct(testStruct, proxyAccountAddress, signature);
+        expect(isValid).to.be.true;
       });
 
-      it.skip("should return bytes failure (not 0x1626ba7e) for an invalid signature", async () => {
-        // TODO
+      it("should return bytes failure (not 0x1626ba7e) for an invalid signature", async () => {
+        const { proxyAccountAddress, signPayload } = await deployAccount();
+        const smartAccount = SsoAccount__factory.connect(proxyAccountAddress, provider);
+        const erc1271Caller = await fixtures.deployERC1271Caller();
+
+        const testStruct: ERC1271Caller.TestStructStruct = {
+          message: "test",
+          value: 42
+        };
+
+        const wrongTestStruct: ERC1271Caller.TestStructStruct = {
+          message: "wrong",
+          value: 42
+        };
+
+        const signature = await signERC7739(testStruct, smartAccount, erc1271Caller, signPayload);
+        const promise = erc1271Caller.validateStruct(wrongTestStruct, proxyAccountAddress, signature);
+        await expect(promise).to.be.reverted;
       });
 
-      it.skip("should return bytes failure for a signature from a non-owner", async () => {
-        // TODO
+      it("should return bytes failure for a signature from a non-owner", async () => {
+        const { proxyAccountAddress, signPayload } = await deployAccount();
+        const smartAccount = SsoAccount__factory.connect(proxyAccountAddress, provider);
+        const { proxyAccountAddress: otherAccountAddress } = await deployAccount();
+        const erc1271Caller = await fixtures.deployERC1271Caller();
+
+        const testStruct: ERC1271Caller.TestStructStruct = {
+          message: "test",
+          value: 42
+        };
+
+        const signature = await signERC7739(testStruct, smartAccount, erc1271Caller, signPayload);
+        const promise = erc1271Caller.validateStruct(testStruct, otherAccountAddress, signature);
+        await expect(promise).to.be.reverted;
       });
 
       it("should return bytes failure for an empty signature", async () => {

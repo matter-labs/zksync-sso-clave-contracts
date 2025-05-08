@@ -228,12 +228,12 @@ describe("Basic tests", function () {
       value: 42
     };
 
-    const callerDomain = await erc1271Caller.eip712Domain();
-    const domain = {
-        name: callerDomain.name,
-        version: callerDomain.version,
-        chainId: Number(callerDomain.chainId),
-        verifyingContract: callerDomain.verifyingContract as Hex,
+    const _callerDomain = await erc1271Caller.eip712Domain();
+    const callerDomain = {
+        name: _callerDomain.name,
+        version: _callerDomain.version,
+        chainId: Number(_callerDomain.chainId),
+        verifyingContract: _callerDomain.verifyingContract as Hex,
     } as const;
 
     const types = {
@@ -249,7 +249,7 @@ describe("Basic tests", function () {
     }).extend(erc7739Actions());
 
     const signature = await walletClient.signTypedData({
-      domain,
+      domain: callerDomain,
       types,
       primaryType: 'TestStruct',
       message: testStruct,
