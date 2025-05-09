@@ -2,13 +2,12 @@ import { assert, expect } from "chai";
 import { concat, ethers, keccak256, parseEther, randomBytes } from "ethers";
 import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
-import { toBytes } from "viem";
 import { SmartAccount, utils } from "zksync-ethers";
+import { toBytes } from 'viem'
 
-import { SsoAccount__factory } from "../typechain-types";
+import { SsoAccount__factory, Dummy__factory } from "../typechain-types";
 import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
-import { ContractFixtures, getProvider } from "./utils";
-import { ERC1271Caller } from "../typechain-types/src/test/ERC1271Caller";
+import { ContractFixtures, getProvider, create2, ethersStaticSalt } from "./utils";
 
 describe("Basic tests", function () {
   const fixtures = new ContractFixtures();
@@ -216,31 +215,61 @@ describe("Basic tests", function () {
     expect(await provider.getBalance(target2)).to.equal(value, "invalid final target-2 balance");
   });
 
-  it("should verify signature with EIP1271", async () => {
-    const erc1271Caller = await fixtures.deployERC1271Caller();
-    const testStruct: ERC1271Caller.TestStructStruct = {
-      message: "test",
-      value: 42
-    };
-    const domain = await erc1271Caller.eip712Domain();
-    const digest = ethers.TypedDataEncoder.hash(
-      {
-        name: domain.name,
-        version: domain.version,
-        chainId: domain.chainId,
-        verifyingContract: domain.verifyingContract,
-      },
-      {
-        TestStruct: [
-          { name: "message", type: "string" },
-          { name: "value", type: "uint256" }
-        ]
-      },
-      testStruct
-    );
+  it("should emit an event with revert data from multicall", async () => {
+    const smartAccount = new SmartAccount({
+      address: proxyAccountAddress,
+      secret: fixtures.wallet.privateKey,
+    }, provider);
 
-    const signature = fixtures.wallet.signingKey.sign(digest).serialized;
-    const isValid = await erc1271Caller.validateStruct(testStruct, proxyAccountAddress, signature);
-    expect(isValid).to.be.true;
+    const balanceBefore = await provider.getBalance(proxyAccountAddress);
+    const value = parseEther("0.01");
+
+    const dummy = await create2("Dummy", fixtures.wallet, ethersStaticSalt);
+
+    const target = Wallet.createRandom().address;
+    const calls: CallStruct[] = [
+      {
+        target: await dummy.getAddress(),
+        value: 0,
+        callData: Dummy__factory.createInterface().encodeFunctionData("justRevert"),
+        allowFailure: true,
+      },
+      {
+        target: target,
+        value,
+        callData: "0x",
+        allowFailure: false,
+      },
+    ];
+
+    const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
+
+    const aaTx = {
+      ...await aaTxTemplate(),
+      to: proxyAccountAddress,
+      data: account.interface.encodeFunctionData("batchCall", [calls]),
+      value,
+      gasLimit: 300_000n,
+    };
+
+    const signedTransaction = await smartAccount.signTransaction(aaTx);
+    assert(signedTransaction != null, "valid transaction to sign");
+
+    const tx = await provider.broadcastTransaction(signedTransaction);
+    const receipt = await tx.wait();
+    const fee = receipt.gasUsed * aaTx.gasPrice;
+
+    expect(await provider.getBalance(proxyAccountAddress)).to.equal(balanceBefore - value - fee, "invalid final own balance");
+    expect(await provider.getBalance(target)).to.equal(value, "invalid final target balance");
+
+    const logs = receipt.logs.filter((log) => log.address === proxyAccountAddress);
+    expect(logs).to.have.lengthOf(1, "should only have one log from the batch caller");
+    const revertMessage = new ethers.AbiCoder().encode(["string"], ["Just reverted"]);
+    logs.forEach((log) => {
+      const event: any = account.interface.parseLog(log);
+      expect(event?.name).to.equal("BatchCallFailure");
+      expect(event?.args.index).to.equal(0);
+      expect(event?.args.revertData).to.contain(revertMessage.slice(2));
+    });
   });
 });
