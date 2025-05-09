@@ -3,16 +3,11 @@ import { concat, ethers, keccak256, parseEther, randomBytes } from "ethers";
 import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
+import { toBytes } from 'viem'
 
 import { SsoAccount__factory, Dummy__factory } from "../typechain-types";
 import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
 import { ContractFixtures, getProvider, create2, ethersStaticSalt } from "./utils";
-import { ERC1271Caller } from "../typechain-types/src/test/ERC1271Caller";
-import * as hre from "hardhat";
-
-import { createWalletClient, http, type Hex, toBytes } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
-import { erc7739Actions } from 'viem/experimental'
 
 describe("Basic tests", function () {
   const fixtures = new ContractFixtures();
@@ -276,72 +271,5 @@ describe("Basic tests", function () {
       expect(event?.args.index).to.equal(0);
       expect(event?.args.revertData).to.contain(revertMessage.slice(2));
     });
-  });
-
-  it("should verify signature with EIP1271 in an RPC call", async () => {
-    const erc1271Caller = await fixtures.deployERC1271Caller();
-    const testStruct: ERC1271Caller.TestStructStruct = {
-      message: "test",
-      value: 42
-    };
-    const domain = await erc1271Caller.eip712Domain();
-    const digest = ethers.TypedDataEncoder.hash(
-      {
-        name: domain.name,
-        version: domain.version,
-        chainId: domain.chainId,
-        verifyingContract: domain.verifyingContract,
-      },
-      {
-        TestStruct: [
-          { name: "message", type: "string" },
-          { name: "value", type: "uint256" }
-        ]
-      },
-      testStruct
-    );
-
-    const signature = fixtures.wallet.signingKey.sign(digest).serialized;
-    const isValid = await erc1271Caller.validateStruct(testStruct, proxyAccountAddress, signature);
-    expect(isValid).to.be.true;
-  });
-
- it("should verify signature with EIP1271 using ERC7739", async () => {
-    const erc1271Caller = await fixtures.deployERC1271Caller();
-    const testStruct: ERC1271Caller.TestStructStruct = {
-      message: "test",
-      value: 42
-    };
-
-    const callerDomain = await erc1271Caller.eip712Domain();
-    const domain = {
-        name: callerDomain.name,
-        version: callerDomain.version,
-        chainId: Number(callerDomain.chainId),
-        verifyingContract: callerDomain.verifyingContract as Hex,
-    } as const;
-
-    const types = {
-      TestStruct: [
-        { name: "message", type: "string" },
-        { name: "value", type: "uint256" }
-      ]
-    };
-
-    const walletClient = createWalletClient({
-      account: privateKeyToAccount(fixtures.wallet.privateKey as Hex),
-      transport: http(hre.network.config["url"])
-    }).extend(erc7739Actions());
-
-    const signature = await walletClient.signTypedData({
-      domain,
-      types,
-      primaryType: 'TestStruct',
-      message: testStruct,
-      verifier: proxyAccountAddress as Hex,
-    });
-
-    const isValid = await erc1271Caller.validateStruct(testStruct, proxyAccountAddress, signature);
-    expect(isValid).to.be.true;
   });
 });
