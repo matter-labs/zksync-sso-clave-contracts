@@ -24,8 +24,8 @@ contract SessionKeyValidator is IModuleValidator {
   event SessionRevoked(address indexed account, bytes32 indexed sessionHash);
 
   // NOTE: expired sessions are still counted if not explicitly revoked
-  mapping(address account => uint256 openSessions) private sessionCounter;
-  mapping(bytes32 sessionHash => SessionLib.SessionStorage sessionState) private sessions;
+  mapping(address account => uint256 openSessions) internal sessionCounter;
+  mapping(bytes32 sessionHash => SessionLib.SessionStorage sessionState) internal sessions;
 
   /// @notice Get the session state for an account
   /// @param account The account to fetch the session state for
@@ -34,7 +34,7 @@ contract SessionKeyValidator is IModuleValidator {
   function sessionState(
     address account,
     SessionLib.SessionSpec calldata spec
-  ) external view returns (SessionLib.SessionState memory) {
+  ) external view virtual returns (SessionLib.SessionState memory) {
     return sessions[keccak256(abi.encode(spec))].getState(account, spec);
   }
 
@@ -42,13 +42,13 @@ contract SessionKeyValidator is IModuleValidator {
   /// @param account The account to fetch the session status for
   /// @param sessionHash The session hash to fetch the status of
   /// @return The status of the session: NotInitialized, Active or Closed
-  function sessionStatus(address account, bytes32 sessionHash) external view returns (SessionLib.Status) {
+  function sessionStatus(address account, bytes32 sessionHash) external view virtual returns (SessionLib.Status) {
     return sessions[sessionHash].status[account];
   }
 
   /// @notice Runs on module install
   /// @param data ABI-encoded session specification to immediately create a session, or empty if not needed
-  function onInstall(bytes calldata data) external override {
+  function onInstall(bytes calldata data) external virtual {
     if (data.length > 0) {
       // This always either succeeds with `true` or reverts within,
       // so we don't need to check the return value.
@@ -60,7 +60,7 @@ contract SessionKeyValidator is IModuleValidator {
   /// @param data ABI-encoded array of session hashes to revoke
   /// @dev Revokes provided sessions before uninstalling,
   /// reverts if any session is still active after that.
-  function onUninstall(bytes calldata data) external override {
+  function onUninstall(bytes calldata data) external virtual {
     // Revoke keys before uninstalling
     bytes32[] memory sessionHashes = abi.decode(data, (bytes32[]));
     for (uint256 i = 0; i < sessionHashes.length; i++) {
@@ -83,7 +83,7 @@ contract SessionKeyValidator is IModuleValidator {
 
   /// @notice Create a new session for an account
   /// @param sessionSpec The session specification to create a session with
-  function createSession(SessionLib.SessionSpec memory sessionSpec) public {
+  function createSession(SessionLib.SessionSpec memory sessionSpec) public virtual {
     bytes32 sessionHash = keccak256(abi.encode(sessionSpec));
     if (!isInitialized(msg.sender)) {
       revert Errors.NOT_FROM_INITIALIZED_ACCOUNT(msg.sender);
@@ -109,14 +109,14 @@ contract SessionKeyValidator is IModuleValidator {
 
   /// @notice creates a new session for an account, called by onInstall
   /// @param sessionData ABI-encoded session specification
-  function _addValidationKey(bytes calldata sessionData) private returns (bool) {
+  function _addValidationKey(bytes calldata sessionData) internal virtual returns (bool) {
     SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
     createSession(sessionSpec);
     return true;
   }
 
   /// @inheritdoc IERC165
-  function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
+  function supportsInterface(bytes4 interfaceId) external pure virtual returns (bool) {
     return
       interfaceId == type(IERC165).interfaceId ||
       interfaceId == type(IModuleValidator).interfaceId ||
@@ -126,7 +126,7 @@ contract SessionKeyValidator is IModuleValidator {
   /// @notice Revoke a session for an account
   /// @param sessionHash The hash of a session to revoke
   /// @dev Decreases the session counter for the account
-  function revokeKey(bytes32 sessionHash) public {
+  function revokeKey(bytes32 sessionHash) public virtual {
     if (sessions[sessionHash].status[msg.sender] != SessionLib.Status.Active) {
       revert Errors.SESSION_NOT_ACTIVE();
     }
@@ -137,7 +137,7 @@ contract SessionKeyValidator is IModuleValidator {
 
   /// @notice Revoke multiple sessions for an account
   /// @param sessionHashes An array of session hashes to revoke
-  function revokeKeys(bytes32[] calldata sessionHashes) external {
+  function revokeKeys(bytes32[] calldata sessionHashes) external virtual {
     for (uint256 i = 0; i < sessionHashes.length; i++) {
       revokeKey(sessionHashes[i]);
     }
@@ -146,7 +146,7 @@ contract SessionKeyValidator is IModuleValidator {
   /// @notice Check if the validator is registered for the smart account
   /// @param smartAccount The smart account to check
   /// @return true if validator is registered for the account, false otherwise
-  function isInitialized(address smartAccount) public view returns (bool) {
+  function isInitialized(address smartAccount) public view virtual returns (bool) {
     return IValidatorManager(smartAccount).isModuleValidator(address(this));
   }
 
@@ -155,7 +155,7 @@ contract SessionKeyValidator is IModuleValidator {
   /// @param transaction The transaction to validate
   /// @return true if the transaction is valid
   /// @dev Session spec and period IDs must be provided as validator data
-  function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external returns (bool) {
+  function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external virtual returns (bool) {
     (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SignatureDecoder
       .decodeSignature(transaction.signature);
     (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
