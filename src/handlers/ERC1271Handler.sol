@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-import { IERC1271Upgradeable } from "@openzeppelin/contracts-upgradeable/interfaces/IERC1271Upgradeable.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { ERC1271 } from "solady/src/accounts/ERC1271.sol";
 
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
@@ -12,28 +12,48 @@ import { ValidatorManager } from "../managers/ValidatorManager.sol";
 /// @title ERC1271Handler
 /// @author Matter Labs
 /// @notice Contract which provides ERC1271 signature validation
-/// @notice The implementation is inspired by Clave wallet.
-abstract contract ERC1271Handler is IERC1271Upgradeable, OwnerManager, ValidatorManager {
-  bytes4 private constant _ERC1271_MAGIC = 0x1626ba7e;
+/// @notice Uses ERC7739 for signature replay protection
+abstract contract ERC1271Handler is ERC1271, OwnerManager, ValidatorManager {
+  /// @notice Returns the domain name and version for the EIP-712 signature.
+  /// @return name string - The name of the domain
+  /// @return version string - The version of the domain
+  function _domainNameAndVersion() internal pure override returns (string memory name, string memory version) {
+    return ("SSO1271", "1.0.0");
+  }
 
-  /**
-   * @dev Should return whether the signature provided is valid for the provided data. Does not run validation hooks.
-   * @param hash bytes32 - Hash of the data that is signed
-   * @param signature bytes calldata - K1 owner signature OR validator address concatenated to signature
-   * @return magicValue bytes4 - Magic value if the signature is valid, 0 otherwise
-   */
-  function isValidSignature(bytes32 hash, bytes memory signature) external view override returns (bytes4 magicValue) {
+  /// @notice Indicates whether or not the contract may cache the domain name and version.
+  /// @return bool - Whether the domain name and version may change.
+  function _domainNameAndVersionMayChange() internal pure override returns (bool) {
+    return true;
+  }
+
+  // @notice Returns whether the signature provided is valid for the provided hash.
+  // @dev Does not run validation hooks. Is used internally after ERC7739 unwrapping.
+  // @param hash bytes32 - Hash of the data that is signed
+  // @param signature bytes calldata - K1 owner signature OR validator address concatenated to signature
+  // @return bool - Whether the signature is valid
+  function _erc1271IsValidSignatureNowCalldata(
+    bytes32 hash,
+    bytes calldata signature
+  ) internal view override returns (bool) {
     if (signature.length == 65) {
       (address signer, ECDSA.RecoverError err) = ECDSA.tryRecover(hash, signature);
-      return
-        signer == address(0) || err != ECDSA.RecoverError.NoError || !_isK1Owner(signer) ? bytes4(0) : _ERC1271_MAGIC;
+      return err == ECDSA.RecoverError.NoError && _isK1Owner(signer);
     }
 
     (bytes memory decodedSignature, address validator) = SignatureDecoder.decodeSignatureNoHookData(signature);
+    return _isModuleValidator(validator) && IModuleValidator(validator).validateSignature(hash, decodedSignature);
+  }
 
-    bool isValid = _isModuleValidator(validator) &&
-      IModuleValidator(validator).validateSignature(hash, decodedSignature);
+  /// @notice This function is not used anywhere in the contract, but is required to be implemented.
+  function _erc1271Signer() internal pure override returns (address) {
+    revert();
+  }
 
-    magicValue = isValid ? _ERC1271_MAGIC : bytes4(0);
+  /// @dev Returns whether the `msg.sender` is considered safe, such
+  /// that we don't need to use the nested EIP-712 workflow.
+  /// @return bool - currently, always returns false
+  function _erc1271CallerIsSafe() internal pure override returns (bool) {
+    return false;
   }
 }
