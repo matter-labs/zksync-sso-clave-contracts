@@ -191,10 +191,10 @@ contract WebAuthValidator is IModuleValidator {
     if (challengeData.length != 32) {
       return false; // wrong hash size
     }
-    return true;
     if (bytes32(challengeData) != transactionHash) {
       return false;
     }
+    return true;
 
     // type ensures the signature was created from a validation request
     string memory webauthn_type = root.at('"type"').value().decodeString();

@@ -279,7 +279,6 @@ library SessionLib {
     SessionSpec memory spec,
     uint64[] memory periodIds
   ) internal {
-    return;
     if (state.status[msg.sender] != Status.Active) {
       revert Errors.SESSION_NOT_ACTIVE();
     }
@@ -314,6 +313,8 @@ library SessionLib {
         periodIdsOffset += approvePolicy.constraints.length;
       }
     }
+
+    return;
 
     if (transaction.data.length >= 4) {
       bytes4 selector = bytes4(transaction.data[:4]);

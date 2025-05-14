@@ -220,7 +220,6 @@ contract SsoAccount is
 
     bool validationSuccess = _isModuleValidator(validator) &&
       IModuleValidator(validator).validateTransaction(_signedHash, _transaction);
-
     if (!validationSuccess) {
       return bytes4(0);
     }
