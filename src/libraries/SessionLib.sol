@@ -314,8 +314,6 @@ library SessionLib {
       }
     }
 
-    return;
-
     if (transaction.data.length >= 4) {
       bytes4 selector = bytes4(transaction.data[:4]);
       CallSpec memory callPolicy = checkCallPolicy(
@@ -351,6 +349,8 @@ library SessionLib {
       }
       transferPolicy.valueLimit.checkAndUpdate(state.transferValue[target], transaction.value, periodIds[1]);
     }
+
+    return;
   }
 
   /// @notice Getter for the remainder of a usage limit.

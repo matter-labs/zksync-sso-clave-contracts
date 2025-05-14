@@ -194,13 +194,13 @@ contract WebAuthValidator is IModuleValidator {
     if (bytes32(challengeData) != transactionHash) {
       return false;
     }
-    return true;
 
     // type ensures the signature was created from a validation request
     string memory webauthn_type = root.at('"type"').value().decodeString();
     if (WEBAUTHN_GET_HASH != keccak256(bytes(webauthn_type))) {
       return false;
     }
+    return true;
 
     // the origin determines which key to validate against
     // as passkeys are linked to domains, so the storage mapping reflects that
