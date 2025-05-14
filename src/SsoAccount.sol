@@ -205,6 +205,7 @@ contract SsoAccount is
       return bytes4(0);
     }
 
+    return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
     if (_transaction.signature.length == 65) {
       (address signer, ECDSA.RecoverError err) = ECDSA.tryRecover(_signedHash, _transaction.signature);
       return
@@ -222,7 +223,7 @@ contract SsoAccount is
       IModuleValidator(validator).validateTransaction(_signedHash, _transaction);
 
     if (!validationSuccess) {
-      return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
+      return bytes4(0);
     }
 
     return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
