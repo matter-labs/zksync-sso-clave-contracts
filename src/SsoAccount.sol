@@ -99,9 +99,6 @@ contract SsoAccount is
       revert Errors.INSUFFICIENT_FUNDS(requiredBalance, address(this).balance);
     }
 
-    // XXX: obviously bad, but this will show if the error is in the account or in the bootloader
-    return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
-
     // While the suggested signed hash is usually provided, it is generally
     // not recommended to rely on it to be present, since in the future
     // there may be tx types with no suggested signed hash.
@@ -223,8 +220,9 @@ contract SsoAccount is
 
     bool validationSuccess = _isModuleValidator(validator) &&
       IModuleValidator(validator).validateTransaction(_signedHash, _transaction);
+
     if (!validationSuccess) {
-      return bytes4(0);
+      return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
     }
 
     return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
