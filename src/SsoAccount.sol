@@ -212,7 +212,6 @@ contract SsoAccount is
           ? bytes4(0)
           : ACCOUNT_VALIDATION_SUCCESS_MAGIC;
     }
-    return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
 
     // Extract the signature, validator address and hook data from the _transaction.signature
     //  the signature value is not necessary, omitting it
