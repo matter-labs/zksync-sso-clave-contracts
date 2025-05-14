@@ -349,8 +349,6 @@ library SessionLib {
       }
       transferPolicy.valueLimit.checkAndUpdate(state.transferValue[target], transaction.value, periodIds[1]);
     }
-
-    return;
   }
 
   /// @notice Getter for the remainder of a usage limit.

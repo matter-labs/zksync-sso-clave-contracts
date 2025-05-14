@@ -12,6 +12,7 @@ import { SessionLib } from "../libraries/SessionLib.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
+import { Logger } from "../helpers/Logger.sol";
 
 /// @title SessionKeyValidator
 /// @author Matter Labs
@@ -170,10 +171,18 @@ contract SessionKeyValidator is IModuleValidator {
     sessions[sessionHash].validate(transaction, spec, periodIds);
     (address recoveredAddress, ECDSA.RecoverError recoverError) = ECDSA.tryRecover(signedHash, transactionSignature);
     if (recoverError != ECDSA.RecoverError.NoError || recoveredAddress == address(0)) {
-      return false;
+      Logger.logString("recoverError");
+      Logger.logUint(uint256(recoverError));
+      // XXX: need to return success to see node logs
+      return true;
     }
     if (recoveredAddress != spec.signer) {
-      revert Errors.SESSION_INVALID_SIGNER(recoveredAddress, spec.signer);
+      Logger.logString("recoveredAddress");
+      Logger.logAddress(recoveredAddress);
+      Logger.logAddress(spec.signer);
+      return true;
+      // XXX: need to return success to see node logs
+      // revert Errors.SESSION_INVALID_SIGNER(recoveredAddress, spec.signer);
     }
     // This check is separate and performed last to prevent gas estimation failures
     sessions[sessionHash].validateFeeLimit(transaction, spec, periodIds[0]);
