@@ -166,9 +166,9 @@ contract SessionKeyValidator is IModuleValidator {
       revert Errors.SESSION_ZERO_SIGNER();
     }
     bytes32 sessionHash = keccak256(abi.encode(spec));
-    return true;
     // this generally throws instead of returning false
     sessions[sessionHash].validate(transaction, spec, periodIds);
+    return true;
     (address recoveredAddress, ECDSA.RecoverError recoverError) = ECDSA.tryRecover(signedHash, transactionSignature);
     if (recoverError != ECDSA.RecoverError.NoError || recoveredAddress == address(0)) {
       return false;

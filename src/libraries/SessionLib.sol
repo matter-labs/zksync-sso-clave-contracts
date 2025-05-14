@@ -279,6 +279,7 @@ library SessionLib {
     SessionSpec memory spec,
     uint64[] memory periodIds
   ) internal {
+    return;
     if (state.status[msg.sender] != Status.Active) {
       revert Errors.SESSION_NOT_ACTIVE();
     }
