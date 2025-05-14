@@ -91,6 +91,8 @@ contract SsoAccount is
   ) external payable override onlyBootloader returns (bytes4 magic) {
     // TODO: session txs have their own nonce managers, so they have to not alter this nonce
     _incrementNonce(_transaction.nonce);
+    // XXX: obviously bad, but this will show if the error is in the account or in the bootloader
+    return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
 
     // If there is not enough balance for the transaction, the account should reject it
     // on the validation step to prevent paying fees for revertable transactions.
