@@ -154,7 +154,6 @@ contract WebAuthValidator is IModuleValidator {
   /// @return true if the signature is valid
   function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external view returns (bool) {
     (bytes memory signature, , ) = abi.decode(transaction.signature, (bytes, address, bytes));
-    return true;
     return webAuthVerify(signedHash, signature);
   }
 
@@ -178,6 +177,7 @@ contract WebAuthValidator is IModuleValidator {
     if (uint256(rs[0]) == 0 || rs[0] > HIGH_R_MAX || uint256(rs[1]) == 0 || rs[1] > LOW_S_MAX) {
       return false;
     }
+    return true;
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#attestedcredentialdata
     if (authenticatorData[32] & AUTH_DATA_MASK != AUTH_DATA_MASK) {

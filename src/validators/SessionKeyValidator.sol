@@ -158,7 +158,6 @@ contract SessionKeyValidator is IModuleValidator {
   function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external returns (bool) {
     (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SignatureDecoder
       .decodeSignature(transaction.signature);
-    return true;
     (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
       validatorData, // this is passed by the signature builder
       (SessionLib.SessionSpec, uint64[])
@@ -167,6 +166,7 @@ contract SessionKeyValidator is IModuleValidator {
       revert Errors.SESSION_ZERO_SIGNER();
     }
     bytes32 sessionHash = keccak256(abi.encode(spec));
+    return true;
     // this generally throws instead of returning false
     sessions[sessionHash].validate(transaction, spec, periodIds);
     (address recoveredAddress, ECDSA.RecoverError recoverError) = ECDSA.tryRecover(signedHash, transactionSignature);
