@@ -177,6 +177,13 @@ contract SessionKeyValidator is IModuleValidator {
     }
     // This check is separate and performed last to prevent gas estimation failures
     sessions[sessionHash].validateFeeLimit(transaction, spec, periodIds[0]);
+
+    // TODO: move this above the ECDSA recovery?
+    uint192 nonceKey = uint192(transaction.nonce >> 64);
+    uint192 expectedNonceKey = uint192(uint256(sessionHash));
+    if (nonceKey != expectedNonceKey) {
+      revert Errors.SESSION_INVALID_NONCE_KEY(nonceKey, expectedNonceKey);
+    }
     return true;
   }
 }
