@@ -18,7 +18,7 @@ import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 import { SessionKeyValidator } from "./SessionKeyValidator.sol";
 
 /// @title AllowedSessionsValidator
-/// @author Oleg Bedrin - <o.bedrin@xsolla.com> - Xsolla Special Initiatives
+/// @author Oleg Bedrin - <o.bedrin@xsolla.com> - Xsolla Web3
 /// @custom:security-contact security@matterlabs.dev and o.bedrin@xsolla.com
 /// @notice This contract is used to manage allowed sessions for a smart account.
 contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
