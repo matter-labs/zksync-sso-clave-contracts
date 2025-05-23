@@ -112,32 +112,16 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
   function validateTransaction(
     bytes32 signedHash,
     Transaction calldata transaction
-  ) external virtual override returns (bool) {
-    (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SignatureDecoder
-      .decodeSignature(transaction.signature);
-    (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
+  ) public virtual override returns (bool) {
+    (, , bytes memory validatorData) = SignatureDecoder.decodeSignature(transaction.signature);
+    (SessionLib.SessionSpec memory spec, ) = abi.decode(
       validatorData, // this is passed by the signature builder
       (SessionLib.SessionSpec, uint64[])
     );
-    if (spec.signer == address(0)) {
-      revert Errors.SESSION_ZERO_SIGNER();
-    }
     bytes32 sessionActionsHash = getSessionActionsHash(spec);
     if (!areSessionActionsAllowed[sessionActionsHash]) {
       revert Errors.SESSION_ACTIONS_NOT_ALLOWED(sessionActionsHash);
     }
-    bytes32 sessionHash = keccak256(abi.encode(spec));
-    // this generally throws instead of returning false
-    sessions[sessionHash].validate(transaction, spec, periodIds);
-    (address recoveredAddress, ECDSA.RecoverError recoverError) = ECDSA.tryRecover(signedHash, transactionSignature);
-    if (recoverError != ECDSA.RecoverError.NoError || recoveredAddress == address(0)) {
-      return false;
-    }
-    if (recoveredAddress != spec.signer) {
-      revert Errors.SESSION_INVALID_SIGNER(recoveredAddress, spec.signer);
-    }
-    // This check is separate and performed last to prevent gas estimation failures
-    sessions[sessionHash].validateFeeLimit(transaction, spec, periodIds[0]);
-    return true;
+    return super.validateTransaction(signedHash, transaction);
   }
 }
