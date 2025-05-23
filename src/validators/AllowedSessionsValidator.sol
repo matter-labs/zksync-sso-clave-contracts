@@ -29,16 +29,12 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
 
   /// @notice Mapping to track whether a session actions is allowed.
   /// @dev The key is the hash of session actions, and the value indicates if the actions are allowed.
-  mapping(bytes32 sessionActionsHash => bool active) public isSessionSpecAllowed;
+  mapping(bytes32 sessionActionsHash => bool active) public areSessionActionsAllowed;
 
   /// @notice Emitted when session actions are allowed or disallowed.
   /// @param sessionActionsHash The hash of the session actions.
   /// @param allowed Boolean indicating if the session actions are allowed.
-  event SessionActionsAllowed(bytes32 sessionActionsHash, bool allowed);
-
-  /// @notice Error indicating that the session actions are not allowed.
-  /// @param sessionActionsHash The hash of the session actions that are not allowed.
-  error SessionActionsNotAllowed(bytes32 sessionActionsHash);
+  event SessionActionsAllowed(bytes32 indexed sessionActionsHash, bool indexed allowed);
 
   constructor() {
     _grantRole(SESSION_REGISTRY_MANAGER_ROLE, msg.sender);
@@ -54,8 +50,10 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
     bytes32 sessionActionsHash,
     bool allowed
   ) external virtual onlyRole(SESSION_REGISTRY_MANAGER_ROLE) {
-    isSessionSpecAllowed[sessionActionsHash] = allowed;
-    emit SessionActionsAllowed(sessionActionsHash, allowed);
+    if (areSessionActionsAllowed[sessionActionsHash] != allowed) {
+      areSessionActionsAllowed[sessionActionsHash] = allowed;
+      emit SessionActionsAllowed(sessionActionsHash, allowed);
+    }
   }
 
   /// @notice Get the hash of session actions from a session specification.
@@ -63,7 +61,34 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
   /// @return The hash of the session actions.
   /// @dev The session actions hash is derived from the session's fee limits, call policies, and transfer policies.
   function getSessionActionsHash(SessionLib.SessionSpec memory sessionSpec) public view virtual returns (bytes32) {
-    return keccak256(abi.encode(sessionSpec.feeLimit, sessionSpec.callPolicies, sessionSpec.transferPolicies));
+    bytes32 feeLimitAndTransferPoliciesHash = keccak256(abi.encode(sessionSpec.feeLimit, sessionSpec.transferPolicies));
+    bytes32 callPoliciesHash;
+    {
+      uint256 len = sessionSpec.callPolicies.length;
+      if (len > 0) {
+        // Each CallSpec has: address (32), bytes4 (32), uint256 (32), UsageLimit (3*32) = 128 bytes for first 4 fields
+        // But UsageLimit is a struct of 3 uint256, so 96 bytes for UsageLimit
+        // So, total: 32 + 32 + 32 + 96 = 192 bytes per CallSpec (first 4 fields)
+        uint256 fieldsSize = 32 + 32 + 32 + 96;
+        bytes memory buf = new bytes(len * fieldsSize);
+        for (uint256 i = 0; i < len; ++i) {
+          SessionLib.CallSpec memory c = sessionSpec.callPolicies[i];
+          uint256 offset = i * fieldsSize;
+          assembly {
+            mstore(add(buf, add(32, offset)), mload(c)) // target
+            mstore(add(buf, add(64, offset)), mload(add(c, 32))) // selector
+            mstore(add(buf, add(96, offset)), mload(add(c, 64))) // maxValuePerUse
+            // valueLimit is a struct of 3 uint256
+            let valueLimit := mload(add(c, 96))
+            mstore(add(buf, add(128, offset)), mload(valueLimit)) // limitType
+            mstore(add(buf, add(160, offset)), mload(add(valueLimit, 32))) // limit
+            mstore(add(buf, add(192, offset)), mload(add(valueLimit, 64))) // period
+          }
+        }
+        callPoliciesHash = keccak256(buf);
+      }
+    }
+    return keccak256(abi.encode(feeLimitAndTransferPoliciesHash, callPoliciesHash));
   }
 
   /// @notice Create a new session for an account.
@@ -71,8 +96,8 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
   /// @dev A session is a temporary authorization for an account to perform specific actions, defined by the session specification.
   function createSession(SessionLib.SessionSpec memory sessionSpec) public virtual override {
     bytes32 sessionActionsHash = getSessionActionsHash(sessionSpec);
-    if (!isSessionSpecAllowed[sessionActionsHash]) {
-      revert SessionActionsNotAllowed(sessionActionsHash);
+    if (!areSessionActionsAllowed[sessionActionsHash]) {
+      revert Errors.SESSION_ACTIONS_NOT_ALLOWED(sessionActionsHash);
     }
     super.createSession(sessionSpec);
   }
@@ -107,8 +132,8 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
       revert Errors.SESSION_ZERO_SIGNER();
     }
     bytes32 sessionActionsHash = getSessionActionsHash(spec);
-    if (!isSessionSpecAllowed[sessionActionsHash]) {
-      revert SessionActionsNotAllowed(sessionActionsHash);
+    if (!areSessionActionsAllowed[sessionActionsHash]) {
+      revert Errors.SESSION_ACTIONS_NOT_ALLOWED(sessionActionsHash);
     }
     bytes32 sessionHash = keccak256(abi.encode(spec));
     // this generally throws instead of returning false
