@@ -79,7 +79,7 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
             mstore(add(buf, add(64, offset)), mload(add(c, 32))) // selector
             mstore(add(buf, add(96, offset)), mload(add(c, 64))) // maxValuePerUse
             // valueLimit is a struct of 3 uint256
-            let valueLimit := mload(add(c, 96))
+            let valueLimit := add(c, 96)
             mstore(add(buf, add(128, offset)), mload(valueLimit)) // limitType
             mstore(add(buf, add(160, offset)), mload(add(valueLimit, 32))) // limit
             mstore(add(buf, add(192, offset)), mload(add(valueLimit, 64))) // period
