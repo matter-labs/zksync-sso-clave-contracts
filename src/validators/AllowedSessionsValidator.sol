@@ -62,33 +62,24 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
   /// @dev The session actions hash is derived from the session's fee limits, call policies, and transfer policies.
   function getSessionActionsHash(SessionLib.SessionSpec memory sessionSpec) public view virtual returns (bytes32) {
     bytes32 feeLimitAndTransferPoliciesHash = keccak256(abi.encode(sessionSpec.feeLimit, sessionSpec.transferPolicies));
-    bytes32 callPoliciesHash;
-    {
-      uint256 len = sessionSpec.callPolicies.length;
-      if (len > 0) {
-        // Each CallSpec has: address (32), bytes4 (32), uint256 (32), UsageLimit (3*32) = 128 bytes for first 4 fields
-        // But UsageLimit is a struct of 3 uint256, so 96 bytes for UsageLimit
-        // So, total: 32 + 32 + 32 + 96 = 192 bytes per CallSpec (first 4 fields)
-        uint256 fieldsSize = 32 + 32 + 32 + 96;
-        bytes memory buf = new bytes(len * fieldsSize);
-        for (uint256 i = 0; i < len; ++i) {
-          SessionLib.CallSpec memory c = sessionSpec.callPolicies[i];
-          uint256 offset = i * fieldsSize;
-          assembly {
-            mstore(add(buf, add(32, offset)), mload(c)) // target
-            mstore(add(buf, add(64, offset)), mload(add(c, 32))) // selector
-            mstore(add(buf, add(96, offset)), mload(add(c, 64))) // maxValuePerUse
-            // valueLimit is a struct of 3 uint256
-            let valueLimit := mload(add(c, 96))
-            mstore(add(buf, add(128, offset)), mload(valueLimit)) // limitType
-            mstore(add(buf, add(160, offset)), mload(add(valueLimit, 32))) // limit
-            mstore(add(buf, add(192, offset)), mload(add(valueLimit, 64))) // period
-          }
-        }
-        callPoliciesHash = keccak256(buf);
-      }
+
+    uint256 callPoliciesLength = sessionSpec.callPolicies.length;
+    bytes memory callPoliciesEncoded;
+
+    for (uint256 i = 0; i < callPoliciesLength; ++i) {
+      SessionLib.CallSpec memory policy = sessionSpec.callPolicies[i];
+      callPoliciesEncoded = abi.encodePacked(
+        callPoliciesEncoded,
+        bytes20(policy.target), // Address cast to bytes20
+        policy.selector, // Selector
+        policy.maxValuePerUse, // Max value per use
+        uint256(policy.valueLimit.limitType), // Limit type
+        policy.valueLimit.limit, // Limit
+        policy.valueLimit.period // Period
+      );
     }
-    return keccak256(abi.encode(feeLimitAndTransferPoliciesHash, callPoliciesHash));
+
+    return keccak256(abi.encode(feeLimitAndTransferPoliciesHash, callPoliciesEncoded));
   }
 
   /// @notice Create a new session for an account.
