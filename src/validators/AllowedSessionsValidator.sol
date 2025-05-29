@@ -79,7 +79,7 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
       );
     }
 
-    return keccak256(abi.encode(feeLimitAndTransferPoliciesHash, callPoliciesEncoded));
+    return keccak256(abi.encode(sessionSpec.feeLimit, sessionSpec.transferPolicies, callPoliciesEncoded));
   }
 
   /// @notice Create a new session for an account.
