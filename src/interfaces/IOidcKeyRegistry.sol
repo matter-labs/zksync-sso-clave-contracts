@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
 interface IOidcKeyRegistry {
   /// @notice The structure representing an OIDC key.
   /// @dev Because the circuit assumes exponent 65537 exponent is not stored here.

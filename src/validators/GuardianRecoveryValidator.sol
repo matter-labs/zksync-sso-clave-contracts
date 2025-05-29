@@ -11,7 +11,7 @@ import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
-import { Utils } from "../helpers/Utils.sol";
+import { SsoUtils } from "../helpers/SsoUtils.sol";
 
 /// @title GuardianRecoveryValidator
 /// @author Matter Labs
@@ -231,7 +231,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     }
 
     // Verify the transaction is a call to WebAuthValidator contract
-    address target = Utils.safeCastToAddress(transaction.to);
+    address target = SsoUtils.safeCastToAddress(transaction.to);
     if (target != address(webAuthValidator)) {
       return false;
     }

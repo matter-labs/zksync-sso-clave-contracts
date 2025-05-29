@@ -10,8 +10,9 @@ import { IModule } from "../interfaces/IModule.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
+import { SsoUtils } from "../helpers/SsoUtils.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
+import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 
 /// @title SessionKeyValidator
 /// @author Matter Labs
@@ -26,6 +27,7 @@ contract SessionKeyValidator is IModuleValidator {
   // NOTE: expired sessions are still counted if not explicitly revoked
   mapping(address account => uint256 openSessions) internal sessionCounter;
   mapping(bytes32 sessionHash => SessionLib.SessionStorage sessionState) internal sessions;
+  mapping(address signer => bytes32 sessionHash) internal signers;
 
   /// @notice Get the session state for an account
   /// @param account The account to fetch the session state for
@@ -81,6 +83,28 @@ contract SessionKeyValidator is IModuleValidator {
     return false;
   }
 
+  /// @notice Checks for banned call policies.
+  /// @dev Banned policies are:
+  /// - all calls to account's validatos/hooks, e.g.
+  ///   + createSession
+  ///   + addValidationKey
+  ///   + addGuardian
+  /// - all calls to the account itself, e.g.
+  ///   + addModuleValidator
+  ///   + addHook
+  ///   + batchCall
+  /// @dev can be extended by derived contracts.
+  /// @param target The target address of the call
+  /// @param selector The function selector of the call
+  /// @return true if the call is banned, false otherwise
+  function isBannedCall(address target, bytes4 selector) internal view virtual returns (bool) {
+    return
+      target == address(this) ||
+      ISsoAccount(msg.sender).isModuleValidator(target) ||
+      ISsoAccount(msg.sender).isHook(target) ||
+      target == address(msg.sender);
+  }
+
   /// @notice Create a new session for an account
   /// @param sessionSpec The session specification to create a session with
   function createSession(SessionLib.SessionSpec memory sessionSpec) public virtual {
@@ -90,6 +114,10 @@ contract SessionKeyValidator is IModuleValidator {
     }
     if (sessionSpec.signer == address(0)) {
       revert Errors.SESSION_ZERO_SIGNER();
+    }
+    // prevents abstract hack
+    if (signers[sessionSpec.signer] != bytes32(0)) {
+      revert Errors.SESSION_SIGNER_USED(sessionSpec.signer);
     }
     if (sessionSpec.feeLimit.limitType == SessionLib.LimitType.Unlimited) {
       revert Errors.SESSION_UNLIMITED_FEES();
@@ -102,8 +130,19 @@ contract SessionKeyValidator is IModuleValidator {
       revert Errors.SESSION_EXPIRES_TOO_SOON(sessionSpec.expiresAt);
     }
 
+    uint256 totalCallPolicies = sessionSpec.callPolicies.length;
+    for (uint256 i = 0; i < totalCallPolicies; i++) {
+      if (isBannedCall(sessionSpec.callPolicies[i].target, sessionSpec.callPolicies[i].selector)) {
+        revert Errors.SESSION_CALL_POLICY_BANNED(
+          sessionSpec.callPolicies[i].target,
+          sessionSpec.callPolicies[i].selector
+        );
+      }
+    }
+
     sessionCounter[msg.sender]++;
     sessions[sessionHash].status[msg.sender] = SessionLib.Status.Active;
+    signers[sessionSpec.signer] = sessionHash;
     emit SessionCreated(msg.sender, sessionHash, sessionSpec);
   }
 
@@ -156,8 +195,9 @@ contract SessionKeyValidator is IModuleValidator {
   /// @return true if the transaction is valid
   /// @dev Session spec and period IDs must be provided as validator data
   function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external virtual returns (bool) {
-    (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SignatureDecoder
-      .decodeSignature(transaction.signature);
+    (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SsoUtils.decodeSignature(
+      transaction.signature
+    );
     (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
       validatorData, // this is passed by the signature builder
       (SessionLib.SessionSpec, uint64[])

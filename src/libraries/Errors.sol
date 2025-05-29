@@ -44,9 +44,11 @@ library Errors {
   error SESSION_CALL_POLICY_VIOLATED(address target, bytes4 selector);
   error SESSION_TRANSFER_POLICY_VIOLATED(address target);
   error SESSION_MAX_VALUE_EXCEEDED(uint256 usedValue, uint256 maxValuePerUse);
+  error SESSION_SIGNER_USED(address signer);
+  error SESSION_CALL_POLICY_BANNED(address target, bytes4 selector);
 
   // Misc
-  error BATCH_MSG_VALUE_MISMATCH(uint256 actualValue, uint256 expectedValue);
+  error MSG_VALUE_MISMATCH(uint256 actualValue, uint256 expectedValue);
   error NO_TIMESTAMP_ASSERTER(uint256 chainId);
   error ADDRESS_CAST_OVERFLOW(uint256 value);
   error INVALID_PAYMASTER_INPUT(bytes input);
