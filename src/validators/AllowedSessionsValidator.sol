@@ -18,7 +18,7 @@ import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 import { SessionKeyValidator } from "./SessionKeyValidator.sol";
 
 /// @title AllowedSessionsValidator
-/// @author Oleg Bedrin - <o.bedrin@xsolla.com> - Xsolla Web3
+/// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev and o.bedrin@xsolla.com
 /// @notice This contract is used to manage allowed sessions for a smart account.
 contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
@@ -61,8 +61,6 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
   /// @return The hash of the session actions.
   /// @dev The session actions hash is derived from the session's fee limits, call policies, and transfer policies.
   function getSessionActionsHash(SessionLib.SessionSpec memory sessionSpec) public view virtual returns (bytes32) {
-    bytes32 feeLimitAndTransferPoliciesHash = keccak256(abi.encode(sessionSpec.feeLimit, sessionSpec.transferPolicies));
-
     uint256 callPoliciesLength = sessionSpec.callPolicies.length;
     bytes memory callPoliciesEncoded;
 
