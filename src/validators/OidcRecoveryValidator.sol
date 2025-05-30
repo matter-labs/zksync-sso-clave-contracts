@@ -17,6 +17,7 @@ import { IOidcKeyRegistry } from "../interfaces/IOidcKeyRegistry.sol";
 import { IZkVerifier } from "../interfaces/IZkVerifier.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 /// @title OidcRecoveryValidator
 /// @author Matter Labs
@@ -60,9 +61,9 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   /// @param _verifier The address of the zk verifier.
   /// @param _webAuthValidator The address of the web authentication validator.
   function initialize(address _keyRegistry, address _verifier, address _webAuthValidator) external initializer {
-    if (_keyRegistry == address(0)) revert KeyRegistryCannotBeZeroAddress();
-    if (_verifier == address(0)) revert VerifierCannotBeZeroAddress();
-    if (_webAuthValidator == address(0)) revert WebAuthValidatorCannotBeZeroAddress();
+    if (_keyRegistry == address(0)) revert Errors.OIDC_ZERO_KEY_REGISTRY();
+    if (_verifier == address(0)) revert Errors.OIDC_ZERO_VERIFIER();
+    if (_webAuthValidator == address(0)) revert Errors.OIDC_ZERO_WEBAUTH_VALIDATOR();
 
     keyRegistry = IOidcKeyRegistry(_keyRegistry);
     verifier = IZkVerifier(_verifier);
@@ -76,7 +77,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
 
     bool passKeyModuleIsPresent = asValidator.isModuleValidator(webAuthValidator);
     if (!passKeyModuleIsPresent) {
-      revert WebAuthValidatorNotPresentInAccount(msg.sender);
+      revert Errors.WEBAUTH_VALIDATOR_NOT_INSTALLED();
     }
 
     if (data.length > 0) {
@@ -95,9 +96,9 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   /// @param oidcDigest PoseidonHash(iss || aud || sub || salt).
   /// @param iss The OIDC issuer.
   function addOidcAccount(bytes32 oidcDigest, string memory iss) public {
-    if (oidcDigest == bytes32(0)) revert EmptyOidcDigest();
-    if (bytes(iss).length == 0) revert EmptyOidcIssuer();
-    if (bytes(iss).length > MAX_ISS_LENGTH) revert OidcIssuerTooLong();
+    if (oidcDigest == bytes32(0)) revert Errors.OIDC_EMPTY_DIGEST();
+    if (bytes(iss).length == 0) revert Errors.OIDC_EMPTY_ISSUER();
+    if (bytes(iss).length > MAX_ISS_LENGTH) revert Errors.OIDC_ISSUER_TOO_LONG();
 
     bool isNew = accountData[msg.sender].oidcDigest == bytes32(0);
     if (!isNew) {
@@ -107,7 +108,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
 
     address previousOwner = digestIndex[oidcDigest];
     if (previousOwner != address(0)) {
-      revert OidcDigestAlreadyRegisteredInAnotherAccount(previousOwner);
+      revert Errors.OIDC_DIGEST_TAKEN(previousOwner);
     }
 
     accountData[msg.sender].oidcDigest = oidcDigest;
@@ -143,7 +144,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   /// @dev If the proof is valid, it sets the recovery data for the target account.
   function startRecovery(StartRecoveryData calldata data, address targetAccount) external {
     if (data.timeLimit < block.timestamp) {
-      revert TimeLimitExpired();
+      revert Errors.OIDC_TIME_LIMIT_EXPIRED();
     }
 
     OidcData memory oidcData = accountData[targetAccount];
@@ -172,7 +173,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     publicInputs[pubSignalsIndex + 2] = uint256(senderHash) & LAST_BYTE_MASK;
 
     if (!verifier.verifyProof(data.zkProof.pA, data.zkProof.pB, data.zkProof.pC, publicInputs)) {
-      revert ZkProofVerificationFailed();
+      revert Errors.OIDC_ZKP_VERIFICATION_FAILED();
     }
 
     accountData[targetAccount].pendingPasskeyHash = data.pendingPasskeyHash;
@@ -185,7 +186,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
 
   function cancelRecovery() external {
     if (!accountData[msg.sender].readyToRecover) {
-      revert NoRecoveryStarted();
+      revert Errors.OIDC_NO_RECOVERY_STARTED();
     }
 
     bytes32 pendingPasskeyHash = accountData[msg.sender].pendingPasskeyHash;
@@ -277,7 +278,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
   function addressForDigest(bytes32 digest) external view returns (address) {
     address addr = digestIndex[digest];
     if (addr == address(0)) {
-      revert AddressNotFoundForDigest(digest);
+      revert Errors.OIDC_ADDRESS_NOT_FOUND(digest);
     }
 
     return addr;
@@ -290,7 +291,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     OidcData memory data = accountData[account];
 
     if (data.oidcDigest == bytes32(0)) {
-      revert NoOidcDataForGivenAddress(account);
+      revert Errors.OIDC_NO_DATA_FOR_ACCOUNT(account);
     }
 
     return data;

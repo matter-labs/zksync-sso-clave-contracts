@@ -17,13 +17,6 @@ interface IOidcRecoveryValidator is IModuleValidator {
   /// @param oidcDigest The PoseidonHash(sub || aud || iss || salt) of the OIDC key.
   event OidcAccountDeleted(address indexed account, bytes32 oidcDigest);
 
-  /// @notice Thrown when calling `validateSignature` since it is not implemented.
-  error ValidateSignatureNotImplemented();
-
-  /// @notice Thrown when no address is found for a given OIDC digest.
-  /// @param digest The OIDC digest.
-  error AddressNotFoundForDigest(bytes32 digest);
-
   /// @notice Emitted when a recovery process is started for an account.
   /// @param initiator The address that initiated the recovery process.
   /// @param targetAccount The address of the account being recovered.
@@ -34,44 +27,6 @@ interface IOidcRecoveryValidator is IModuleValidator {
   /// @param targetAccount The address of the account that cancelled the recovery.
   /// @param pendingPasskeyHash The passkey hash used in the cancelled recovery attempt.
   event RecoveryCancelled(address indexed targetAccount, bytes32 pendingPasskeyHash);
-
-  /// @notice Thrown when trying to add an OIDC account with an OIDC digest that is already registered in another account.
-  /// @param currentAccount The address that is currently associated with that oidc account.
-  error OidcDigestAlreadyRegisteredInAnotherAccount(address currentAccount);
-
-  /// @notice Thrown when there is no OIDC data for a given address.
-  /// @param account The address.
-  error NoOidcDataForGivenAddress(address account);
-
-  /// @notice Thrown when the zk proof verification fails.
-  error ZkProofVerificationFailed();
-
-  /// @notice Thrown when the time limit has expired.
-  error TimeLimitExpired();
-
-  /// @notice Thrown when target account does not have passkey module.
-  error WebAuthValidatorNotPresentInAccount(address account);
-
-  /// @notice Thrown when the key registry address is zero.
-  error KeyRegistryCannotBeZeroAddress();
-
-  /// @notice Thrown when the verifier address is zero.
-  error VerifierCannotBeZeroAddress();
-
-  /// @notice Thrown when the web auth validator address is zero.
-  error WebAuthValidatorCannotBeZeroAddress();
-
-  /// @notice Thrown when an OIDC digest is empty.
-  error EmptyOidcDigest();
-
-  /// @notice Thrown when an OIDC issuer is empty.
-  error EmptyOidcIssuer();
-
-  /// @notice Thrown when an OIDC issuer is empty.
-  error OidcIssuerTooLong();
-
-  /// @notice Thrown when a user tries to cancel a recovery but no recovery was started
-  error NoRecoveryStarted();
 
   /// @notice The data for an OIDC account.
   /// @param oidcDigest Digest that identifies an account. It's calculated as: PoseidonHash(sub || aud || iss || salt) of the OIDC key.

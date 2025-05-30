@@ -67,7 +67,7 @@ describe("OidcRecoveryValidator", function () {
       const connected = oidcValidator.connect(testWallet);
       await expect(connected.addOidcAccount(oidcDigest, iss)).to.revertedWithCustomError(
         connected,
-        "OidcIssuerTooLong",
+        "OIDC_ISSUER_TOO_LONG",
       );
     });
 
@@ -88,7 +88,7 @@ describe("OidcRecoveryValidator", function () {
       // Second registration with same digest should fail
       await expect(
         oidcValidator.connect(otherWallet).addOidcAccount(oidcDigest, iss),
-      ).to.be.revertedWithCustomError(oidcValidator, "OidcDigestAlreadyRegisteredInAnotherAccount")
+      ).to.be.revertedWithCustomError(oidcValidator, "OIDC_DIGEST_TAKEN")
         .withArgs(testWallet.address);
     });
   });
@@ -109,7 +109,7 @@ describe("OidcRecoveryValidator", function () {
     expect(returnedAddress2).to.equal(testWallet.address);
     await expect(connected.addressForDigest(oidcDigest)).to.revertedWithCustomError(
       connected,
-      "AddressNotFoundForDigest",
+      "OIDC_ADDRESS_NOT_FOUND",
     ).withArgs(oidcDigest);
   });
 
@@ -120,7 +120,7 @@ describe("OidcRecoveryValidator", function () {
 
       await oidcValidator.connect(testWallet).addOidcAccount(oidcDigest, iss);
       await expect(oidcValidator.connect(testWallet).deleteOidcAccount()).to.emit(oidcValidator, "OidcAccountDeleted").withArgs(testWallet.address, oidcDigest);
-      await expect(oidcValidator.connect(testWallet).oidcDataForAddress(testWallet.address)).to.be.revertedWithCustomError(oidcValidator, "NoOidcDataForGivenAddress")
+      await expect(oidcValidator.connect(testWallet).oidcDataForAddress(testWallet.address)).to.be.revertedWithCustomError(oidcValidator, "OIDC_NO_DATA_FOR_ACCOUNT")
         .withArgs(testWallet.address);
     });
   });
