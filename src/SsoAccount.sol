@@ -21,6 +21,7 @@ import { Errors } from "./libraries/Errors.sol";
 
 import { ERC1271Handler } from "./handlers/ERC1271Handler.sol";
 import { BatchCaller } from "./handlers/BatchCaller.sol";
+import { NoHooksCaller } from "./handlers/NoHooksCaller.sol";
 
 import { BootloaderAuth } from "./auth/BootloaderAuth.sol";
 
@@ -40,6 +41,7 @@ contract SsoAccount is
   ERC1271Handler,
   TokenCallbackHandler,
   BatchCaller,
+  NoHooksCaller,
   ISsoAccount,
   BootloaderAuth
 {

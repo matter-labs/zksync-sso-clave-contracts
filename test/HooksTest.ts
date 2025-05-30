@@ -124,6 +124,20 @@ describe("Hook tests", function () {
       expect(await validationHook.lastTarget(proxyAccountAddress)).to.equal(tx.to);
     });
 
+    it("should not trigger a hook when calling via `noHooksCall`", async () => {
+      const aaTx = {
+        ...await aaTxTemplate(),
+        to: proxyAccountAddress,
+        data: ssoAccountAbi.encodeFunctionData("noHooksCall", [Wallet.createRandom().address, 0, "0x1234"]),
+      };
+
+      const signedTx = await smartAccount.signTransaction(aaTx);
+      const tx = await provider.broadcastTransaction(signedTx);
+      const receipt = await tx.wait();
+      expect(receipt.status).to.equal(1); // should succeed
+      await expect(tx).to.not.emit(validationHook, "ValidationHookTriggered");
+    })
+
     it("should revert on uninstall", async () => {
       const aaTx = {
         ...await aaTxTemplate(),

@@ -490,6 +490,22 @@ describe("SessionKeyModule tests", function () {
         data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1n]),
       });
     });
+
+    it("should fail creating a session with the same signer again", async () => {
+      await expect(tester.createSession({})).to.be.reverted;
+    })
+
+    it("should fail creating a session with a banned call policy", async () => {
+      // Rotate the signer
+      tester.sessionOwner = new Wallet(Wallet.createRandom().privateKey, provider);
+      const sessionKeyContract = await fixtures.getSessionKeyContract();
+      await expect(tester.createSession({
+        callPolicies: [{
+          target: await sessionKeyContract.getAddress(),
+          selector: sessionKeyContract.interface.getFunction("createSession").selector
+        }],
+      })).to.be.reverted;
+    })
   });
 
   (hre.network.name == "inMemoryNode" ? describe : describe.skip)("Timestamp-based tests", function () {
@@ -649,6 +665,8 @@ describe("SessionKeyModule tests", function () {
     });
 
     it("should create a different session that allows paying fees with ERC20", async () => {
+      // Rotate the signer
+      tester.sessionOwner = new Wallet(Wallet.createRandom().privateKey, provider);
       await tester.createSession({
         feeLimit: { limit: 0 },
         transferPolicies: [{

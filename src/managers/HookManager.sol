@@ -63,7 +63,7 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
   // Runs the validation hooks that are enabled by the account and returns true if none reverts
   function runValidationHooks(bytes32 signedHash, Transaction calldata transaction) internal returns (bool) {
-    // Only validation hooks if not calling `this.noHooksCall`
+    // Only run hooks if not calling `this.noHooksCall`
     if (
       SsoUtils.safeCastToAddress(transaction.to) == address(this) &&
       transaction.data.length >= 4 &&
@@ -88,7 +88,7 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
   // Runs the execution hooks that are enabled by the account before and after _executeTransaction
   modifier runExecutionHooks(Transaction calldata transaction) {
-    // Only execute hooks if not calling `this.noHooksCall`
+    // Only run hooks if not calling `this.noHooksCall`
     if (
       SsoUtils.safeCastToAddress(transaction.to) == address(this) &&
       transaction.data.length >= 4 &&
