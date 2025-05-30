@@ -7,7 +7,7 @@ import { DEPLOYER_SYSTEM_CONTRACT } from "@matterlabs/zksync-contracts/l2/system
 import { Errors } from "../libraries/Errors.sol";
 
 /// @title Utility functions
-/// @dev Utility functions for used in ZKsync SSO contracts
+/// @dev Utility functions used in ZKsync SSO contracts
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 library SsoUtils {
@@ -22,7 +22,7 @@ library SsoUtils {
     return address(uint160(_value));
   }
 
-  // @dev Decode transaction.signature into signature, validator and validator data
+  /// @dev Decode transaction.signature into signature, validator and validator data
   /// @param txSignature The transaction signature field to decode (signature | validator | validatorData).
   /// @return signature The actual signature for the transaction.
   /// @return validator The address of the validator to be used for signature validation.
@@ -33,7 +33,7 @@ library SsoUtils {
     (signature, validator, validatorData) = abi.decode(txSignature, (bytes, address, bytes));
   }
 
-  // @dev Decode signature into signature and validator
+  /// @dev Decode signature into signature and validator
   /// @param signatureAndValidator The transaction signature field to decode (signature | validator).
   /// @return signature The actual signature for the transaction.
   /// @return validator The address of the validator to be used for signature validation.

@@ -192,8 +192,8 @@ contract SsoAccount is
           : ACCOUNT_VALIDATION_SUCCESS_MAGIC;
     }
 
-    // Extract the signature, validator address and hook data from the _transaction.signature
-    //  the signature value is not necessary, omitting it
+    // Extract the signature and validator address from the _transaction.signature.
+    // The signature value is not needed here, omitting it
     // slither-disable-next-line unused-return
     (, address validator) = SsoUtils.decodeSignatureNoValidatorData(_transaction.signature);
 
