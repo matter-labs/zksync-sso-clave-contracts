@@ -48,6 +48,14 @@ library Errors {
   error SESSION_CALL_POLICY_BANNED(address target, bytes4 selector);
   error SESSION_ACTIONS_NOT_ALLOWED(bytes32 sessionActionsHash);
 
+  // WebAuthn errors
+  error WEBAUTHN_NOT_KEY_OWNER(address account);
+  error WEBAUTHN_KEY_EXISTS();
+  error WEBAUTHN_ACCOUNT_EXISTS();
+  error WEBAUTHN_EMPTY_KEY();
+  error WEBAUTHN_BAD_DOMAIN_LENGTH();
+  error WEBAUTHN_BAD_CREDENTIAL_ID_LENGTH();
+
   // Misc
   error MSG_VALUE_MISMATCH(uint256 actualValue, uint256 expectedValue);
   error NO_TIMESTAMP_ASSERTER(uint256 chainId);

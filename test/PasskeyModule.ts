@@ -726,7 +726,7 @@ describe("Passkey validation", function () {
       const nextR1Key = await generateES256R1Key();
       assert(nextR1Key != null, "no second key was generated");
       const [newX, newY] = await getRawPublicKeyFromCrypto(nextR1Key);
-      await expect(passkeyValidator.addValidationKey(credentialId, [newX, newY], keyDomain)).to.be.revertedWithCustomError(passkeyValidator, "KEY_EXISTS");
+      await expect(passkeyValidator.addValidationKey(credentialId, [newX, newY], keyDomain)).to.be.revertedWithCustomError(passkeyValidator, "WEBAUTHN_KEY_EXISTS");
       await verifyKeyStorage(passkeyValidator, keyDomain, [toHex(generatedX), toHex(generatedY)], credentialId, wallet, "ensure it was untouched");
 
       const newCredentialId = toHex(randomBytes(64));
