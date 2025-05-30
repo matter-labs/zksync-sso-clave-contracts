@@ -111,6 +111,7 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
     bytes32 signedHash,
     Transaction calldata transaction
   ) public virtual override returns (bool) {
+    // slither-disable-next-line unused-return
     (, , bytes memory validatorData) = SignatureDecoder.decodeSignature(transaction.signature);
     (SessionLib.SessionSpec memory spec, ) = abi.decode(
       validatorData, // this is passed by the signature builder
