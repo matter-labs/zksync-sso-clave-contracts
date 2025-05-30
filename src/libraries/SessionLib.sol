@@ -288,7 +288,7 @@ library SessionLib {
 
     // Validate paymaster input
     uint256 periodIdsOffset = 2;
-    if (transaction.paymasterInput.length >= 4) {
+    if (transaction.paymaster != 0 && transaction.paymasterInput.length >= 4) {
       bytes4 paymasterInputSelector = bytes4(transaction.paymasterInput[:4]);
       // SsoAccount will automatically `approve()` a token for an approval-based paymaster in `prepareForPaymaster()` call.
       // We need to make sure that the session spec allows this.

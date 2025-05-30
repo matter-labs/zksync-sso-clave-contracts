@@ -85,7 +85,7 @@ contract SessionKeyValidator is IModuleValidator {
 
   /// @notice Checks for banned call policies.
   /// @dev Banned policies are:
-  /// - all calls to account's validatos/hooks, e.g.
+  /// - all calls to account's validators/hooks, e.g.
   ///   + createSession
   ///   + addValidationKey
   ///   + addGuardian
@@ -99,7 +99,7 @@ contract SessionKeyValidator is IModuleValidator {
   /// @return true if the call is banned, false otherwise
   function isBannedCall(address target, bytes4 selector) internal view virtual returns (bool) {
     return
-      target == address(this) ||
+      target == address(this) || // this line is technically unnecessary
       ISsoAccount(msg.sender).isModuleValidator(target) ||
       ISsoAccount(msg.sender).isHook(target) ||
       target == address(msg.sender);

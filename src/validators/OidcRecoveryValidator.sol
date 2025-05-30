@@ -16,6 +16,7 @@ import { IOidcRecoveryValidator } from "../interfaces/IOidcRecoveryValidator.sol
 import { IOidcKeyRegistry } from "../interfaces/IOidcKeyRegistry.sol";
 import { IZkVerifier } from "../interfaces/IZkVerifier.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
+import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
 
 /// @title OidcRecoveryValidator
 /// @author Matter Labs
@@ -216,6 +217,15 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
 
     // Check for calling "addValidationKey" method by anyone on WebAuthValidator contract
     if (selector != WebAuthValidator.addValidationKey.selector) {
+      return false;
+    }
+
+    // Approval-based paymasters are not permitted
+    if (
+      transaction.paymaster != 0 &&
+      transaction.paymasterInput.length >= 4 &&
+      bytes4(transaction.paymasterInput[:4]) == IPaymasterFlow.approvalBased.selector
+    ) {
       return false;
     }
 

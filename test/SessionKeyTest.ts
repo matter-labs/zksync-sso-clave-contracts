@@ -659,13 +659,13 @@ describe("SessionKeyModule tests", function () {
           target: await erc20.getAddress(),
           selector: erc20.interface.getFunction("approve").selector,
           constraints: [
-            // // spender is paymaster
+            // spender is paymaster
             {
               index: 0,
               refValue: ethers.zeroPadValue(await paymaster.getAddress(), 32),
               condition: Condition.Equal,
             },
-            // // amount is 1000 tokens (lifetime limit)
+            // amount is 1000 tokens (lifetime limit)
             {
               index: 1,
               limit: { limit: 1000 },

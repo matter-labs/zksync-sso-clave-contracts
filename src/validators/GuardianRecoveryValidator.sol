@@ -12,6 +12,8 @@ import { IModule } from "../interfaces/IModule.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 import { SsoUtils } from "../helpers/SsoUtils.sol";
+import { Errors } from "../libraries/Errors.sol";
+import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
 
 /// @title GuardianRecoveryValidator
 /// @author Matter Labs
@@ -44,7 +46,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     bool isGuardian = accountGuardians[hashedOriginDomain][account].contains(msg.sender) &&
       accountGuardianData[hashedOriginDomain][account][msg.sender].isReady;
 
-    if (!isGuardian) revert GuardianNotFound(msg.sender);
+    if (!isGuardian) revert Errors.GUARDIAN_NOT_FOUND(msg.sender);
     // Continue execution if called by guardian
     _;
   }
@@ -54,7 +56,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   function initialize(WebAuthValidator _webAuthValidator) external initializer {
-    if (address(_webAuthValidator) == address(0)) revert InvalidWebAuthValidatorAddress();
+    if (address(_webAuthValidator) == address(0)) revert Errors.INVALID_WEBAUTH_VALIDATOR();
     webAuthValidator = _webAuthValidator;
   }
 
@@ -64,7 +66,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @inheritdoc IModule
   function onInstall(bytes calldata) external {
     if (!IValidatorManager(msg.sender).isModuleValidator(address(webAuthValidator))) {
-      revert WebAuthValidatorNotEnabled();
+      revert Errors.WEBAUTH_VALIDATOR_NOT_INSTALLED();
     }
   }
 
@@ -84,7 +86,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
           bool guardedAccountsRemovalSuccessful = accounts.remove(msg.sender);
 
           if (!guardedAccountsRemovalSuccessful) {
-            revert AccountNotGuardedByAddress(msg.sender, guardian);
+            revert Errors.ACCOUNT_NOT_GUARDED_BY_ADDRESS(msg.sender, guardian);
           }
         }
 
@@ -93,7 +95,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
         bool removalSuccessful = accountGuardians[hashedOriginDomain][msg.sender].remove(guardian);
 
         if (!removalSuccessful) {
-          revert GuardianNotFound(guardian);
+          revert Errors.GUARDIAN_NOT_FOUND(guardian);
         }
 
         emit GuardianRemoved(msg.sender, hashedOriginDomain, guardian);
@@ -112,8 +114,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   function proposeGuardian(bytes32 hashedOriginDomain, address newGuardian) external {
-    if (msg.sender == newGuardian) revert GuardianCannotBeSelf();
-    if (newGuardian == address(0)) revert InvalidGuardianAddress();
+    if (msg.sender == newGuardian) revert Errors.GUARDIAN_CANNOT_BE_SELF();
+    if (newGuardian == address(0)) revert Errors.GUARDIAN_INVALID_ADDRESS();
 
     bool additionSuccessful = accountGuardians[hashedOriginDomain][msg.sender].add(newGuardian);
 
@@ -135,11 +137,11 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   function removeGuardian(bytes32 hashedOriginDomain, address guardianToRemove) external {
-    if (guardianToRemove == address(0)) revert InvalidGuardianAddress();
+    if (guardianToRemove == address(0)) revert Errors.GUARDIAN_INVALID_ADDRESS();
 
     bool removalSuccessful = accountGuardians[hashedOriginDomain][msg.sender].remove(guardianToRemove);
     if (!removalSuccessful) {
-      revert GuardianNotFound(guardianToRemove);
+      revert Errors.GUARDIAN_NOT_FOUND(guardianToRemove);
     }
 
     bool wasActiveGuardian = accountGuardianData[hashedOriginDomain][msg.sender][guardianToRemove].isReady;
@@ -150,13 +152,13 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
       bool accountsRemovalSuccessful = accounts.remove(msg.sender);
 
       if (!accountsRemovalSuccessful) {
-        revert AccountNotGuardedByAddress(msg.sender, guardianToRemove);
+        revert Errors.ACCOUNT_NOT_GUARDED_BY_ADDRESS(msg.sender, guardianToRemove);
       }
     }
 
     if (accountGuardians[hashedOriginDomain][msg.sender].length() == 0) {
       if (!accountHashedOriginDomains[msg.sender].remove(hashedOriginDomain)) {
-        revert UnknownHashedOriginDomain(hashedOriginDomain);
+        revert Errors.UNKNOWN_ORIGIN_DOMAIN(hashedOriginDomain);
       } else {
         emit HashedOriginDomainDisabledForAccount(msg.sender, hashedOriginDomain);
       }
@@ -167,11 +169,11 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   function addGuardian(bytes32 hashedOriginDomain, address accountToGuard) external returns (bool) {
-    if (accountToGuard == address(0)) revert InvalidAccountToGuardAddress();
+    if (accountToGuard == address(0)) revert Errors.GUARDIAN_INVALID_ACCOUNT();
 
     bool guardianProposed = accountGuardians[hashedOriginDomain][accountToGuard].contains(msg.sender);
     if (!guardianProposed) {
-      revert GuardianNotProposed(msg.sender);
+      revert Errors.GUARDIAN_NOT_PROPOSED(msg.sender);
     }
 
     // We return true if the guardian was not confirmed before.
@@ -181,7 +183,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     bool addSuccessful = guardedAccounts[hashedOriginDomain][msg.sender].add(accountToGuard);
 
     if (!addSuccessful) {
-      revert AccountAlreadyGuardedByGuardian(accountToGuard, msg.sender);
+      revert Errors.ACCOUNT_ALREADY_GUARDED(accountToGuard, msg.sender);
     }
 
     emit GuardianAdded(accountToGuard, hashedOriginDomain, msg.sender);
@@ -194,10 +196,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     bytes32[2] calldata rawPublicKey,
     bytes32 hashedOriginDomain
   ) external onlyGuardianOf(hashedOriginDomain, accountToRecover) {
-    if (accountToRecover == address(0)) revert InvalidAccountToRecoverAddress();
+    if (accountToRecover == address(0)) revert Errors.GUARDIAN_INVALID_ACCOUNT();
 
     if (pendingRecoveryData[hashedOriginDomain][accountToRecover].timestamp + REQUEST_VALIDITY_TIME > block.timestamp) {
-      revert AccountRecoveryInProgress();
+      revert Errors.GUARDIAN_RECOVERY_IN_PROGRESS();
     }
 
     pendingRecoveryData[hashedOriginDomain][accountToRecover] = RecoveryRequest(
@@ -227,7 +229,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     //   4. Verifies that the required timelock period has passed since `initRecovery` was called
     //   5. If all the above are true, the recovery is finished
     if (transaction.data.length < 4) {
-      revert NonFunctionCallTransaction();
+      revert Errors.INVALID_RECOVERY_CALL();
     }
 
     // Verify the transaction is a call to WebAuthValidator contract
@@ -239,6 +241,15 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     // Verify the transaction is a call to `addValidationKey`
     bytes4 selector = bytes4(transaction.data[:4]);
     if (selector != WebAuthValidator.addValidationKey.selector) {
+      return false;
+    }
+
+    // Approval-based paymasters are not permitted
+    if (
+      transaction.paymaster != 0 &&
+      transaction.paymasterInput.length >= 4 &&
+      bytes4(transaction.paymasterInput[:4]) == IPaymasterFlow.approvalBased.selector
+    ) {
       return false;
     }
 

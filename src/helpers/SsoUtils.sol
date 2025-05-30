@@ -43,6 +43,12 @@ library SsoUtils {
     (signature, validator) = abi.decode(signatureAndValidator, (bytes, address));
   }
 
+  /// @notice Perform a call to a specified address with given value and data.
+  /// @dev This method correctly handles the case of contract deployment.
+  /// @param _to The address to call.
+  /// @param _value The value to send with the call.
+  /// @param _data The calldata to send with the call.
+  /// @return bool Returns true if the call was successful, false otherwise.
   function performCall(address _to, uint256 _value, bytes calldata _data) internal returns (bool) {
     uint32 gas = Utils.safeCastToU32(gasleft());
 
@@ -59,6 +65,18 @@ library SsoUtils {
       return EfficientCall.rawCall({ _gas: gas, _address: _to, _value: _value, _data: _data, _isSystem: isSystemCall });
     } else {
       return EfficientCall.rawCall(gas, _to, _value, _data, false);
+    }
+  }
+
+  /// @notice This method implements an ultra-efficient way for executing delegate calls.
+  /// It is compatible with OpenZeppelin proxy implementations.
+  /// @dev this method uses the EfficientCall library to forward calldata to the implementation contract,
+  /// instead of copying it from calldata to memory.
+  /// @param implementation The address of the implementation contract to delegate call.
+  function delegate(address implementation) internal {
+    bytes memory data = EfficientCall.delegateCall(gasleft(), implementation, msg.data);
+    assembly {
+      return(add(data, 0x20), mload(data))
     }
   }
 }

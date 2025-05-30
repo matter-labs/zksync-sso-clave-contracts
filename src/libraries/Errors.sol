@@ -52,4 +52,18 @@ library Errors {
   error NO_TIMESTAMP_ASSERTER(uint256 chainId);
   error ADDRESS_CAST_OVERFLOW(uint256 value);
   error INVALID_PAYMASTER_INPUT(bytes input);
+
+  // Guardians
+  error GUARDIAN_CANNOT_BE_SELF();
+  error GUARDIAN_NOT_FOUND(address guardian);
+  error GUARDIAN_NOT_PROPOSED(address guardian);
+  error ACCOUNT_ALREADY_GUARDED(address account, address guardian);
+  error ACCOUNT_NOT_GUARDED_BY_ADDRESS(address account, address guardian);
+  error GUARDIAN_RECOVERY_IN_PROGRESS();
+  error WEBAUTH_VALIDATOR_NOT_INSTALLED();
+  error GUARDIAN_INVALID_ADDRESS();
+  error INVALID_WEBAUTH_VALIDATOR();
+  error GUARDIAN_INVALID_ACCOUNT();
+  error INVALID_RECOVERY_CALL();
+  error UNKNOWN_ORIGIN_DOMAIN(bytes32 hashedOriginDomain);
 }
