@@ -2,8 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { EfficientCall } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/EfficientCall.sol";
-import { Utils } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/Utils.sol";
-import { DEPLOYER_SYSTEM_CONTRACT } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
+import { SsoUtils } from "../helpers/SsoUtils.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SelfAuth } from "../auth/SelfAuth.sol";
 
@@ -40,29 +39,7 @@ abstract contract BatchCaller is SelfAuth {
 
     for (uint256 i = 0; i < len; ++i) {
       totalValue += _calls[i].value;
-      bool success;
-      uint32 gas = Utils.safeCastToU32(gasleft());
-
-      if (_calls[i].target == address(DEPLOYER_SYSTEM_CONTRACT)) {
-        bytes4 selector = bytes4(_calls[i].callData[:4]);
-        // Check that called function is the deployment method,
-        // the other deployer methods are not supposed to be called from the account.
-        // NOTE: DefaultAccount has the same behavior.
-        bool isSystemCall = selector == DEPLOYER_SYSTEM_CONTRACT.create.selector ||
-          selector == DEPLOYER_SYSTEM_CONTRACT.create2.selector ||
-          selector == DEPLOYER_SYSTEM_CONTRACT.createAccount.selector ||
-          selector == DEPLOYER_SYSTEM_CONTRACT.create2Account.selector;
-        // Note, that the deployer contract can only be called with a "isSystemCall" flag.
-        success = EfficientCall.rawCall({
-          _gas: gas,
-          _address: _calls[i].target,
-          _value: _calls[i].value,
-          _data: _calls[i].callData,
-          _isSystem: isSystemCall
-        });
-      } else {
-        success = EfficientCall.rawCall(gas, _calls[i].target, _calls[i].value, _calls[i].callData, false);
-      }
+      bool success = SsoUtils.performCall(_calls[i].target, _calls[i].value, _calls[i].callData);
 
       if (!success) {
         emit BatchCallFailure(i, getReturnData());
@@ -73,7 +50,7 @@ abstract contract BatchCaller is SelfAuth {
     }
 
     if (totalValue != msg.value) {
-      revert Errors.BATCH_MSG_VALUE_MISMATCH(msg.value, totalValue);
+      revert Errors.MSG_VALUE_MISMATCH(msg.value, totalValue);
     }
   }
 

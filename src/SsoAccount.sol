@@ -13,15 +13,15 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { HookManager } from "./managers/HookManager.sol";
-import { Utils as SsoUtils } from "./helpers/Utils.sol";
+import { SsoUtils } from "./helpers/SsoUtils.sol";
 
 import { TokenCallbackHandler } from "./helpers/TokenCallbackHandler.sol";
 
 import { Errors } from "./libraries/Errors.sol";
-import { SignatureDecoder } from "./libraries/SignatureDecoder.sol";
 
 import { ERC1271Handler } from "./handlers/ERC1271Handler.sol";
-import { BatchCaller } from "./batch/BatchCaller.sol";
+import { BatchCaller } from "./handlers/BatchCaller.sol";
+import { NoHooksCaller } from "./handlers/NoHooksCaller.sol";
 
 import { BootloaderAuth } from "./auth/BootloaderAuth.sol";
 
@@ -41,6 +41,7 @@ contract SsoAccount is
   ERC1271Handler,
   TokenCallbackHandler,
   BatchCaller,
+  NoHooksCaller,
   ISsoAccount,
   BootloaderAuth
 {
@@ -126,29 +127,7 @@ contract SsoAccount is
   /// @param _value The value to send along with the call.
   /// @param _data The calldata to pass along with the call.
   function _executeCall(address _to, uint128 _value, bytes calldata _data) private {
-    uint32 gas = Utils.safeCastToU32(gasleft());
-    bool success;
-
-    if (_to == address(DEPLOYER_SYSTEM_CONTRACT) && _data.length >= 4) {
-      bytes4 selector = bytes4(_data[:4]);
-      // Check that called function is the deployment method,
-      // the other deployer methods are not supposed to be called from the account.
-      // NOTE: DefaultAccount has the same behavior.
-      bool isSystemCall = selector == DEPLOYER_SYSTEM_CONTRACT.create.selector ||
-        selector == DEPLOYER_SYSTEM_CONTRACT.create2.selector ||
-        selector == DEPLOYER_SYSTEM_CONTRACT.createAccount.selector ||
-        selector == DEPLOYER_SYSTEM_CONTRACT.create2Account.selector;
-      // Note, that the deployer contract can only be called with a "isSystemCall" flag.
-      success = EfficientCall.rawCall({
-        _gas: gas,
-        _address: _to,
-        _value: _value,
-        _data: _data,
-        _isSystem: isSystemCall
-      });
-    } else {
-      success = EfficientCall.rawCall(gas, _to, _value, _data, false);
-    }
+    bool success = SsoUtils.performCall(_to, _value, _data);
 
     if (!success) {
       EfficientCall.propagateRevert();
@@ -213,10 +192,10 @@ contract SsoAccount is
           : ACCOUNT_VALIDATION_SUCCESS_MAGIC;
     }
 
-    // Extract the signature, validator address and hook data from the _transaction.signature
-    //  the signature value is not necessary, omitting it
+    // Extract the signature and validator address from the _transaction.signature.
+    // The signature value is not needed here, omitting it
     // slither-disable-next-line unused-return
-    (, address validator) = SignatureDecoder.decodeSignatureNoHookData(_transaction.signature);
+    (, address validator) = SsoUtils.decodeSignatureNoValidatorData(_transaction.signature);
 
     bool validationSuccess = _isModuleValidator(validator) &&
       IModuleValidator(validator).validateTransaction(_signedHash, _transaction);

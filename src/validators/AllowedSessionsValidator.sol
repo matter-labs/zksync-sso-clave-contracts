@@ -13,7 +13,7 @@ import { IModule } from "../interfaces/IModule.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
+import { SsoUtils } from "../helpers/SsoUtils.sol";
 
 import { SessionKeyValidator } from "./SessionKeyValidator.sol";
 
@@ -112,7 +112,7 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
     Transaction calldata transaction
   ) public virtual override returns (bool) {
     // slither-disable-next-line unused-return
-    (, , bytes memory validatorData) = SignatureDecoder.decodeSignature(transaction.signature);
+    (, , bytes memory validatorData) = SsoUtils.decodeSignature(transaction.signature);
     (SessionLib.SessionSpec memory spec, ) = abi.decode(
       validatorData, // this is passed by the signature builder
       (SessionLib.SessionSpec, uint64[])

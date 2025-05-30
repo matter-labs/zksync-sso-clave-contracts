@@ -9,6 +9,7 @@ import { IModule } from "../interfaces/IModule.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Base64 } from "solady/src/utils/Base64.sol";
 import { JSONParserLib } from "solady/src/utils/JSONParserLib.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 /// @title WebAuthValidator
 /// @author Matter Labs
@@ -18,7 +19,6 @@ contract WebAuthValidator is IModuleValidator {
   using JSONParserLib for JSONParserLib.Item;
   using JSONParserLib for string;
 
-  // Order of Layout: Types
   struct PasskeyId {
     string domain;
     bytes credentialId;
@@ -43,17 +43,8 @@ contract WebAuthValidator is IModuleValidator {
   bytes32 private constant WEBAUTHN_GET_HASH = keccak256("webauthn.get");
   bytes32 private constant FALSE_HASH = keccak256("false");
 
-  // Order of Layout: Events
   event PasskeyCreated(address indexed keyOwner, string originDomain, bytes credentialId);
   event PasskeyRemoved(address indexed keyOwner, string originDomain, bytes credentialId);
-
-  // Order of Layout: Errors
-  error NOT_KEY_OWNER(address account);
-  error KEY_EXISTS();
-  error ACCOUNT_EXISTS();
-  error EMPTY_KEY();
-  error BAD_DOMAIN_LENGTH();
-  error BAD_CREDENTIAL_ID_LENGTH();
 
   /// @notice This is helper function that returns the whole public key, as of solidity 0.8.24 the auto-generated getters only return half of the key
   /// @param originDomain the domain this key is associated with (the auth-server)
@@ -93,7 +84,7 @@ contract WebAuthValidator is IModuleValidator {
   function removeValidationKey(bytes memory credentialId, string memory domain) public {
     address registered = registeredAddress[domain][credentialId];
     if (registered != msg.sender) {
-      revert NOT_KEY_OWNER(registered);
+      revert Errors.WEBAUTHN_NOT_KEY_OWNER(registered);
     }
     registeredAddress[domain][credentialId] = address(0);
     publicKeys[domain][credentialId][msg.sender] = [bytes32(0), bytes32(0)];
@@ -113,24 +104,24 @@ contract WebAuthValidator is IModuleValidator {
     bytes32[2] memory initialAccountKey = publicKeys[originDomain][credentialId][msg.sender];
     if (uint256(initialAccountKey[0]) != 0 || uint256(initialAccountKey[1]) != 0) {
       // only allow adding new keys, no overwrites/updates
-      revert KEY_EXISTS();
+      revert Errors.WEBAUTHN_KEY_EXISTS();
     }
     if (registeredAddress[originDomain][credentialId] != address(0)) {
       // this key already exists on the domain for an existing account
-      revert ACCOUNT_EXISTS();
+      revert Errors.WEBAUTHN_ACCOUNT_EXISTS();
     }
     if (rawPublicKey[0] == 0 && rawPublicKey[1] == 0) {
       // empty keys aren't valid
-      revert EMPTY_KEY();
+      revert Errors.WEBAUTHN_EMPTY_KEY();
     }
     uint256 domainLength = bytes(originDomain).length;
     if (domainLength < 1 || domainLength > 253) {
       // RFC 1035 sets domains between 1-253 characters
-      revert BAD_DOMAIN_LENGTH();
+      revert Errors.WEBAUTHN_BAD_DOMAIN_LENGTH();
     }
     if (credentialId.length < 16) {
       // min length from: https://www.w3.org/TR/webauthn-2/#credential-id
-      revert BAD_CREDENTIAL_ID_LENGTH();
+      revert Errors.WEBAUTHN_BAD_CREDENTIAL_ID_LENGTH();
     }
 
     publicKeys[originDomain][credentialId][msg.sender] = rawPublicKey;
