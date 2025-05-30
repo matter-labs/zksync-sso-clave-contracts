@@ -46,6 +46,7 @@ library Errors {
   error SESSION_MAX_VALUE_EXCEEDED(uint256 usedValue, uint256 maxValuePerUse);
   error SESSION_SIGNER_USED(address signer);
   error SESSION_CALL_POLICY_BANNED(address target, bytes4 selector);
+  error SESSION_ACTIONS_NOT_ALLOWED(bytes32 sessionActionsHash);
 
   // Misc
   error MSG_VALUE_MISMATCH(uint256 actualValue, uint256 expectedValue);

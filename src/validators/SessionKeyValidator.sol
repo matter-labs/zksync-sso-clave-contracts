@@ -194,7 +194,7 @@ contract SessionKeyValidator is IModuleValidator {
   /// @param transaction The transaction to validate
   /// @return true if the transaction is valid
   /// @dev Session spec and period IDs must be provided as validator data
-  function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external virtual returns (bool) {
+  function validateTransaction(bytes32 signedHash, Transaction calldata transaction) public virtual returns (bool) {
     (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SsoUtils.decodeSignature(
       transaction.signature
     );
