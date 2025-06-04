@@ -6,6 +6,7 @@ import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/li
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
+import { ISessionKeyValidator } from "../interfaces/ISessionKeyValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
@@ -18,11 +19,8 @@ import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @notice This contract is used to manage sessions for a smart account.
-contract SessionKeyValidator is IModuleValidator {
+contract SessionKeyValidator is ISessionKeyValidator {
   using SessionLib for SessionLib.SessionStorage;
-
-  event SessionCreated(address indexed account, bytes32 indexed sessionHash, SessionLib.SessionSpec sessionSpec);
-  event SessionRevoked(address indexed account, bytes32 indexed sessionHash);
 
   // NOTE: expired sessions are still counted if not explicitly revoked
   mapping(address account => uint256 openSessions) internal sessionCounter;
@@ -95,9 +93,9 @@ contract SessionKeyValidator is IModuleValidator {
   ///   + batchCall
   /// @dev can be extended by derived contracts.
   /// @param target The target address of the call
-  /// @param selector The function selector of the call
+  /// @param _selector The function selector of the call; currently unused
   /// @return true if the call is banned, false otherwise
-  function isBannedCall(address target, bytes4 selector) internal view virtual returns (bool) {
+  function isBannedCall(address target, bytes4 _selector) internal view virtual returns (bool) {
     return
       target == address(this) || // this line is technically unnecessary
       ISsoAccount(msg.sender).isModuleValidator(target) ||

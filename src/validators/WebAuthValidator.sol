@@ -5,6 +5,7 @@ import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/li
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
+import { IWebAuthValidator } from "../interfaces/IWebAuthValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Base64 } from "solady/src/utils/Base64.sol";
@@ -15,16 +16,10 @@ import { Errors } from "../libraries/Errors.sol";
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract allows secure user authentication using WebAuthn public keys.
-contract WebAuthValidator is IModuleValidator {
+contract WebAuthValidator is IWebAuthValidator {
   using JSONParserLib for JSONParserLib.Item;
   using JSONParserLib for string;
 
-  struct PasskeyId {
-    string domain;
-    bytes credentialId;
-  }
-
-  // Order of Layout: State variables
   /// @dev Mapping of public keys to the account address that owns them
   mapping(string originDomain => mapping(bytes credentialId => mapping(address accountAddress => bytes32[2] publicKey)))
     private publicKeys;
@@ -42,9 +37,6 @@ contract WebAuthValidator is IModuleValidator {
   bytes32 private constant HIGH_R_MAX = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
   bytes32 private constant WEBAUTHN_GET_HASH = keccak256("webauthn.get");
   bytes32 private constant FALSE_HASH = keccak256("false");
-
-  event PasskeyCreated(address indexed keyOwner, string originDomain, bytes credentialId);
-  event PasskeyRemoved(address indexed keyOwner, string originDomain, bytes credentialId);
 
   /// @notice This is helper function that returns the whole public key, as of solidity 0.8.24 the auto-generated getters only return half of the key
   /// @param originDomain the domain this key is associated with (the auth-server)

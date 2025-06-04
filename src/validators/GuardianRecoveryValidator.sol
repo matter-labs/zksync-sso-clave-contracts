@@ -64,7 +64,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @dev This module does not support initialization on creation,
   /// but ensures that the WebAuthValidator is enabled for calling SsoAccount.
   /// @inheritdoc IModule
-  function onInstall(bytes calldata) external {
+  function onInstall(bytes calldata) external view {
     if (!IValidatorManager(msg.sender).isModuleValidator(address(webAuthValidator))) {
       revert Errors.WEBAUTH_VALIDATOR_NOT_INSTALLED();
     }
