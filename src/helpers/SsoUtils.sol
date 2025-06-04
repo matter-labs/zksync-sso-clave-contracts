@@ -3,6 +3,8 @@ pragma solidity ^0.8.24;
 
 import { EfficientCall } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/EfficientCall.sol";
 import { Utils } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/Utils.sol";
+import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
+import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { DEPLOYER_SYSTEM_CONTRACT } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 import { Errors } from "../libraries/Errors.sol";
 
@@ -78,5 +80,15 @@ library SsoUtils {
     assembly {
       return(add(data, 0x20), mload(data))
     }
+  }
+
+  /// @notice Checks if the transaction is using an approval-based paymaster.
+  /// @param transaction The transaction to check.
+  /// @return bool Returns true if the transaction is using an approval-based paymaster, false otherwise.
+  function usingApprovalBasedPaymaster(Transaction calldata transaction) internal pure returns (bool) {
+    return
+      transaction.paymaster != 0 &&
+      transaction.paymasterInput.length >= 4 &&
+      bytes4(transaction.paymasterInput[:4]) == IPaymasterFlow.approvalBased.selector;
   }
 }

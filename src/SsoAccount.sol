@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { ACCOUNT_VALIDATION_SUCCESS_MAGIC } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IAccount.sol";
+import { IAccount } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IAccount.sol";
 import { Transaction, TransactionHelper } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { EfficientCall } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/EfficientCall.sol";
 import { NONCE_HOLDER_SYSTEM_CONTRACT, DEPLOYER_SYSTEM_CONTRACT } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
@@ -11,6 +12,8 @@ import { SystemContractsCaller } from "@matterlabs/zksync-contracts/l2/system-co
 import { Utils } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/Utils.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import { IERC5267 } from "@openzeppelin/contracts/interfaces/IERC5267.sol";
 
 import { HookManager } from "./managers/HookManager.sol";
 import { SsoUtils } from "./helpers/SsoUtils.sol";
@@ -25,7 +28,6 @@ import { NoHooksCaller } from "./handlers/NoHooksCaller.sol";
 
 import { BootloaderAuth } from "./auth/BootloaderAuth.sol";
 
-import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 import { IModuleValidator } from "./interfaces/IModuleValidator.sol";
 
 /// @title SSO Account
@@ -42,8 +44,8 @@ contract SsoAccount is
   TokenCallbackHandler,
   BatchCaller,
   NoHooksCaller,
-  ISsoAccount,
-  BootloaderAuth
+  BootloaderAuth,
+  IAccount
 {
   // Helper library for the Transaction struct
   using TransactionHelper for Transaction;
@@ -89,7 +91,7 @@ contract SsoAccount is
     bytes32,
     bytes32 _suggestedSignedHash,
     Transaction calldata _transaction
-  ) external payable override onlyBootloader returns (bytes4 magic) {
+  ) external payable onlyBootloader returns (bytes4 magic) {
     // TODO: session txs have their own nonce managers, so they have to not alter this nonce
     _incrementNonce(_transaction.nonce);
 
@@ -115,7 +117,7 @@ contract SsoAccount is
     bytes32,
     bytes32,
     Transaction calldata _transaction
-  ) external payable override onlyBootloader runExecutionHooks(_transaction) {
+  ) external payable onlyBootloader runExecutionHooks(_transaction) {
     address to = SsoUtils.safeCastToAddress(_transaction.to);
     uint128 value = Utils.safeCastToU128(_transaction.value);
 
@@ -138,18 +140,14 @@ contract SsoAccount is
   /// to have and entry point for escaping funds when L2 transactions are censored by the chain, and only
   /// forced transactions are accepted by the network.
   /// @dev It is not implemented yet.
-  function executeTransactionFromOutside(Transaction calldata) external payable override {
+  function executeTransactionFromOutside(Transaction calldata) external payable {
     revert Errors.METHOD_NOT_IMPLEMENTED();
   }
 
   /// @notice This function allows the account to pay for its own gas and used when there is no paymaster.
   /// @param _transaction The transaction data.
   /// @dev This method must send at least `tx.gasprice * tx.gasLimit` ETH to the bootloader address.
-  function payForTransaction(
-    bytes32,
-    bytes32,
-    Transaction calldata _transaction
-  ) external payable override onlyBootloader {
+  function payForTransaction(bytes32, bytes32, Transaction calldata _transaction) external payable onlyBootloader {
     bool success = _transaction.payToTheBootloader();
 
     if (!success) {
@@ -159,17 +157,17 @@ contract SsoAccount is
   /// @notice This function is called by the system if the transaction has a paymaster
   /// and prepares the interaction with the paymaster.
   /// @param _transaction The transaction data.
-  function prepareForPaymaster(
-    bytes32,
-    bytes32,
-    Transaction calldata _transaction
-  ) external payable override onlyBootloader {
+  function prepareForPaymaster(bytes32, bytes32, Transaction calldata _transaction) external payable onlyBootloader {
     _transaction.processPaymasterInput();
   }
 
   /// @dev type(ISsoAccount).interfaceId indicates SSO accounts
-  function supportsInterface(bytes4 interfaceId) public view override(IERC165, TokenCallbackHandler) returns (bool) {
-    return interfaceId == type(ISsoAccount).interfaceId || super.supportsInterface(interfaceId);
+  function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+    return
+      interfaceId == type(IERC5267).interfaceId ||
+      interfaceId == type(IERC1271).interfaceId ||
+      interfaceId == type(IAccount).interfaceId ||
+      super.supportsInterface(interfaceId);
   }
 
   /// @notice Validates the provided transaction by validating signature of ECDSA k1 owner.

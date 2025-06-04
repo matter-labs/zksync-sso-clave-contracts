@@ -16,7 +16,6 @@ import { IOidcRecoveryValidator } from "../interfaces/IOidcRecoveryValidator.sol
 import { IOidcKeyRegistry } from "../interfaces/IOidcKeyRegistry.sol";
 import { IZkVerifier } from "../interfaces/IZkVerifier.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
-import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
 import { Errors } from "../libraries/Errors.sol";
 
 /// @title OidcRecoveryValidator
@@ -24,6 +23,8 @@ import { Errors } from "../libraries/Errors.sol";
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract allows secure account recovery for an SSO account using OIDC (Open Id Connect) protocol.
 contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
+  using SsoUtils for Transaction;
+
   /// @notice The number of public inputs for the zk proof.
   uint256 public constant PUB_SIGNALS_LENGTH = 20;
 
@@ -222,11 +223,7 @@ contract OidcRecoveryValidator is IOidcRecoveryValidator, Initializable {
     }
 
     // Approval-based paymasters are not permitted
-    if (
-      transaction.paymaster != 0 &&
-      transaction.paymasterInput.length >= 4 &&
-      bytes4(transaction.paymasterInput[:4]) == IPaymasterFlow.approvalBased.selector
-    ) {
+    if (transaction.usingApprovalBasedPaymaster()) {
       return false;
     }
 

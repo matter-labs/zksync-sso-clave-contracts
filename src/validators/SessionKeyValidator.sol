@@ -115,7 +115,7 @@ contract SessionKeyValidator is IModuleValidator {
     if (sessionSpec.signer == address(0)) {
       revert Errors.SESSION_ZERO_SIGNER();
     }
-    // prevents abstract hack
+    // Avoid using same session key for multiple sessions, contract-wide
     if (signers[sessionSpec.signer] != bytes32(0)) {
       revert Errors.SESSION_SIGNER_USED(sessionSpec.signer);
     }

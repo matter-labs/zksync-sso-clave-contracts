@@ -13,7 +13,6 @@ import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 import { SsoUtils } from "../helpers/SsoUtils.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
 
 /// @title GuardianRecoveryValidator
 /// @author Matter Labs
@@ -22,6 +21,7 @@ import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts
 contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
+  using SsoUtils for Transaction;
 
   uint256 public constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
   uint256 public constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
@@ -245,11 +245,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     }
 
     // Approval-based paymasters are not permitted
-    if (
-      transaction.paymaster != 0 &&
-      transaction.paymasterInput.length >= 4 &&
-      bytes4(transaction.paymasterInput[:4]) == IPaymasterFlow.approvalBased.selector
-    ) {
+    if (transaction.usingApprovalBasedPaymaster()) {
       return false;
     }
 

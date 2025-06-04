@@ -5,34 +5,15 @@ import { EfficientCall } from "@matterlabs/zksync-contracts/l2/system-contracts/
 import { SsoUtils } from "../helpers/SsoUtils.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SelfAuth } from "../auth/SelfAuth.sol";
+import { IBatchCaller } from "../interfaces/IBatchCaller.sol";
 
-/// @dev Represents an external call data.
-/// @param target The address to which the call will be made.
-/// @param allowFailure Flag that represents whether to revert the whole batch if the call fails.
-/// @param value The amount of Ether (in wei) to be sent along with the call.
-/// @param callData The calldata to be executed on the `target` address.
-struct Call {
-  address target;
-  bool allowFailure;
-  uint256 value;
-  bytes callData;
-}
-
-/// @title SSO Account
+/// @title BatchCaller
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
 /// @notice Make multiple calls from Account in a single transaction.
 /// @notice The implementation is inspired by Clave wallet.
-abstract contract BatchCaller is SelfAuth {
-  /// @notice Emits information about a failed call.
-  /// @param index The index of the failed call in the batch.
-  /// @param revertData The return data of the failed call.
-  event BatchCallFailure(uint256 indexed index, bytes revertData);
-
-  /// @notice Make multiple calls, ensure success if required.
-  /// @dev The total Ether sent across all calls must be equal to `msg.value` to maintain the invariant
-  /// that `msg.value` + `tx.fee` is the maximum amount of Ether that can be spent on the transaction.
-  /// @param _calls Array of Call structs, each representing an individual external call to be made.
+abstract contract BatchCaller is SelfAuth, IBatchCaller {
+  /// @inheritdoc IBatchCaller
   function batchCall(Call[] calldata _calls) external payable onlySelf {
     uint256 totalValue;
     uint256 len = _calls.length;
