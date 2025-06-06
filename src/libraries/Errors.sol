@@ -71,10 +71,10 @@ library Errors {
   error ACCOUNT_NOT_GUARDED_BY_ADDRESS(address account, address guardian);
   error GUARDIAN_RECOVERY_IN_PROGRESS();
   error GUARDIAN_INVALID_ADDRESS();
-  error INVALID_WEBAUTH_VALIDATOR();
+  error GUARDIAN_INVALID_WEBAUTH_VALIDATOR();
   error GUARDIAN_INVALID_ACCOUNT();
-  error INVALID_RECOVERY_CALL();
-  error UNKNOWN_ORIGIN_DOMAIN(bytes32 hashedOriginDomain);
+  error GUARDIAN_INVALID_RECOVERY_CALL();
+  error GUARDIAN_UNKNOWN_DOMAIN(bytes32 hashedOriginDomain);
 
   // OIDC errors
   error OIDC_KEY_NOT_FOUND(bytes32 issuerHash, bytes32 kid);

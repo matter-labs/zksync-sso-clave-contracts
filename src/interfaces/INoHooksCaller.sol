@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-/// @title IBatchCaller
+/// @title INoHooksCaller
 /// @notice Interface that allows bypassing installed hooks
 interface INoHooksCaller {
   /// @notice Make a call to a target address without invoking any installed hooks.

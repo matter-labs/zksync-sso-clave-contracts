@@ -300,7 +300,7 @@ describe("GuardianRecoveryValidator", function () {
     };
 
     it("Should revert when passed non function call data.", async function () {
-      await expect(sut("0x1234")).to.be.revertedWithCustomError(guardianValidator, "INVALID_RECOVERY_CALL");
+      await expect(sut("0x1234")).to.be.revertedWithCustomError(guardianValidator, "GUARDIAN_INVALID_RECOVERY_CALL");
     });
   });
 

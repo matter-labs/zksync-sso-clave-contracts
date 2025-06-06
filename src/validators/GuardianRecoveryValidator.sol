@@ -56,7 +56,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   function initialize(WebAuthValidator _webAuthValidator) external initializer {
-    if (address(_webAuthValidator) == address(0)) revert Errors.INVALID_WEBAUTH_VALIDATOR();
+    if (address(_webAuthValidator) == address(0)) revert Errors.GUARDIAN_INVALID_WEBAUTH_VALIDATOR();
     webAuthValidator = _webAuthValidator;
   }
 
@@ -158,7 +158,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
     if (accountGuardians[hashedOriginDomain][msg.sender].length() == 0) {
       if (!accountHashedOriginDomains[msg.sender].remove(hashedOriginDomain)) {
-        revert Errors.UNKNOWN_ORIGIN_DOMAIN(hashedOriginDomain);
+        revert Errors.GUARDIAN_UNKNOWN_DOMAIN(hashedOriginDomain);
       } else {
         emit HashedOriginDomainDisabledForAccount(msg.sender, hashedOriginDomain);
       }
@@ -229,7 +229,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     //   4. Verifies that the required timelock period has passed since `initRecovery` was called
     //   5. If all the above are true, the recovery is finished
     if (transaction.data.length < 4) {
-      revert Errors.INVALID_RECOVERY_CALL();
+      revert Errors.GUARDIAN_INVALID_RECOVERY_CALL();
     }
 
     // Verify the transaction is a call to WebAuthValidator contract
