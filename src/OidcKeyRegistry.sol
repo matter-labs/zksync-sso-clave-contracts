@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { IOidcKeyRegistry } from "./interfaces/IOidcKeyRegistry.sol";
+import { Errors } from "./libraries/Errors.sol";
 
 /// @title OidcKeyRegistry
 /// @author Matter Labs
@@ -26,11 +27,11 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
 
   /// @notice The mapping of issuer hash to keys.
   /// @dev Each issuer has an array of length MAX_KEYS, which is a circular buffer.
-  mapping(bytes32 issHash => Key[MAX_KEYS] keys) internal OIDCKeys;
+  mapping(bytes32 issuerHash => Key[MAX_KEYS] keys) internal OIDCKeys;
 
   /// @notice The index where the next key is going to be added.
   /// @dev Because keys are stored in a circular buffer this information needs to be stored.
-  mapping(bytes32 issHash => uint256 keyIndex) internal keyIndexes;
+  mapping(bytes32 issuerHash => uint256 keyIndex) internal keyIndexes;
 
   constructor() {
     _disableInitializers();
@@ -71,7 +72,7 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
         return OIDCKeys[issHash][i];
       }
     }
-    revert KeyNotFound(issHash, kid);
+    revert Errors.OIDC_KEY_NOT_FOUND(issHash, kid);
   }
 
   /// @notice Retrieves all keys for a given issuer hash.
@@ -105,10 +106,10 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
     }
   }
 
-  function _ensureUniqueKid(bytes32 kid, bytes32 issHash) internal {
+  function _ensureUniqueKid(bytes32 kid, bytes32 issHash) internal view {
     for (uint256 i = 0; i < MAX_KEYS; i++) {
       if (OIDCKeys[issHash][i].kid == kid) {
-        revert KidAlreadyRegistered(kid, issHash);
+        revert Errors.OIDC_KEY_ID_ALREADY_EXISTS(kid, issHash);
       }
     }
   }
@@ -155,7 +156,7 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
         return;
       }
     }
-    revert KeyNotFound(issHash, kid);
+    revert Errors.OIDC_KEY_NOT_FOUND(issHash, kid);
   }
 
   /// @notice Validates a batch of keys.
@@ -168,7 +169,7 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
   /// @param newKeys The keys to validate.
   function _validateKeyBatch(Key[] memory newKeys) private pure {
     if (newKeys.length > MAX_KEYS) {
-      revert KeyCountLimitExceeded(newKeys.length);
+      revert Errors.OIDC_KEY_COUNT_LIMIT_EXCEEDED(newKeys.length);
     }
     if (newKeys.length == 0) {
       return;
@@ -176,11 +177,11 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
     bytes32 issHash = newKeys[0].issHash;
     for (uint256 i = 0; i < newKeys.length; ++i) {
       if (newKeys[i].issHash != issHash) {
-        revert IssuerHashMismatch(issHash, newKeys[i].issHash);
+        revert Errors.OIDC_ISSUER_HASH_MISMATCH(issHash, newKeys[i].issHash);
       }
 
       if (newKeys[i].kid == 0) {
-        revert KeyIdCannotBeZero(i);
+        revert Errors.OIDC_ZERO_KEY_ID(i);
       }
 
       _validateModulus(newKeys[i].rsaModulus, newKeys[i].kid);
@@ -211,7 +212,7 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
 
     for (uint256 i = 0; i < CIRCOM_BIGINT_CHUNKS; ++i) {
       if (modulus[i] > VALIDATE_MODULUS_LIMIT) {
-        revert ModulusChunkTooLarge(kid, i, modulus[i]);
+        revert Errors.OIDC_MODULUS_CHUNK_TOO_LARGE(kid, i, modulus[i]);
       }
       if (modulus[i] != 0) {
         hasNonZero = true;
@@ -219,11 +220,11 @@ contract OidcKeyRegistry is IOidcKeyRegistry, Initializable, Ownable2StepUpgrade
     }
 
     if (!hasNonZero) {
-      revert ModulusCannotBeZero(kid);
+      revert Errors.OIDC_ZERO_MODULUS(kid);
     }
 
     if (modulus[0] % 2 == 0) {
-      revert EvenRsaModulus(kid);
+      revert Errors.OIDC_EVEN_RSA_MODULUS(kid);
     }
   }
 }

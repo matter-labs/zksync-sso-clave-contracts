@@ -28,52 +28,6 @@ interface IGuardianRecoveryValidator is IModuleValidator {
     uint256 timestamp;
   }
 
-  /// @notice Error thrown when attempting to set self as guardian
-  error GuardianCannotBeSelf();
-
-  /// @notice Error thrown when a guardian address is not found
-  /// @param guardian The address of the guardian that was not found
-  error GuardianNotFound(address guardian);
-
-  /// @notice Error thrown when attempting to add a guardian that wasn't proposed
-  /// @param guardian The address of the guardian that wasn't proposed
-  error GuardianNotProposed(address guardian);
-
-  /// @notice Error thrown when an account is already guarded by the specified guardian
-  /// @param account The account address
-  /// @param guardian The guardian address
-  error AccountAlreadyGuardedByGuardian(address account, address guardian);
-
-  /// @notice Error thrown when an account is not guarded by the specified address
-  /// @param account The account address
-  /// @param guardian The guardian address
-  error AccountNotGuardedByAddress(address account, address guardian);
-
-  /// @notice Error thrown when an account recovery is already in progress
-  error AccountRecoveryInProgress();
-
-  /// @notice Error thrown when the WebAuthValidator is not enabled for the account
-  error WebAuthValidatorNotEnabled();
-
-  /// @notice Error thrown when an invalid guardian address is provided
-  error InvalidGuardianAddress();
-
-  /// @notice Error thrown when an invalid web auth validator address is provided
-  error InvalidWebAuthValidatorAddress();
-
-  /// @notice Error thrown when an invalid account to guard address is provided
-  error InvalidAccountToGuardAddress();
-
-  /// @notice Error thrown when an invalid account to recover address is provided
-  error InvalidAccountToRecoverAddress();
-
-  /// @notice Error thrown when a non-function call transaction is detected
-  error NonFunctionCallTransaction();
-
-  /// @notice Error thrown when an unknown hashed origin domain is provided
-  /// @param hashedOriginDomain Hash of the unknown origin domain
-  error UnknownHashedOriginDomain(bytes32 hashedOriginDomain);
-
   /// @notice Emitted when an origin domain is enabled for an account
   /// @param account The account that the origin domain is enabled for
   /// @param hashedOriginDomain Hash of the origin domain that is enabled

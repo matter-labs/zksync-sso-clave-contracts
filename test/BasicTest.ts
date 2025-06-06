@@ -7,7 +7,7 @@ import { toBytes } from 'viem'
 import hre from "hardhat";
 
 import { SsoAccount__factory, Dummy__factory } from "../typechain-types";
-import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
+import { CallStruct } from "../typechain-types/src/handlers/BatchCaller";
 import { ContractFixtures, getProvider, create2, ethersStaticSalt } from "./utils";
 
 import { createWalletClient, http, type Hex } from 'viem'

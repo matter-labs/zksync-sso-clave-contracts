@@ -7,7 +7,7 @@ import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.so
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { LibBytes } from "solady/src/utils/LibBytes.sol";
 import { Errors } from "./Errors.sol";
-import { Utils } from "../helpers/Utils.sol";
+import { SsoUtils } from "../helpers/SsoUtils.sol";
 
 /// @title Session Library
 /// @author Matter Labs
@@ -284,11 +284,11 @@ library SessionLib {
     }
 
     TimestampAsserterLocator.locate().assertTimestampInRange(0, spec.expiresAt);
-    address target = Utils.safeCastToAddress(transaction.to);
+    address target = SsoUtils.safeCastToAddress(transaction.to);
 
     // Validate paymaster input
     uint256 periodIdsOffset = 2;
-    if (transaction.paymasterInput.length >= 4) {
+    if (transaction.paymaster != 0 && transaction.paymasterInput.length >= 4) {
       bytes4 paymasterInputSelector = bytes4(transaction.paymasterInput[:4]);
       // SsoAccount will automatically `approve()` a token for an approval-based paymaster in `prepareForPaymaster()` call.
       // We need to make sure that the session spec allows this.
@@ -297,7 +297,7 @@ library SessionLib {
           revert Errors.INVALID_PAYMASTER_INPUT(transaction.paymasterInput);
         }
         (address token, uint256 amount, ) = abi.decode(transaction.paymasterInput[4:], (address, uint256, bytes));
-        address paymasterAddr = Utils.safeCastToAddress(transaction.paymaster);
+        address paymasterAddr = SsoUtils.safeCastToAddress(transaction.paymaster);
         bytes memory data = abi.encodeCall(IERC20.approve, (paymasterAddr, amount));
 
         // check that session allows .approve() for this token

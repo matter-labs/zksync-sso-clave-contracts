@@ -8,12 +8,14 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
+import { IAllowedSessionsValidator } from "../interfaces/IAllowedSessionsValidator.sol";
+import { ISessionKeyValidator } from "../interfaces/ISessionKeyValidator.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
+import { SsoUtils } from "../helpers/SsoUtils.sol";
 
 import { SessionKeyValidator } from "./SessionKeyValidator.sol";
 
@@ -21,7 +23,7 @@ import { SessionKeyValidator } from "./SessionKeyValidator.sol";
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev and o.bedrin@xsolla.com
 /// @notice This contract is used to manage allowed sessions for a smart account.
-contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
+contract AllowedSessionsValidator is SessionKeyValidator, AccessControl, IAllowedSessionsValidator {
   using SessionLib for SessionLib.SessionStorage;
 
   /// @notice Role identifier for session registry managers.
@@ -30,11 +32,6 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
   /// @notice Mapping to track whether a session actions is allowed.
   /// @dev The key is the hash of session actions, and the value indicates if the actions are allowed.
   mapping(bytes32 sessionActionsHash => bool active) public areSessionActionsAllowed;
-
-  /// @notice Emitted when session actions are allowed or disallowed.
-  /// @param sessionActionsHash The hash of the session actions.
-  /// @param allowed Boolean indicating if the session actions are allowed.
-  event SessionActionsAllowed(bytes32 indexed sessionActionsHash, bool indexed allowed);
 
   constructor() {
     _grantRole(SESSION_REGISTRY_MANAGER_ROLE, msg.sender);
@@ -83,7 +80,9 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
   /// @notice Create a new session for an account.
   /// @param sessionSpec The session specification to create a session with.
   /// @dev A session is a temporary authorization for an account to perform specific actions, defined by the session specification.
-  function createSession(SessionLib.SessionSpec memory sessionSpec) public virtual override {
+  function createSession(
+    SessionLib.SessionSpec memory sessionSpec
+  ) public virtual override(SessionKeyValidator, ISessionKeyValidator) {
     bytes32 sessionActionsHash = getSessionActionsHash(sessionSpec);
     if (!areSessionActionsAllowed[sessionActionsHash]) {
       revert Errors.SESSION_ACTIONS_NOT_ALLOWED(sessionActionsHash);
@@ -94,7 +93,7 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
   /// @inheritdoc SessionKeyValidator
   function supportsInterface(
     bytes4 interfaceId
-  ) public pure override(SessionKeyValidator, AccessControl) returns (bool) {
+  ) public pure override(SessionKeyValidator, AccessControl, IERC165) returns (bool) {
     return
       interfaceId == type(IERC165).interfaceId ||
       interfaceId == type(IModuleValidator).interfaceId ||
@@ -110,9 +109,9 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl {
   function validateTransaction(
     bytes32 signedHash,
     Transaction calldata transaction
-  ) public virtual override returns (bool) {
+  ) public virtual override(SessionKeyValidator, IModuleValidator) returns (bool) {
     // slither-disable-next-line unused-return
-    (, , bytes memory validatorData) = SignatureDecoder.decodeSignature(transaction.signature);
+    (, , bytes memory validatorData) = SsoUtils.decodeSignature(transaction.signature);
     (SessionLib.SessionSpec memory spec, ) = abi.decode(
       validatorData, // this is passed by the signature builder
       (SessionLib.SessionSpec, uint64[])

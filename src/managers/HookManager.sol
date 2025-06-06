@@ -12,6 +12,8 @@ import { Errors } from "../libraries/Errors.sol";
 import { IExecutionHook, IValidationHook } from "../interfaces/IHook.sol";
 import { IHookManager } from "../interfaces/IHookManager.sol";
 import { IModule } from "../interfaces/IModule.sol";
+import { SsoUtils } from "../helpers/SsoUtils.sol";
+import { NoHooksCaller } from "../handlers/NoHooksCaller.sol";
 
 /**
  * @title Manager contract for hooks
@@ -61,6 +63,15 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
   // Runs the validation hooks that are enabled by the account and returns true if none reverts
   function runValidationHooks(bytes32 signedHash, Transaction calldata transaction) internal returns (bool) {
+    // Only run hooks if not calling `this.noHooksCall`
+    if (
+      SsoUtils.safeCastToAddress(transaction.to) == address(this) &&
+      transaction.data.length >= 4 &&
+      bytes4(transaction.data[:4]) == NoHooksCaller.noHooksCall.selector
+    ) {
+      return true; // Skip validation hooks
+    }
+
     EnumerableSet.AddressSet storage hookList = SsoStorage.validationHooks();
     uint256 totalHooks = hookList.length();
 
@@ -77,6 +88,16 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
   // Runs the execution hooks that are enabled by the account before and after _executeTransaction
   modifier runExecutionHooks(Transaction calldata transaction) {
+    // Only run hooks if not calling `this.noHooksCall`
+    if (
+      SsoUtils.safeCastToAddress(transaction.to) == address(this) &&
+      transaction.data.length >= 4 &&
+      bytes4(transaction.data[:4]) == NoHooksCaller.noHooksCall.selector
+    ) {
+      _; // Skip hooks execution
+      return;
+    }
+
     address[] memory hookList = SsoStorage.executionHooks().values();
     uint256 totalHooks = hookList.length;
     bytes[] memory context = new bytes[](totalHooks);

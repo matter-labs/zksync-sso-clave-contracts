@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { ERC1271 } from "solady/src/accounts/ERC1271.sol";
 
-import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
+import { SsoUtils } from "../helpers/SsoUtils.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { OwnerManager } from "../managers/OwnerManager.sol";
 import { ValidatorManager } from "../managers/ValidatorManager.sol";
@@ -41,7 +41,7 @@ abstract contract ERC1271Handler is ERC1271, OwnerManager, ValidatorManager {
       return err == ECDSA.RecoverError.NoError && _isK1Owner(signer);
     }
 
-    (bytes memory decodedSignature, address validator) = SignatureDecoder.decodeSignatureNoHookData(signature);
+    (bytes memory decodedSignature, address validator) = SsoUtils.decodeSignatureNoValidatorData(signature);
     return _isModuleValidator(validator) && IModuleValidator(validator).validateSignature(hash, decodedSignature);
   }
 
