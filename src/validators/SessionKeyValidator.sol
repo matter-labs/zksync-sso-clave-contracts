@@ -22,10 +22,8 @@ import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 contract SessionKeyValidator is ISessionKeyValidator {
   using SessionLib for SessionLib.SessionStorage;
 
-  // NOTE: expired sessions are still counted if not explicitly revoked
-  mapping(address account => uint256 openSessions) internal sessionCounter;
   mapping(bytes32 sessionHash => SessionLib.SessionStorage sessionState) internal sessions;
-  mapping(address signer => bytes32 sessionHash) internal signers;
+  mapping(address signer => bytes32 sessionHash) public sessionSigner;
 
   /// @notice Get the session state for an account
   /// @param account The account to fetch the session state for
@@ -65,12 +63,6 @@ contract SessionKeyValidator is ISessionKeyValidator {
     bytes32[] memory sessionHashes = abi.decode(data, (bytes32[]));
     for (uint256 i = 0; i < sessionHashes.length; i++) {
       revokeKey(sessionHashes[i]);
-    }
-    // Here we have make sure that all keys are revoked, so that if the module
-    // is installed again later, there will be no active sessions from the past.
-    uint256 openSessions = sessionCounter[msg.sender];
-    if (openSessions != 0) {
-      revert Errors.UNINSTALL_WITH_OPEN_SESSIONS(openSessions);
     }
   }
 
@@ -114,7 +106,7 @@ contract SessionKeyValidator is ISessionKeyValidator {
       revert Errors.SESSION_ZERO_SIGNER();
     }
     // Avoid using same session key for multiple sessions, contract-wide
-    if (signers[sessionSpec.signer] != bytes32(0)) {
+    if (sessionSigner[sessionSpec.signer] != bytes32(0)) {
       revert Errors.SESSION_SIGNER_USED(sessionSpec.signer);
     }
     if (sessionSpec.feeLimit.limitType == SessionLib.LimitType.Unlimited) {
@@ -138,9 +130,8 @@ contract SessionKeyValidator is ISessionKeyValidator {
       }
     }
 
-    sessionCounter[msg.sender]++;
     sessions[sessionHash].status[msg.sender] = SessionLib.Status.Active;
-    signers[sessionSpec.signer] = sessionHash;
+    sessionSigner[sessionSpec.signer] = sessionHash;
     emit SessionCreated(msg.sender, sessionHash, sessionSpec);
   }
 
@@ -168,7 +159,6 @@ contract SessionKeyValidator is ISessionKeyValidator {
       revert Errors.SESSION_NOT_ACTIVE();
     }
     sessions[sessionHash].status[msg.sender] = SessionLib.Status.Closed;
-    sessionCounter[msg.sender]--;
     emit SessionRevoked(msg.sender, sessionHash);
   }
 

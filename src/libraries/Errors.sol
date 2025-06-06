@@ -30,7 +30,6 @@ library Errors {
   error HOOK_NOT_FOUND(address hook, bool isValidation);
 
   // Sessions errors
-  error UNINSTALL_WITH_OPEN_SESSIONS(uint256 openSessions);
   error SESSION_ZERO_SIGNER();
   error SESSION_INVALID_SIGNER(address recovered, address expected);
   error SESSION_ALREADY_EXISTS(bytes32 sessionHash);
