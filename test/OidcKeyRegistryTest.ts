@@ -24,7 +24,7 @@ describe("OidcKeyRegistry", function () {
     const nonExistentKid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
     await expect(oidcKeyRegistry.getKey(issHash, nonExistentKid))
-      .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "OIDC_KEY_NOT_FOUND")
       .withArgs(issHash, nonExistentKid);
   });
 
@@ -171,7 +171,7 @@ describe("OidcKeyRegistry", function () {
     // Check that the old keys are not stored anymore
     for (let i = 0; i < 8; i++) {
       await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid))
-        .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+        .to.be.revertedWithCustomError(oidcKeyRegistry, "OIDC_KEY_NOT_FOUND")
         .withArgs(issHash, keys[i].kid);
     }
   });
@@ -199,7 +199,7 @@ describe("OidcKeyRegistry", function () {
     const nonExistentKid = ethers.keccak256(ethers.toUtf8Bytes(`key1-${issuers[1]}`));
     const firstIssuerHash = await oidcKeyRegistry.hashIssuer(issuers[0]);
     await expect(oidcKeyRegistry.getKey(firstIssuerHash, nonExistentKid))
-      .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "OIDC_KEY_NOT_FOUND")
       .withArgs(firstIssuerHash, nonExistentKid);
   });
 
@@ -214,7 +214,7 @@ describe("OidcKeyRegistry", function () {
     }));
 
     await expect(oidcKeyRegistry.addKeys(keys))
-      .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyCountLimitExceeded")
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "OIDC_KEY_COUNT_LIMIT_EXCEEDED")
       .withArgs(9);
   });
 
@@ -234,7 +234,7 @@ describe("OidcKeyRegistry", function () {
     }
 
     await expect(oidcKeyRegistry.addKeys(allKeys))
-      .to.be.revertedWithCustomError(oidcKeyRegistry, "IssuerHashMismatch")
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "OIDC_ISSUER_HASH_MISMATCH")
       .withArgs(allKeys[0].issHash, allKeys[4].issHash);
   });
 
@@ -249,7 +249,7 @@ describe("OidcKeyRegistry", function () {
     };
 
     await expect(oidcKeyRegistry.addKey(key))
-      .to.be.revertedWithCustomError(oidcKeyRegistry, "ModulusCannotBeZero")
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "OIDC_ZERO_MODULUS")
       .withArgs(kid);
   });
 
@@ -263,7 +263,7 @@ describe("OidcKeyRegistry", function () {
     };
 
     await expect(oidcKeyRegistry.addKey(key))
-      .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyIdCannotBeZero")
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "OIDC_ZERO_KEY_ID")
       .withArgs(0);
   });
 
@@ -286,7 +286,7 @@ describe("OidcKeyRegistry", function () {
 
     await expect(oidcKeyRegistry.addKey(key2)).to.revertedWithCustomError(
       oidcKeyRegistry,
-      "KidAlreadyRegistered",
+      "OIDC_KEY_ID_ALREADY_EXISTS",
     ).withArgs(key2.kid, key2.issHash);
   });
 
@@ -308,7 +308,7 @@ describe("OidcKeyRegistry", function () {
 
     await expect(oidcKeyRegistry.addKeys([key1, key2])).to.revertedWithCustomError(
       oidcKeyRegistry,
-      "KidAlreadyRegistered",
+      "OIDC_KEY_ID_ALREADY_EXISTS",
     ).withArgs(key2.kid, key2.issHash);
   });
 
@@ -331,7 +331,7 @@ describe("OidcKeyRegistry", function () {
 
     await expect(oidcKeyRegistry.addKeys([key])).to.revertedWithCustomError(
       oidcKeyRegistry,
-      "EvenRsaModulus",
+      "OIDC_EVEN_RSA_MODULUS",
     ).withArgs(kid);
   });
 
@@ -348,7 +348,7 @@ describe("OidcKeyRegistry", function () {
     };
 
     await expect(oidcKeyRegistry.addKey(key))
-      .to.be.revertedWithCustomError(oidcKeyRegistry, "ModulusChunkTooLarge")
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "OIDC_MODULUS_CHUNK_TOO_LARGE")
       .withArgs(kid, 2, rsaModulus[2]);
   });
 
@@ -366,7 +366,7 @@ describe("OidcKeyRegistry", function () {
     await expect(oidcKeyRegistry.deleteKey(issHash, kid)).to.emit(oidcKeyRegistry, "KeyDeleted").withArgs(issHash, kid);
 
     await expect(oidcKeyRegistry.getKey(issHash, kid))
-      .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "OIDC_KEY_NOT_FOUND")
       .withArgs(issHash, kid);
   });
 
@@ -394,7 +394,7 @@ describe("OidcKeyRegistry", function () {
     const nonExistentKid = ethers.keccak256(ethers.toUtf8Bytes("key1"));
 
     await expect(oidcKeyRegistry.deleteKey(issHash, nonExistentKid))
-      .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+      .to.be.revertedWithCustomError(oidcKeyRegistry, "OIDC_KEY_NOT_FOUND")
       .withArgs(issHash, nonExistentKid);
   });
 
@@ -417,7 +417,7 @@ describe("OidcKeyRegistry", function () {
     // Check that the removed keys are not stored anymore
     for (let i = 0; i < 2; i++) {
       await expect(oidcKeyRegistry.getKey(issHash, keys[i].kid))
-        .to.be.revertedWithCustomError(oidcKeyRegistry, "KeyNotFound")
+        .to.be.revertedWithCustomError(oidcKeyRegistry, "OIDC_KEY_NOT_FOUND")
         .withArgs(issHash, keys[i].kid);
     }
 

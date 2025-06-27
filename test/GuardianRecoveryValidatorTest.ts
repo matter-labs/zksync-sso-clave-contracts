@@ -98,7 +98,7 @@ describe("GuardianRecoveryValidator", function () {
       const [user1, user1ConnectedValidator] = await randomWallet();
 
       await expect(user1ConnectedValidator.proposeGuardian(hashedOriginDomain, ethers.ZeroAddress))
-        .to.be.revertedWithCustomError(user1ConnectedValidator, "InvalidGuardianAddress");
+        .to.be.revertedWithCustomError(user1ConnectedValidator, "GUARDIAN_INVALID_ADDRESS");
     });
   });
 
@@ -121,7 +121,7 @@ describe("GuardianRecoveryValidator", function () {
       const [_, guardianConnection] = await randomWallet();
 
       await expect(callAddGuardian(guardianConnection, hashedOriginDomain, ethers.ZeroAddress))
-        .to.revertedWithCustomError(guardianConnection, "InvalidAccountToGuardAddress");
+        .to.revertedWithCustomError(guardianConnection, "GUARDIAN_INVALID_ACCOUNT");
     });
 
     it("fails when tries to confirm a was proposed for a different account.", async function () {
@@ -174,14 +174,12 @@ describe("GuardianRecoveryValidator", function () {
       const [randomGeneratedWallet] = await randomWallet();
 
       await expect(sut(await randomGeneratedWallet.getAddress()))
-        .to.be.revertedWithCustomError(guardianValidator, "GuardianNotFound");
+        .to.be.revertedWithCustomError(guardianValidator, "GUARDIAN_NOT_FOUND");
     });
 
     it("fails when tries to remove zero address guardian.", async function () {
-      const [randomGeneratedWallet] = await randomWallet();
-
       await expect(sut(ethers.ZeroAddress))
-        .to.be.revertedWithCustomError(guardianValidator, "InvalidGuardianAddress");
+        .to.be.revertedWithCustomError(guardianValidator, "GUARDIAN_INVALID_ADDRESS");
     });
 
     it("works to remove existing guardian.", async function () {
@@ -221,7 +219,7 @@ describe("GuardianRecoveryValidator", function () {
       };
 
       it("Reverts with WebAuthValidatorNotEnabled error", async function () {
-        await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "WebAuthValidatorNotEnabled");
+        await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "WEBAUTH_VALIDATOR_NOT_INSTALLED");
       });
     });
   });
@@ -302,7 +300,7 @@ describe("GuardianRecoveryValidator", function () {
     };
 
     it("Should revert when passed non function call data.", async function () {
-      await expect(sut("0x1234")).to.be.revertedWithCustomError(guardianValidator, "NonFunctionCallTransaction");
+      await expect(sut("0x1234")).to.be.revertedWithCustomError(guardianValidator, "GUARDIAN_INVALID_RECOVERY_CALL");
     });
   });
 
@@ -412,9 +410,9 @@ describe("GuardianRecoveryValidator", function () {
         it("it reverts due to active recovery process", async () => {
           await sut();
           await validatePendingRecovery();
-          await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "AccountRecoveryInProgress");
+          await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "GUARDIAN_RECOVERY_IN_PROGRESS");
           await helpers.time.increase(3 * 24 * 60 * 60 - 1 * 60 * 60); // Increase by < 72 hours
-          await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "AccountRecoveryInProgress");
+          await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "GUARDIAN_RECOVERY_IN_PROGRESS");
         });
         it("it overwrites expired recovery process", async () => {
           await sut();
@@ -522,7 +520,7 @@ export async function generatePassKey(accountId: `0x${string}`, keyDomain: strin
   return {
     generatedKey,
     hashedOriginDomain,
-    args: [accountId, [generatedX, generatedY], keyDomain] as [`0x${string}`, [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>], string],
+    args: [accountId, [generatedX, generatedY], keyDomain] as [`0x${string}`, [Uint8Array, Uint8Array], string],
   };
 }
 
