@@ -23,6 +23,8 @@ import { SessionKeyValidator } from "./SessionKeyValidator.sol";
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev and o.bedrin@xsolla.com
 /// @notice This contract is used to manage allowed sessions for a smart account.
+/// @notice This module is controlled by a single entity, which has the power
+/// to close all current sessions and disallow any future sessions on this module.
 contract AllowedSessionsValidator is SessionKeyValidator, AccessControl, IAllowedSessionsValidator {
   using SessionLib for SessionLib.SessionStorage;
 

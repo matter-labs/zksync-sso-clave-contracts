@@ -58,6 +58,9 @@ contract SessionKeyValidator is ISessionKeyValidator {
   /// @param data ABI-encoded array of session hashes to revoke
   /// @dev Revokes provided sessions before uninstalling,
   /// reverts if any session is still active after that.
+  /// @notice Only provided sessions will be revoked, not necessarily all active sessions.
+  /// If any active session is unrevoked on uninstall, it will become active again
+  /// if the module is reinstalled, unless the session expires.
   function onUninstall(bytes calldata data) external virtual {
     // Revoke keys before uninstalling
     bytes32[] memory sessionHashes = abi.decode(data, (bytes32[]));
