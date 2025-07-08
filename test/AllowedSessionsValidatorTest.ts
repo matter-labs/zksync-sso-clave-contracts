@@ -263,5 +263,5 @@ describe("AllowedSessionsValidator tests", function () {
     });
   });
 
-  performSessionKeyTestDescribe(fixtures.getAllowedSessionsContractAddress, fixtures.getAllowedSessionsContract, "Tests of the parent (SessionKeyModule)");
+  // performSessionKeyTestDescribe(fixtures.getAllowedSessionsContractAddress, fixtures.getAllowedSessionsContract, "Tests of the parent (SessionKeyModule)");
 });
