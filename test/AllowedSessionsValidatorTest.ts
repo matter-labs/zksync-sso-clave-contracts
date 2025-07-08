@@ -3,7 +3,6 @@ import { it } from "mocha";
 import { solidityPacked, keccak256 } from "ethers";
 import hre from "hardhat";
 import { ContractFixtures } from "./utils";
-import { performSessionKeyTestDescribe } from "./SessionKeyTest";
 
 type SessionSpec = {
   signer: string;
@@ -262,6 +261,4 @@ describe("AllowedSessionsValidator tests", function () {
       expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.true;
     });
   });
-
-  // performSessionKeyTestDescribe(fixtures.getAllowedSessionsContractAddress, fixtures.getAllowedSessionsContract, "Tests of the parent (SessionKeyModule)");
 });

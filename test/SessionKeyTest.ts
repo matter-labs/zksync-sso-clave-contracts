@@ -106,16 +106,10 @@ class SessionTester {
   public sessionOwner: Wallet;
   public session: SessionLib.SessionSpecStruct;
   public sessionAccount: SmartAccount;
-
   // having this is a bit hacky, but it's so we can provide correct period ids in the signature
   aaTransaction: TransactionLike;
 
-  private getModuleContract: any;
-  private getModuleAddress: any;
-
-  constructor(public proxyAccountAddress: string, sessionKeyModuleAddress: string, getModuleContract: any, getModuleAddress: any = async () => sessionKeyModuleAddress) {
-    this.getModuleContract = getModuleContract;
-    this.getModuleAddress = getModuleAddress;
+  constructor(public proxyAccountAddress: string, sessionKeyModuleAddress: string) {
     this.sessionOwner = new Wallet(Wallet.createRandom().privateKey, provider);
     this.sessionAccount = new SmartAccount({
       payloadSigner: async (hash) => abiCoder.encode(
@@ -140,7 +134,7 @@ class SessionTester {
   }
 
   async createSession(newSession: PartialSession) {
-    const sessionKeyModuleContract = await this.getModuleContract();
+    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
     this.session = this.getSession(newSession);
     const oldState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
     expect(oldState.status).to.equal(0, "session should not exist yet");
@@ -182,7 +176,7 @@ class SessionTester {
   }
 
   async revokeKey() {
-    const sessionKeyModuleContract = await this.getModuleContract();
+    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
     const oldState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
     expect(oldState.status).to.equal(1, "session should be active");
     const sessionHash = ethers.keccak256(this.encodeSession());
@@ -282,7 +276,7 @@ class SessionTester {
             ["bytes", "address", "bytes"],
             [
               ethers.zeroPadValue("0x1b", 65),
-              await this.getModuleAddress(),
+              await fixtures.getSessionKeyModuleAddress(),
               abiCoder.encode(
                 [sessionSpecAbi, "uint64[]"],
                 [this.session, periodIds],
@@ -296,7 +290,7 @@ class SessionTester {
   }
 }
 
-export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleContract: any, describeDescription: string) => describe(describeDescription, function () {
+describe("SessionKeyModule tests", function () {
   let proxyAccountAddress: string;
 
   (hre.network.name == "dockerizedNode" ? it : it.skip)("should deposit funds", async () => {
@@ -310,7 +304,7 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
   it("should deploy all contracts", async () => {
     const verifierContract = await fixtures.getWebAuthnVerifierContract();
     assert(verifierContract != null, "No verifier deployed");
-    const sessionModuleContract = await getModuleContract();
+    const sessionModuleContract = await fixtures.getSessionKeyContract();
     assert(sessionModuleContract != null, "No session module deployed");
     const ssoContract = await fixtures.getAccountImplContract();
     assert(ssoContract != null, "No SSO Account deployed");
@@ -341,9 +335,9 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
 
   it("should deploy proxy account via factory", async () => {
     const factoryContract = await fixtures.getAaFactory();
-    const sessionKeyModuleAddress = await getModuleAddress();
+    const sessionKeyModuleAddress = await fixtures.getSessionKeyModuleAddress();
     const transferSessionTarget = Wallet.createRandom().address;
-    const sessionKeyModuleContract = await getModuleContract();
+    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
 
     // create a session to encode (before the account is deployed)
     const args = await factoryContract.getEncodedBeacon();
@@ -351,7 +345,7 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
     const bytecodeHash = await factoryContract.beaconProxyBytecodeHash();
     const factoryAddress = await factoryContract.getAddress();
     const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args);
-    const tester = new SessionTester(standardCreate2Address, await getModuleAddress(), getModuleContract, getModuleAddress);
+    const tester = new SessionTester(standardCreate2Address, await fixtures.getSessionKeyModuleAddress());
     const initialSession = tester.getSession({
       transferPolicies: [{
         target: transferSessionTarget,
@@ -390,7 +384,7 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
     const sessionTarget = Wallet.createRandom().address;
 
     it("should create a session", async () => {
-      tester = new SessionTester(proxyAccountAddress, await getModuleAddress(), getModuleContract, getModuleAddress);
+      tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
       await tester.createSession({
         transferPolicies: [{
           target: sessionTarget,
@@ -424,7 +418,7 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
     before("should deploy and mint an ERC20 token", async () => {
       erc20 = await fixtures.deployERC20(proxyAccountAddress);
       expect(await erc20.balanceOf(proxyAccountAddress)).to.equal(10n ** 18n, "should have some tokens");
-      tester = new SessionTester(proxyAccountAddress, await getModuleAddress(), getModuleContract, getModuleAddress);
+      tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
     });
 
     it("should create a session", async () => {
@@ -476,7 +470,7 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
     });
 
     it("should reject a session key transaction that goes over total limit", async () => {
-      const sessionKeyModuleContract = await getModuleContract();
+      const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
       const remainingLimits = await sessionKeyModuleContract.sessionState(proxyAccountAddress, tester.session);
       expect(remainingLimits.callParams[0].remaining).to.equal(500n, "should have 500 tokens remaining in allowance");
 
@@ -504,7 +498,7 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
     it("should fail creating a session with a banned call policy", async () => {
       // Rotate the signer
       tester.sessionOwner = new Wallet(Wallet.createRandom().privateKey, provider);
-      const sessionKeyContract = await getModuleContract();
+      const sessionKeyContract = await fixtures.getSessionKeyContract();
       await expect(tester.createSession({
         callPolicies: [{
           target: await sessionKeyContract.getAddress(),
@@ -520,7 +514,7 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
     const period = 120;
 
     it("should create a session", async () => {
-      tester = new SessionTester(proxyAccountAddress, await getModuleAddress(), getModuleContract, getModuleAddress);
+      tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
       await tester.createSession({
         expiresAt: await getTimestamp() + period * 3,
         transferPolicies: [{
@@ -611,7 +605,7 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
       expect(await erc20.balanceOf(proxyAccountAddress)).to.gt(10n ** 15n, "should have some tokens");
       paymaster = await fixtures.deployTestPaymaster();
       paymasterFlow = await hre.ethers.getContractAt("IPaymasterFlow", ethers.ZeroAddress);
-      tester = new SessionTester(proxyAccountAddress, await getModuleAddress(), getModuleContract, getModuleAddress);
+      tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
       // fund paymaster
       const tx = await fixtures.wallet.sendTransaction({ to: await paymaster.getAddress(), value: parseEther("1") });
       await tx.wait();
@@ -636,14 +630,14 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
       });
       // @ts-ignore
       const gas = tester.aaTransaction.gasLimit * tester.aaTransaction.gasPrice;
-      const sessionKeyModuleContract = await getModuleContract();
+      const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
       const state = await sessionKeyModuleContract.sessionState(proxyAccountAddress, tester.session);
       expect(state.feesRemaining).to.equal(parseEther("0.01") - gas, "should have deducted gas fees");
       expect(await provider.getBalance(sessionTarget)).to.equal(parseEther("0.01"), "session target should have received the funds");
     });
 
     it("should send a transaction using general paymaster and ignore fee limit", async () => {
-      const sessionKeyModuleContract = await getModuleContract();
+      const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
       const oldState = await sessionKeyModuleContract.sessionState(proxyAccountAddress, tester.session);
       await tester.sessionTxSuccess({
         to: sessionTarget,
@@ -700,7 +694,7 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
     });
 
     it("should send a transaction using approval-based paymaster", async () => {
-      const sessionKeyModuleContract = await getModuleContract();
+      const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
       let state = await sessionKeyModuleContract.sessionState(proxyAccountAddress, tester.session);
       expect(state.callParams[0].remaining).to.equal(1000, "should have 1000 tokens remaining to approve");
       const oldPaymasterBalance = await erc20.balanceOf(await paymaster.getAddress());
@@ -727,12 +721,12 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
     let tester: SessionTester;
 
     before(async () => {
-      sessionModuleAddress = await getModuleAddress();
-      tester = new SessionTester(proxyAccountAddress, sessionModuleAddress, getModuleContract, getModuleAddress);
+      sessionModuleAddress = await fixtures.getSessionKeyModuleAddress();
+      tester = new SessionTester(proxyAccountAddress, sessionModuleAddress);
     });
 
     it("should revoke all sessions", async () => {
-      const sessionKeyModuleContract = await getModuleContract();
+      const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
       const createdSessions = await sessionKeyModuleContract.queryFilter(sessionKeyModuleContract.filters.SessionCreated(proxyAccountAddress));
       const revokedSessions = await sessionKeyModuleContract.queryFilter(sessionKeyModuleContract.filters.SessionRevoked(proxyAccountAddress));
       const activeSessions = createdSessions
@@ -761,5 +755,3 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
     });
   });
 });
-
-performSessionKeyTestDescribe(fixtures.getSessionKeyModuleAddress, fixtures.getSessionKeyContract, "SessionKeyModule tests");
