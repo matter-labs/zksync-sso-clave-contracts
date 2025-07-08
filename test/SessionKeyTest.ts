@@ -115,6 +115,7 @@ class SessionTester {
 
   constructor(public proxyAccountAddress: string, sessionKeyModuleAddress: string, getModuleContract: any, getModuleAddress: any = async () => sessionKeyModuleAddress) {
     this.getModuleContract = getModuleContract;
+    this.getModuleAddress = getModuleAddress;
     this.sessionOwner = new Wallet(Wallet.createRandom().privateKey, provider);
     this.sessionAccount = new SmartAccount({
       payloadSigner: async (hash) => abiCoder.encode(
@@ -295,7 +296,7 @@ class SessionTester {
   }
 }
 
-export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleContract: any) => describe("SessionKeyModule tests", function () {
+export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleContract: any, describeDescription: string) => describe(describeDescription, function () {
   let proxyAccountAddress: string;
 
   (hre.network.name == "dockerizedNode" ? it : it.skip)("should deposit funds", async () => {
@@ -761,4 +762,4 @@ export const performSessionKeyTestDescribe = (getModuleAddress: any, getModuleCo
   });
 });
 
-performSessionKeyTestDescribe(fixtures.getSessionKeyModuleAddress, fixtures.getSessionKeyContract);
+performSessionKeyTestDescribe(fixtures.getSessionKeyModuleAddress, fixtures.getSessionKeyContract, "SessionKeyModule tests");

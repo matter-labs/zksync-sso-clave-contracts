@@ -47,7 +47,7 @@ type SessionSpec = {
 const fixtures = new ContractFixtures();
 
 describe("AllowedSessionsValidator tests", function () {
-  describe('AllowedSessionsValidator (for zkxsolla and zkxsollaStaging network testing)', () => {
+  describe('AllowedSessionsValidator (actual)', () => {
     let mockedTime: bigint = BigInt(Math.floor(Date.now() / 1000) + 3600); // 1 hour from now;;
 
     const getSessionActionsHash = (sessionSpec: SessionSpec) => {
@@ -262,6 +262,6 @@ describe("AllowedSessionsValidator tests", function () {
       expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.true;
     });
   });
-  
-  performSessionKeyTestDescribe(fixtures.getAllowedSessionsContractAddress, fixtures.getAllowedSessionsContract);
+
+  performSessionKeyTestDescribe(fixtures.getAllowedSessionsContractAddress, fixtures.getAllowedSessionsContract, "Tests of the parent (SessionKeyModule)");
 });
