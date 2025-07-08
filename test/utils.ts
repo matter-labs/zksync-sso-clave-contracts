@@ -25,6 +25,7 @@ import type {
   OidcKeyRegistry,
   OidcRecoveryValidator,
   SessionKeyValidator,
+  AllowedSessionsValidator,
   SsoAccount,
   SsoBeacon,
   WebAuthValidator,
@@ -44,6 +45,7 @@ import {
   TestPaymaster__factory,
   WebAuthValidator__factory,
   ERC1271Caller__factory,
+  AllowedSessionsValidator__factory,
 } from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
@@ -92,6 +94,19 @@ export class ContractFixtures {
 
   async getSessionKeyModuleAddress() {
     return (await this.getSessionKeyContract()).getAddress();
+  }
+
+  private _allowedSessionsModule: AllowedSessionsValidator;
+  async getAllowedSessionsContract() {
+    if (!this._allowedSessionsModule) {
+      const contract = await create2("AllowedSessionsValidator", this.wallet, ethersStaticSalt);
+      this._allowedSessionsModule = AllowedSessionsValidator__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._allowedSessionsModule;
+  }
+
+  async getAllowedSessionsContractAddress() {
+    return (await this.getAllowedSessionsContract()).getAddress();
   }
 
   private _beacon: SsoBeacon;
