@@ -322,7 +322,7 @@ describe('AllowedSessionsValidator tests', () => {
           target: "0x000000000000000000000000000000000000000a",
           selector: "0xcafebabe",
           maxValuePerUse: hre.ethers.parseEther("0.05"),
-          valueLimit: { limitType: 1n, limit: hre.ethers.parseEther("0.25"), period: 3600n },
+          valueLimit: { limitType: 2n, limit: hre.ethers.parseEther("0.25"), period: 3600n },
           constraints: [],
         },
       ]
