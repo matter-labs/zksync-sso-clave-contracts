@@ -144,7 +144,7 @@ export class SessionTester {
     const oldState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
     expect(oldState.status).to.equal(0, "session should not exist yet");
     const data = sessionKeyModuleContract.interface.encodeFunctionData("createSession", [this.session]);
-    const receipt = await this.sendAaTx(await sessionKeyModuleContract.getAddress(), data);
+    const receipt = await this.sendAaTx(await sessionKeyModuleContract.getAddress(), data, utilizeAllowed);
     const newState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
     expect(newState.status).to.equal(1, "session should be active");
     return receipt;
@@ -192,14 +192,14 @@ export class SessionTester {
     expect(newState.status).to.equal(2, "session should be revoked");
   }
 
-  async sendAaTx(to: string, data: string) {
+  async sendAaTx(to: string, data: string, utilizeAllowed: boolean = false) {
     const smartAccount = new SmartAccount({
       address: this.proxyAccountAddress,
       secret: fixtures.wallet.privateKey,
     }, provider);
 
     const aaTx = {
-      ...await this.aaTxTemplate(),
+      ...await this.aaTxTemplate(undefined, utilizeAllowed),
       to,
       data,
     };
@@ -267,7 +267,7 @@ export class SessionTester {
     };
   }
 
-  async aaTxTemplate(periodIds?: number[]) {
+  async aaTxTemplate(periodIds?: number[], utilizeAllowed: boolean = false) {
     return {
       type: 113,
       from: this.proxyAccountAddress,
@@ -283,7 +283,7 @@ export class SessionTester {
             ["bytes", "address", "bytes"],
             [
               ethers.zeroPadValue("0x1b", 65),
-              await fixtures.getSessionKeyModuleAddress(),
+              utilizeAllowed ? await fixtures.getAllowedSessionsContractAddress() : await fixtures.getSessionKeyModuleAddress(),
               abiCoder.encode(
                 [sessionSpecAbi, "uint64[]"],
                 [this.session, periodIds],
