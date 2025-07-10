@@ -259,4 +259,38 @@ describe('AllowedSessionsValidator tests', () => {
     await validator.setSessionActionsAllowed(sessionActionsHash, true);
     expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.true;
   });
+
+  it('should not allow SessionSpec actions if not explicitly allowed', async () => {
+    const validator = await fixtures.getAllowedSessionsContract();
+    const sessionSpec: SessionSpec = {
+      signer: await fixtures.wallet.getAddress(),
+      expiresAt: mockedTime,
+      feeLimit: {
+        limitType: 1n,
+        limit: hre.ethers.parseEther("1"),
+        period: 3600n,
+      },
+      transferPolicies: [],
+      callPolicies: [
+        {
+          target: "0x0000000000000000000000000000000000000009",
+          selector: "0xdeadbeef",
+          maxValuePerUse: hre.ethers.parseEther("0.01"),
+          valueLimit: { limitType: 1n, limit: hre.ethers.parseEther("0.1"), period: 3600n },
+          constraints: [],
+        },
+      ],
+    };
+
+    const sessionActionsHash = getSessionActionsHash(sessionSpec);
+    // Do NOT call setSessionActionsAllowed(sessionActionsHash, true);
+
+    await expect(
+      validator.setSessionActionsAllowed(sessionActionsHash, false) // ensure it's not allowed
+    ).not.to.be.reverted;
+
+    await expect(
+      validator.createSession(sessionSpec)
+    ).to.be.revertedWithCustomError(validator, "SESSION_ACTIONS_NOT_ALLOWED");
+  });
 });
