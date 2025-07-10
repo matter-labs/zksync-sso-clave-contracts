@@ -133,8 +133,13 @@ export class SessionTester {
     }, provider);
   }
 
-  async createSession(newSession: PartialSession) {
-    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
+  async createSession(newSession: PartialSession, utilizeAllowed: boolean = false) {
+    let sessionKeyModuleContract: any;
+    if (utilizeAllowed) {
+      sessionKeyModuleContract = await fixtures.getAllowedSessionsContract()
+    } else {
+      sessionKeyModuleContract = await fixtures.getSessionKeyContract();
+    }
     this.session = this.getSession(newSession);
     const oldState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
     expect(oldState.status).to.equal(0, "session should not exist yet");
