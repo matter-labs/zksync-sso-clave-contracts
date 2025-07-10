@@ -323,7 +323,7 @@ describe('AllowedSessionsValidator tests', () => {
     expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.true;
     
     // Create session should work
-    await expect(validator.createSession(sessionSpec)).not.to.be.reverted;
+    await validator.createSession(sessionSpec);
     
     // Now remove the session actions from allowed list
     await validator.setSessionActionsAllowed(sessionActionsHash, false);
