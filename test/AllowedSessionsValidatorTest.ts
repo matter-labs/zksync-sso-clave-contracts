@@ -312,7 +312,7 @@ describe('AllowedSessionsValidator tests', () => {
       signer: await tester.sessionOwner.getAddress(),
       expiresAt: mockedTime,
       feeLimit: {
-        limitType: 1n,
+        limitType: 2n,
         limit: hre.ethers.parseEther("1"),
         period: 3600n,
       },
@@ -325,7 +325,7 @@ describe('AllowedSessionsValidator tests', () => {
           valueLimit: { limitType: 1n, limit: hre.ethers.parseEther("0.25"), period: 3600n },
           constraints: [],
         },
-      ],
+      ]
     };
 
     const sessionActionsHash = getSessionActionsHash(sessionSpec);
