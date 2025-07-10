@@ -350,6 +350,10 @@ describe('AllowedSessionsValidator tests', () => {
       ]
     }
 
+    console.log(sessionSpec);
+    console.log('----------------------');
+    console.log(sessionSpecAsPartial);
+
     await tester.createSession(sessionSpecAsPartial, true); // using the allowed sessions contract
 
     // Now remove the session actions from allowed list
