@@ -335,6 +335,7 @@ describe('AllowedSessionsValidator tests', () => {
     expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.true;
 
     const sessionSpecAsPartial: PartialSession = {
+      expiresAt: parseInt(sessionSpec.expiresAt.toString()),
       feeLimit: getLimit({ limit: sessionSpec.feeLimit.limit, period: sessionSpec.feeLimit.period }),
       callPolicies: [
         {
@@ -351,6 +352,7 @@ describe('AllowedSessionsValidator tests', () => {
     }
 
     console.log(sessionSpec);
+    console.log(sessionSpec.callPolicies![0].valueLimit);
     console.log('----------------------');
     console.log(sessionSpecAsPartial);
     console.log(sessionSpecAsPartial.callPolicies![0].valueLimit);

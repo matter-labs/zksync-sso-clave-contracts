@@ -142,6 +142,7 @@ export class SessionTester {
     }
     this.session = this.getSession(newSession);
     console.log(this.session);
+    console.log(this.session.callPolicies[0].valueLimit);
     const oldState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
     expect(oldState.status).to.equal(0, "session should not exist yet");
     const data = sessionKeyModuleContract.interface.encodeFunctionData("createSession", [this.session]);
@@ -242,7 +243,7 @@ export class SessionTester {
     await expect(provider.broadcastTransaction(signedTransaction)).to.be.reverted;
   };
 
-  getSession(session: PartialSession): SessionLib.SessionSpecStruct {
+    getSession(session: PartialSession): SessionLib.SessionSpecStruct {
     return {
       signer: this.sessionOwner.address,
       expiresAt: session.expiresAt ?? Math.floor(Date.now() / 1000) + 60 * 60 * 24,
