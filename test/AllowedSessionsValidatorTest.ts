@@ -1,6 +1,6 @@
 import { assert, expect } from "chai";
 import { it } from "mocha";
-import { solidityPacked, keccak256, Wallet, randomBytes, parseEther, AbiCoder } from "ethers";
+import { solidityPacked, keccak256, Wallet, randomBytes, parseEther, AbiCoder, ZeroAddress } from "ethers";
 import hre from "hardhat";
 import { utils } from "zksync-ethers";
 import { ContractFixtures, logInfo } from "./utils";
@@ -308,7 +308,7 @@ describe('AllowedSessionsValidator tests', () => {
     const bytecodeHash = await factoryContract.beaconProxyBytecodeHash();
     const factoryAddress = await factoryContract.getAddress();
     const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args);
-    const tester = new SessionTester(standardCreate2Address, await fixtures.getAllowedSessionsContractAddress());
+    let tester = new SessionTester(standardCreate2Address, await fixtures.getAllowedSessionsContractAddress());
 
     const initialSession = tester.getSession({
       transferPolicies: [{
@@ -326,6 +326,17 @@ describe('AllowedSessionsValidator tests', () => {
     );
     const deployTxReceipt = await deployTx.wait();
     logInfo(`\`deployProxySsoAccount\` gas used: ${deployTxReceipt?.gasUsed.toString()}`);
+
+    const proxyAccountAddress = deployTxReceipt!.contractAddress!;
+    expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
+
+    const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("1"), to: proxyAccountAddress });
+    await fundTx.wait();
+
+    const initState = await validator.sessionState(proxyAccountAddress, initialSession);
+    expect(initState.status).to.equal(1, "initial session should be active");
+
+    tester = new SessionTester(proxyAccountAddress, await fixtures.getAllowedSessionsContractAddress());
 
     const sessionSpec: SessionSpec = {
       signer: tester.sessionOwner.address,
