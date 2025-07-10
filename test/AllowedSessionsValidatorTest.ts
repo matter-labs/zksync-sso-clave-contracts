@@ -350,11 +350,11 @@ describe('AllowedSessionsValidator tests', () => {
       ]
     }
 
-    // await tester.createSession(sessionSpecAsPartial, true); // using the allowed sessions contract
+    await tester.createSession(sessionSpecAsPartial, true); // using the allowed sessions contract
 
-    // // Now remove the session actions from allowed list
-    // await validator.setSessionActionsAllowed(sessionActionsHash, false);
-    // expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.false;
+    // Now remove the session actions from allowed list
+    await validator.setSessionActionsAllowed(sessionActionsHash, false);
+    expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.false;
 
     // // Creating the same session should now fail
     // await expect(
