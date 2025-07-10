@@ -82,7 +82,7 @@ async function getTimestamp() {
   }
 }
 
-function getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
+export function getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
   return limit == null
     ? {
         limitType: LimitType.Unlimited,

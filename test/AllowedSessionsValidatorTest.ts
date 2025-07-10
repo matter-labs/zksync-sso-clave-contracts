@@ -4,7 +4,7 @@ import { solidityPacked, keccak256, Wallet, randomBytes } from "ethers";
 import hre from "hardhat";
 import { utils } from "zksync-ethers";
 import { ContractFixtures } from "./utils";
-import { PartialSession, SessionTester } from "./SessionKeyTest";
+import { PartialSession, SessionTester, getLimit } from "./SessionKeyTest";
 
 type SessionSpec = {
   signer: string;
@@ -309,7 +309,7 @@ describe('AllowedSessionsValidator tests', () => {
     const tester = new SessionTester(standardCreate2Address, await fixtures.getAllowedSessionsContractAddress());
 
     const sessionSpec: SessionSpec = {
-      signer: await tester.sessionOwner.getAddress(),
+      signer: tester.sessionOwner.address,
       expiresAt: mockedTime,
       feeLimit: {
         limitType: 2n,
@@ -335,9 +335,7 @@ describe('AllowedSessionsValidator tests', () => {
     expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.true;
 
     const sessionSpecAsPartial: PartialSession = {
-      expiresAt: parseInt(sessionSpec.expiresAt.toString()),
-      feeLimit: sessionSpec.feeLimit,
-      transferPolicies: sessionSpec.transferPolicies,
+      feeLimit: getLimit({ limit: sessionSpec.feeLimit.limit, period: sessionSpec.feeLimit.period }),
       callPolicies: [
         {
           target: sessionSpec.callPolicies[0].target,
