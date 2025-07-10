@@ -87,7 +87,7 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl, IAllowe
     if (!areSessionActionsAllowed[sessionActionsHash]) {
       revert Errors.SESSION_ACTIONS_NOT_ALLOWED(sessionActionsHash);
     }
-    super.createSession(sessionSpec);
+    SessionKeyValidator.createSession(sessionSpec);
   }
 
   /// @inheritdoc SessionKeyValidator
