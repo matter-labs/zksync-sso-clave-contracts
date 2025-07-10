@@ -298,7 +298,7 @@ describe('AllowedSessionsValidator tests', () => {
 
   it('should reject a former valid session after being removed from allowed list', async () => {
     const validator = await fixtures.getAllowedSessionsContract();
-    const factoryContract = await fixtures.getAaFactory();
+    const factoryContract = await fixtures.getAaFactory(true); // using allowed sessions contract
 
     // create a session to encode (before the account is deployed)
     const args = await factoryContract.getEncodedBeacon();
@@ -350,14 +350,6 @@ describe('AllowedSessionsValidator tests', () => {
         }
       ]
     }
-
-    console.log(sessionSpec);
-    console.log(sessionSpec.callPolicies![0].valueLimit);
-    console.log('----------------------');
-    console.log(sessionSpecAsPartial);
-    console.log(sessionSpecAsPartial.callPolicies![0].valueLimit);
-    console.log('***********************');
-    
 
     await tester.createSession(sessionSpecAsPartial, true); // using the allowed sessions contract
 

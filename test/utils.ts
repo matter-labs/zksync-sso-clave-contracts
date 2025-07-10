@@ -64,11 +64,16 @@ export class ContractFixtures {
   readonly keyRegistryOwner: Wallet = getWallet(LOCAL_RICH_WALLETS[1].privateKey);
 
   private _aaFactory: AAFactory;
-  async getAaFactory() {
+  async getAaFactory(utilizingAllowed: boolean = false) {
     const beaconAddress = await this.getBeaconAddress();
     if (!this._aaFactory) {
       const passKeyModuleAddress = await this.getPasskeyModuleAddress();
-      const sessionKeyModuleAddress = await this.getSessionKeyModuleAddress();
+      let sessionKeyModuleAddress: string;
+      if (!utilizingAllowed) {
+        sessionKeyModuleAddress = await this.getSessionKeyModuleAddress();
+      } else {
+        sessionKeyModuleAddress = await this.getAllowedSessionsContractAddress();
+      }
       this._aaFactory = await deployFactory(
         this.wallet,
         beaconAddress,
