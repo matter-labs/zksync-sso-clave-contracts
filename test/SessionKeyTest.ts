@@ -141,6 +141,7 @@ export class SessionTester {
       sessionKeyModuleContract = await fixtures.getSessionKeyContract();
     }
     this.session = this.getSession(newSession);
+    console.log(this.session);
     const oldState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
     expect(oldState.status).to.equal(0, "session should not exist yet");
     const data = sessionKeyModuleContract.interface.encodeFunctionData("createSession", [this.session]);

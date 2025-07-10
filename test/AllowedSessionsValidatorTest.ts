@@ -353,6 +353,9 @@ describe('AllowedSessionsValidator tests', () => {
     console.log(sessionSpec);
     console.log('----------------------');
     console.log(sessionSpecAsPartial);
+    console.log(sessionSpecAsPartial.callPolicies![0].valueLimit);
+    console.log('***********************');
+    
 
     await tester.createSession(sessionSpecAsPartial, true); // using the allowed sessions contract
 
