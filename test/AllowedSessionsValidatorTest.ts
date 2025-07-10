@@ -391,9 +391,9 @@ describe('AllowedSessionsValidator tests', () => {
     await validator.setSessionActionsAllowed(sessionActionsHash, false);
     expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.false;
 
-    // // Creating the same session should now fail
-    // await expect(
-    //   await tester.createSession(sessionSpecAsPartial, true) // using the allowed sessions contract
-    // ).to.be.revertedWithCustomError(validator, "SESSION_ACTIONS_NOT_ALLOWED");
+    // Creating the same session should now fail
+    await expect(
+      tester.createSession(sessionSpecAsPartial, true)
+    ).to.be.revertedWithCustomError(validator, "SESSION_ACTIONS_NOT_ALLOWED");
   });
 });
