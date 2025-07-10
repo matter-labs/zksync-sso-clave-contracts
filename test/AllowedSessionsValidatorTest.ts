@@ -293,4 +293,45 @@ describe('AllowedSessionsValidator tests', () => {
       validator.createSession(sessionSpec)
     ).to.be.revertedWithCustomError(validator, "SESSION_ACTIONS_NOT_ALLOWED");
   });
+
+  it('should reject a former valid session after being removed from allowed list', async () => {
+    const validator = await fixtures.getAllowedSessionsContract();
+    const sessionSpec: SessionSpec = {
+      signer: await fixtures.wallet.getAddress(),
+      expiresAt: mockedTime,
+      feeLimit: {
+        limitType: 1n,
+        limit: hre.ethers.parseEther("1"),
+        period: 3600n,
+      },
+      transferPolicies: [],
+      callPolicies: [
+        {
+          target: "0x000000000000000000000000000000000000000a",
+          selector: "0xcafebabe",
+          maxValuePerUse: hre.ethers.parseEther("0.05"),
+          valueLimit: { limitType: 1n, limit: hre.ethers.parseEther("0.25"), period: 3600n },
+          constraints: [],
+        },
+      ],
+    };
+
+    const sessionActionsHash = getSessionActionsHash(sessionSpec);
+    
+    // First, allow the session actions
+    await validator.setSessionActionsAllowed(sessionActionsHash, true);
+    expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.true;
+    
+    // Create session should work
+    await expect(validator.createSession(sessionSpec)).not.to.be.reverted;
+    
+    // Now remove the session actions from allowed list
+    await validator.setSessionActionsAllowed(sessionActionsHash, false);
+    expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.false;
+    
+    // Creating the same session should now fail
+    await expect(
+      validator.createSession(sessionSpec)
+    ).to.be.revertedWithCustomError(validator, "SESSION_ACTIONS_NOT_ALLOWED");
+  });
 });
