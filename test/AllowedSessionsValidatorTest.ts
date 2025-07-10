@@ -1,8 +1,10 @@
 import { assert, expect } from "chai";
 import { it } from "mocha";
-import { solidityPacked, keccak256 } from "ethers";
+import { solidityPacked, keccak256, Wallet, randomBytes } from "ethers";
 import hre from "hardhat";
+import { utils } from "zksync-ethers";
 import { ContractFixtures } from "./utils";
+import { PartialSession, SessionTester } from "./SessionKeyTest";
 
 type SessionSpec = {
   signer: string;
@@ -296,6 +298,16 @@ describe('AllowedSessionsValidator tests', () => {
 
   it('should reject a former valid session after being removed from allowed list', async () => {
     const validator = await fixtures.getAllowedSessionsContract();
+    const factoryContract = await fixtures.getAaFactory();
+
+    // create a session to encode (before the account is deployed)
+    const args = await factoryContract.getEncodedBeacon();
+    const randomSalt = randomBytes(32);
+    const bytecodeHash = await factoryContract.beaconProxyBytecodeHash();
+    const factoryAddress = await factoryContract.getAddress();
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args);
+    const tester = new SessionTester(standardCreate2Address, await fixtures.getAllowedSessionsContractAddress());
+
     const sessionSpec: SessionSpec = {
       signer: await fixtures.wallet.getAddress(),
       expiresAt: mockedTime,
@@ -317,21 +329,35 @@ describe('AllowedSessionsValidator tests', () => {
     };
 
     const sessionActionsHash = getSessionActionsHash(sessionSpec);
-    
+
     // First, allow the session actions
     await validator.setSessionActionsAllowed(sessionActionsHash, true);
     expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.true;
-    
-    // Create session should work
-    await validator.createSession(sessionSpec);
-    
+
+    const sessionSpecAsPartial: PartialSession = {
+      expiresAt: parseInt(sessionSpec.expiresAt.toString()),
+      feeLimit: sessionSpec.feeLimit,
+      transferPolicies: sessionSpec.transferPolicies,
+      callPolicies: [
+        {
+          target: sessionSpec.callPolicies[0].target,
+          selector: sessionSpec.callPolicies[0].selector,
+          maxValuePerUse: sessionSpec.callPolicies[0].maxValuePerUse,
+          valueLimit: sessionSpec.callPolicies[0].valueLimit,
+          constraints: []
+        }
+      ]
+    }
+
+    await tester.createSession(sessionSpecAsPartial);
+
     // Now remove the session actions from allowed list
     await validator.setSessionActionsAllowed(sessionActionsHash, false);
     expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.false;
-    
+
     // Creating the same session should now fail
     await expect(
-      validator.createSession(sessionSpec)
+      await tester.createSession(sessionSpecAsPartial)
     ).to.be.revertedWithCustomError(validator, "SESSION_ACTIONS_NOT_ALLOWED");
   });
 });

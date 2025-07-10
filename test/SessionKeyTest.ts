@@ -16,7 +16,7 @@ const abiCoder = new ethers.AbiCoder();
 const provider = getProvider();
 const sessionSpecAbi = SessionKeyValidator__factory.createInterface().getFunction("createSession").inputs[0];
 
-enum Condition {
+export enum Condition {
   Unconstrained = 0,
   Equal = 1,
   Greater = 2,
@@ -26,18 +26,18 @@ enum Condition {
   NotEqual = 6,
 }
 
-enum LimitType {
+export enum LimitType {
   Unlimited = 0,
   Lifetime = 1,
   Allowance = 2,
 }
 
-type PartialLimit = {
+export type PartialLimit = {
   limit: ethers.BigNumberish;
   period?: ethers.BigNumberish;
 };
 
-type PartialSession = {
+export type PartialSession = {
   expiresAt?: number;
   feeLimit?: PartialLimit;
   callPolicies?: {
@@ -64,7 +64,7 @@ type PaymasterParams = {
   paymasterInput: string;
 };
 
-interface TransactionLike extends ethers.TransactionLike {
+export interface TransactionLike extends ethers.TransactionLike {
   periodIds?: number[];
   paymasterParams?: PaymasterParams;
   customData?: {
@@ -102,7 +102,7 @@ function getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
         };
 }
 
-class SessionTester {
+export class SessionTester {
   public sessionOwner: Wallet;
   public session: SessionLib.SessionSpecStruct;
   public sessionAccount: SmartAccount;
@@ -139,9 +139,10 @@ class SessionTester {
     const oldState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
     expect(oldState.status).to.equal(0, "session should not exist yet");
     const data = sessionKeyModuleContract.interface.encodeFunctionData("createSession", [this.session]);
-    await this.sendAaTx(await sessionKeyModuleContract.getAddress(), data);
+    const receipt = await this.sendAaTx(await sessionKeyModuleContract.getAddress(), data);
     const newState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
     expect(newState.status).to.equal(1, "session should be active");
+    return receipt;
   }
 
   encodeSession() {
@@ -203,6 +204,7 @@ class SessionTester {
     const tx = await provider.broadcastTransaction(signedTransaction);
     const receipt = await tx.wait();
     logInfo(`transaction gas used: ${receipt.gasUsed.toString()}`);
+    return receipt;
   }
 
   async sessionTxSuccess(tx: TransactionLike = {}) {
