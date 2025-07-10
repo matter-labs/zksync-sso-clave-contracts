@@ -309,7 +309,7 @@ describe('AllowedSessionsValidator tests', () => {
     const tester = new SessionTester(standardCreate2Address, await fixtures.getAllowedSessionsContractAddress());
 
     const sessionSpec: SessionSpec = {
-      signer: await fixtures.wallet.getAddress(),
+      signer: await tester.sessionOwner.getAddress(),
       expiresAt: mockedTime,
       feeLimit: {
         limitType: 1n,
@@ -343,7 +343,10 @@ describe('AllowedSessionsValidator tests', () => {
           target: sessionSpec.callPolicies[0].target,
           selector: sessionSpec.callPolicies[0].selector,
           maxValuePerUse: sessionSpec.callPolicies[0].maxValuePerUse,
-          valueLimit: sessionSpec.callPolicies[0].valueLimit,
+          valueLimit: {
+            limit: sessionSpec.callPolicies[0].valueLimit.limit,
+            period: sessionSpec.callPolicies[0].valueLimit.period
+          },
           constraints: []
         }
       ]
