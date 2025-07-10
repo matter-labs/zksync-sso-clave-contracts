@@ -317,6 +317,10 @@ describe('AllowedSessionsValidator tests', () => {
       }],
     });
     const initSessionData = abiCoder.encode(validator.interface.getFunction("createSession").inputs, [initialSession]);
+    const initialSessionActionsHash = await validator.getSessionActionsHash(initialSession);
+
+    // First, allow the initial session actions
+    await validator.setSessionActionsAllowed(initialSessionActionsHash, true);
 
     const sessionKeyPayload = abiCoder.encode(["address", "bytes"], [validatorAddress, initSessionData]);
     const deployTx = await factoryContract.deployProxySsoAccount(
