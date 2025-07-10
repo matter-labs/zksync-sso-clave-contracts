@@ -1,9 +1,9 @@
 import { assert, expect } from "chai";
 import { it } from "mocha";
-import { solidityPacked, keccak256, Wallet, randomBytes } from "ethers";
+import { solidityPacked, keccak256, Wallet, randomBytes, parseEther, AbiCoder } from "ethers";
 import hre from "hardhat";
 import { utils } from "zksync-ethers";
-import { ContractFixtures } from "./utils";
+import { ContractFixtures, logInfo } from "./utils";
 import { PartialSession, SessionTester, getLimit } from "./SessionKeyTest";
 
 type SessionSpec = {
@@ -46,6 +46,7 @@ type SessionSpec = {
 };
 
 const fixtures = new ContractFixtures();
+const abiCoder = new AbiCoder();
 
 describe('AllowedSessionsValidator tests', () => {
   let mockedTime: bigint = BigInt(Math.floor(Date.now() / 1000) + 3600); // 1 hour from now;;
@@ -298,7 +299,9 @@ describe('AllowedSessionsValidator tests', () => {
 
   it('should reject a former valid session after being removed from allowed list', async () => {
     const validator = await fixtures.getAllowedSessionsContract();
+    const validatorAddress = await fixtures.getAllowedSessionsContractAddress();
     const factoryContract = await fixtures.getAaFactory(true); // using allowed sessions contract
+    const transferSessionTarget = Wallet.createRandom().address;
 
     const args = await factoryContract.getEncodedBeacon();
     const randomSalt = randomBytes(32);
@@ -306,6 +309,23 @@ describe('AllowedSessionsValidator tests', () => {
     const factoryAddress = await factoryContract.getAddress();
     const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args);
     const tester = new SessionTester(standardCreate2Address, await fixtures.getAllowedSessionsContractAddress());
+
+    const initialSession = tester.getSession({
+      transferPolicies: [{
+        target: transferSessionTarget,
+        maxValuePerUse: parseEther("0.01"),
+      }],
+    });
+    const initSessionData = abiCoder.encode(validator.interface.getFunction("createSession").inputs, [initialSession]);
+
+    const sessionKeyPayload = abiCoder.encode(["address", "bytes"], [validatorAddress, initSessionData]);
+    const deployTx = await factoryContract.deployProxySsoAccount(
+      randomSalt,
+      [sessionKeyPayload],
+      [fixtures.wallet.address],
+    );
+    const deployTxReceipt = await deployTx.wait();
+    logInfo(`\`deployProxySsoAccount\` gas used: ${deployTxReceipt?.gasUsed.toString()}`);
 
     const sessionSpec: SessionSpec = {
       signer: tester.sessionOwner.address,
