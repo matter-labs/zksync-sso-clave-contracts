@@ -364,7 +364,7 @@ describe('AllowedSessionsValidator tests', () => {
 
     const sessionActionsHash = getSessionActionsHash(sessionSpec);
 
-    // First, allow the session actions
+    // Than, allow the session actions
     await validator.setSessionActionsAllowed(sessionActionsHash, true);
     expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.true;
 

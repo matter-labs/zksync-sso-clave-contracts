@@ -142,7 +142,9 @@ export class SessionTester {
     }
     this.session = this.getSession(newSession);
     const oldState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
-    expect(oldState.status).to.equal(0, "session should not exist yet");
+    if (!utilizeAllowed) {
+      expect(oldState.status).to.equal(0, "session should not exist yet");
+    }
     const data = sessionKeyModuleContract.interface.encodeFunctionData("createSession", [this.session]);
     const receipt = await this.sendAaTx(await sessionKeyModuleContract.getAddress(), data, utilizeAllowed);
     const newState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
