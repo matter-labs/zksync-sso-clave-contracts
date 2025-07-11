@@ -265,36 +265,95 @@ describe('AllowedSessionsValidator tests', () => {
 
   it('should not allow SessionSpec actions if not explicitly allowed', async () => {
     const validator = await fixtures.getAllowedSessionsContract();
+    const validatorAddress = await fixtures.getAllowedSessionsContractAddress();
+    const factoryContract = await fixtures.getAaFactory(true); // using allowed sessions contract
+    const transferSessionTarget = Wallet.createRandom().address;
+
+    const args = await factoryContract.getEncodedBeacon();
+    const randomSalt = randomBytes(32);
+    const bytecodeHash = await factoryContract.beaconProxyBytecodeHash();
+    const factoryAddress = await factoryContract.getAddress();
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args);
+    let tester = new SessionTester(standardCreate2Address, await fixtures.getAllowedSessionsContractAddress());
+
+    const initialSession = tester.getSession({
+      transferPolicies: [{
+        target: transferSessionTarget,
+        maxValuePerUse: parseEther("0.01"),
+      }],
+    });
+    const initSessionData = abiCoder.encode(validator.interface.getFunction("createSession").inputs, [initialSession]);
+    const initialSessionActionsHash = await validator.getSessionActionsHash(initialSession);
+
+    // First, allow the initial session actions
+    await validator.setSessionActionsAllowed(initialSessionActionsHash, true);
+
+    const sessionKeyPayload = abiCoder.encode(["address", "bytes"], [validatorAddress, initSessionData]);
+    const deployTx = await factoryContract.deployProxySsoAccount(
+      randomSalt,
+      [sessionKeyPayload],
+      [fixtures.wallet.address],
+    );
+    const deployTxReceipt = await deployTx.wait();
+    logInfo(`\`deployProxySsoAccount\` gas used: ${deployTxReceipt?.gasUsed.toString()}`);
+
+    const proxyAccountAddress = deployTxReceipt!.contractAddress!;
+    expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
+
+    const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("1"), to: proxyAccountAddress });
+    await fundTx.wait();
+
+    const initState = await validator.sessionState(proxyAccountAddress, initialSession);
+    expect(initState.status).to.equal(1, "initial session should be active");
+
+    tester = new SessionTester(proxyAccountAddress, await fixtures.getAllowedSessionsContractAddress());
+
     const sessionSpec: SessionSpec = {
-      signer: await fixtures.wallet.getAddress(),
+      signer: tester.sessionOwner.address,
       expiresAt: mockedTime,
       feeLimit: {
-        limitType: 1n,
+        limitType: 2n,
         limit: hre.ethers.parseEther("1"),
         period: 3600n,
       },
       transferPolicies: [],
       callPolicies: [
         {
-          target: "0x0000000000000000000000000000000000000009",
-          selector: "0xdeadbeef",
-          maxValuePerUse: hre.ethers.parseEther("0.01"),
-          valueLimit: { limitType: 1n, limit: hre.ethers.parseEther("0.1"), period: 3600n },
+          target: await validator.getAddress(),
+          selector: "0xcafebabe",
+          maxValuePerUse: hre.ethers.parseEther("0.05"),
+          valueLimit: { limitType: 2n, limit: hre.ethers.parseEther("0.25"), period: 3600n },
           constraints: [],
         },
-      ],
+      ]
     };
 
     const sessionActionsHash = getSessionActionsHash(sessionSpec);
-    // Do NOT call setSessionActionsAllowed(sessionActionsHash, true);
+
+    // Than, allow the session actions
+    await validator.setSessionActionsAllowed(sessionActionsHash, true);
+    expect(await validator.areSessionActionsAllowed(sessionActionsHash)).to.be.true;
+
+    const sessionSpecAsPartial: PartialSession = {
+      expiresAt: parseInt(sessionSpec.expiresAt.toString()),
+      feeLimit: getLimit({ limit: sessionSpec.feeLimit.limit, period: sessionSpec.feeLimit.period }),
+      callPolicies: [
+        {
+          target: sessionSpec.callPolicies[0].target,
+          selector: sessionSpec.callPolicies[0].selector,
+          maxValuePerUse: sessionSpec.callPolicies[0].maxValuePerUse,
+          valueLimit: {
+            limit: sessionSpec.callPolicies[0].valueLimit.limit,
+            period: sessionSpec.callPolicies[0].valueLimit.period
+          },
+          constraints: []
+        }
+      ]
+    }
 
     await expect(
-      validator.setSessionActionsAllowed(sessionActionsHash, false) // ensure it's not allowed
-    ).not.to.be.reverted;
-
-    await expect(
-      validator.createSession(sessionSpec)
-    ).to.be.revertedWithCustomError(validator, "SESSION_ACTIONS_NOT_ALLOWED");
+      tester.createSession(sessionSpecAsPartial, true)
+    ).to.be.revertedWithCustomError(validator, "SESSION_CALL_POLICY_BANNED");
   });
 
   it('should not allow SessionSpec actions if they are banned', async () => {
