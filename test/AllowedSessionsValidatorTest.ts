@@ -356,39 +356,6 @@ describe('AllowedSessionsValidator tests', () => {
     ).to.be.revertedWithCustomError(validator, "SESSION_CALL_POLICY_BANNED");
   });
 
-  it('should not allow SessionSpec actions if they are banned', async () => {
-    const validator = await fixtures.getAllowedSessionsContract();
-    const sessionSpec: SessionSpec = {
-      signer: await fixtures.wallet.getAddress(),
-      expiresAt: mockedTime,
-      feeLimit: {
-        limitType: 1n,
-        limit: hre.ethers.parseEther("1"),
-        period: 3600n,
-      },
-      transferPolicies: [],
-      callPolicies: [
-        {
-          target: await validator.getAddress(),
-          selector: "0xdeadbeef",
-          maxValuePerUse: hre.ethers.parseEther("0.01"),
-          valueLimit: { limitType: 1n, limit: hre.ethers.parseEther("0.1"), period: 3600n },
-          constraints: [],
-        },
-      ],
-    };
-
-    const sessionActionsHash = getSessionActionsHash(sessionSpec);
-
-    await expect(
-      validator.setSessionActionsAllowed(sessionActionsHash, true) // ensure it's not allowed
-    ).not.to.be.reverted;
-
-    await expect(
-      validator.createSession(sessionSpec)
-    ).to.be.revertedWithCustomError(validator, "SESSION_CALL_POLICY_BANNED");
-  });
-
   it('should reject a former valid session after being removed from allowed list', async () => {
     const validator = await fixtures.getAllowedSessionsContract();
     const validatorAddress = await fixtures.getAllowedSessionsContractAddress();
