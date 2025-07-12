@@ -5,46 +5,9 @@ import hre from "hardhat";
 import { utils } from "zksync-ethers";
 import { ContractFixtures, logInfo } from "./utils";
 import { PartialSession, SessionTester, getLimit } from "./SessionKeyTest";
+import type { SessionLib } from "../typechain-types/src/interfaces/ISessionKeyValidator";
 
-type SessionSpec = {
-  signer: string;
-  expiresAt: bigint;
-  feeLimit: {
-    limitType: bigint;
-    limit: bigint;
-    period: bigint;
-  };
-  transferPolicies: Array<{
-    target: string;
-    maxValuePerUse: bigint;
-    valueLimit: {
-      limitType: bigint;
-      limit: bigint;
-      period: bigint;
-    };
-  }>;
-  callPolicies: Array<{
-    target: string;
-    selector: string;
-    maxValuePerUse: bigint;
-    valueLimit: {
-      limitType: bigint;
-      limit: bigint;
-      period: bigint;
-    };
-    constraints: Array<{
-      condition: bigint;
-      index: number;
-      refValue: string;
-      limit: {
-        limitType: bigint;
-        limit: bigint;
-        period: bigint;
-      };
-    }>;
-  }>;
-};
-
+type SessionSpec = SessionLib.SessionSpecStruct;
 const fixtures = new ContractFixtures();
 const abiCoder = new AbiCoder();
 
@@ -339,8 +302,8 @@ describe('AllowedSessionsValidator tests', () => {
       feeLimit: getLimit({ limit: sessionSpec.feeLimit.limit, period: sessionSpec.feeLimit.period }),
       callPolicies: [
         {
-          target: sessionSpec.callPolicies[0].target,
-          selector: sessionSpec.callPolicies[0].selector,
+          target: sessionSpec.callPolicies[0].target as string,
+          selector: sessionSpec.callPolicies[0].selector as string,
           maxValuePerUse: sessionSpec.callPolicies[0].maxValuePerUse,
           valueLimit: {
             limit: sessionSpec.callPolicies[0].valueLimit.limit,
@@ -432,8 +395,8 @@ describe('AllowedSessionsValidator tests', () => {
       feeLimit: getLimit({ limit: sessionSpec.feeLimit.limit, period: sessionSpec.feeLimit.period }),
       callPolicies: [
         {
-          target: sessionSpec.callPolicies[0].target,
-          selector: sessionSpec.callPolicies[0].selector,
+          target: sessionSpec.callPolicies[0].target as string,
+          selector: sessionSpec.callPolicies[0].selector as string,
           maxValuePerUse: sessionSpec.callPolicies[0].maxValuePerUse,
           valueLimit: {
             limit: sessionSpec.callPolicies[0].valueLimit.limit,

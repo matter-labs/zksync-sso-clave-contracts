@@ -734,28 +734,35 @@ describe("SessionKeyModule tests", function () {
       tester = new SessionTester(proxyAccountAddress, sessionModuleAddress);
     });
 
-    it("should revoke all sessions", async () => {
+    it("should uninstall the module while revoking some sessions", async () => {
       const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
       const createdSessions = await sessionKeyModuleContract.queryFilter(sessionKeyModuleContract.filters.SessionCreated(proxyAccountAddress));
       const revokedSessions = await sessionKeyModuleContract.queryFilter(sessionKeyModuleContract.filters.SessionRevoked(proxyAccountAddress));
       const activeSessions = createdSessions
         .map((event) => event.args.sessionHash)
         .filter((hash) => revokedSessions.every((revoked) => revoked.args.sessionHash != hash));
-      await tester.sendAaTx(
-        await sessionKeyModuleContract.getAddress(),
-        sessionKeyModuleContract.interface.encodeFunctionData("revokeKeys", [activeSessions]),
-      );
-    });
+      expect(activeSessions.length).to.be.greaterThan(0, "should have some active sessions");
 
-    it("should uninstall the module", async () => {
+      // Revoke all but one session during uninstall
       await tester.sendAaTx(proxyAccountAddress, ssoAbi.encodeFunctionData("removeModuleValidator", [
         sessionModuleAddress,
-        abiCoder.encode(["bytes32[]"], [[]]),
+        abiCoder.encode(["bytes32[]"], [activeSessions.slice(0, -1)]),
       ]));
     });
 
     it("should reinstall the module", async () => {
       await tester.sendAaTx(proxyAccountAddress, ssoAbi.encodeFunctionData("addModuleValidator", [sessionModuleAddress, "0x"]));
+
+      // Check that one session is now active, since we did not revoke it before
+      const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
+      const createdSessions = await sessionKeyModuleContract.queryFilter(sessionKeyModuleContract.filters.SessionCreated(proxyAccountAddress));
+      const revokedSessions = await sessionKeyModuleContract.queryFilter(sessionKeyModuleContract.filters.SessionRevoked(proxyAccountAddress));
+      const activeSessions = createdSessions
+        .map((event) => event.args.sessionHash)
+        .filter((hash) => revokedSessions.every((revoked) => revoked.args.sessionHash != hash));
+      expect(activeSessions).to.have.lengthOf(1, "One session has to be active now")
+      const status = await sessionKeyModuleContract.sessionStatus(proxyAccountAddress, activeSessions[0])
+      expect(status).to.equal(1, "One session should be active");
     });
 
     it("should unlink the module ignoring reverts", async () => {
