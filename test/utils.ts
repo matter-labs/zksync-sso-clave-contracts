@@ -25,6 +25,7 @@ import type {
   OidcKeyRegistry,
   OidcRecoveryValidator,
   SessionKeyValidator,
+  AllowedSessionsValidator,
   SsoAccount,
   SsoBeacon,
   WebAuthValidator,
@@ -44,6 +45,7 @@ import {
   TestPaymaster__factory,
   WebAuthValidator__factory,
   ERC1271Caller__factory,
+  AllowedSessionsValidator__factory,
 } from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
@@ -62,11 +64,16 @@ export class ContractFixtures {
   readonly keyRegistryOwner: Wallet = getWallet(LOCAL_RICH_WALLETS[1].privateKey);
 
   private _aaFactory: AAFactory;
-  async getAaFactory() {
+  async getAaFactory(utilizingAllowed: boolean = false) {
     const beaconAddress = await this.getBeaconAddress();
     if (!this._aaFactory) {
       const passKeyModuleAddress = await this.getPasskeyModuleAddress();
-      const sessionKeyModuleAddress = await this.getSessionKeyModuleAddress();
+      let sessionKeyModuleAddress: string;
+      if (!utilizingAllowed) {
+        sessionKeyModuleAddress = await this.getSessionKeyModuleAddress();
+      } else {
+        sessionKeyModuleAddress = await this.getAllowedSessionsContractAddress();
+      }
       this._aaFactory = await deployFactory(
         this.wallet,
         beaconAddress,
@@ -92,6 +99,19 @@ export class ContractFixtures {
 
   async getSessionKeyModuleAddress() {
     return (await this.getSessionKeyContract()).getAddress();
+  }
+
+  private _allowedSessionsModule: AllowedSessionsValidator;
+  async getAllowedSessionsContract() {
+    if (!this._allowedSessionsModule) {
+      const contract = await create2("AllowedSessionsValidator", this.wallet, ethersStaticSalt);
+      this._allowedSessionsModule = AllowedSessionsValidator__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._allowedSessionsModule;
+  }
+
+  async getAllowedSessionsContractAddress() {
+    return (await this.getAllowedSessionsContract()).getAddress();
   }
 
   private _beacon: SsoBeacon;

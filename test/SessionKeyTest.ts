@@ -16,7 +16,7 @@ const abiCoder = new ethers.AbiCoder();
 const provider = getProvider();
 const sessionSpecAbi = SessionKeyValidator__factory.createInterface().getFunction("createSession").inputs[0];
 
-enum Condition {
+export enum Condition {
   Unconstrained = 0,
   Equal = 1,
   Greater = 2,
@@ -26,18 +26,18 @@ enum Condition {
   NotEqual = 6,
 }
 
-enum LimitType {
+export enum LimitType {
   Unlimited = 0,
   Lifetime = 1,
   Allowance = 2,
 }
 
-type PartialLimit = {
+export type PartialLimit = {
   limit: ethers.BigNumberish;
   period?: ethers.BigNumberish;
 };
 
-type PartialSession = {
+export type PartialSession = {
   expiresAt?: number;
   feeLimit?: PartialLimit;
   callPolicies?: {
@@ -64,7 +64,7 @@ type PaymasterParams = {
   paymasterInput: string;
 };
 
-interface TransactionLike extends ethers.TransactionLike {
+export interface TransactionLike extends ethers.TransactionLike {
   periodIds?: number[];
   paymasterParams?: PaymasterParams;
   customData?: {
@@ -82,7 +82,7 @@ async function getTimestamp() {
   }
 }
 
-function getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
+export function getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
   return limit == null
     ? {
         limitType: LimitType.Unlimited,
@@ -102,7 +102,7 @@ function getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
         };
 }
 
-class SessionTester {
+export class SessionTester {
   public sessionOwner: Wallet;
   public session: SessionLib.SessionSpecStruct;
   public sessionAccount: SmartAccount;
@@ -133,15 +133,23 @@ class SessionTester {
     }, provider);
   }
 
-  async createSession(newSession: PartialSession) {
-    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
+  async createSession(newSession: PartialSession, utilizeAllowed: boolean = false) {
+    let sessionKeyModuleContract: any;
+    if (utilizeAllowed) {
+      sessionKeyModuleContract = await fixtures.getAllowedSessionsContract()
+    } else {
+      sessionKeyModuleContract = await fixtures.getSessionKeyContract();
+    }
     this.session = this.getSession(newSession);
     const oldState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
-    expect(oldState.status).to.equal(0, "session should not exist yet");
+    if (!utilizeAllowed) {
+      expect(oldState.status).to.equal(0, "session should not exist yet");
+    }
     const data = sessionKeyModuleContract.interface.encodeFunctionData("createSession", [this.session]);
-    await this.sendAaTx(await sessionKeyModuleContract.getAddress(), data);
+    const receipt = await this.sendAaTx(await sessionKeyModuleContract.getAddress(), data, utilizeAllowed);
     const newState = await sessionKeyModuleContract.sessionState(this.proxyAccountAddress, this.session);
     expect(newState.status).to.equal(1, "session should be active");
+    return receipt;
   }
 
   encodeSession() {
@@ -186,14 +194,14 @@ class SessionTester {
     expect(newState.status).to.equal(2, "session should be revoked");
   }
 
-  async sendAaTx(to: string, data: string) {
+  async sendAaTx(to: string, data: string, utilizeAllowed: boolean = false) {
     const smartAccount = new SmartAccount({
       address: this.proxyAccountAddress,
       secret: fixtures.wallet.privateKey,
     }, provider);
 
     const aaTx = {
-      ...await this.aaTxTemplate(),
+      ...await this.aaTxTemplate(undefined, utilizeAllowed),
       to,
       data,
     };
@@ -203,6 +211,7 @@ class SessionTester {
     const tx = await provider.broadcastTransaction(signedTransaction);
     const receipt = await tx.wait();
     logInfo(`transaction gas used: ${receipt.gasUsed.toString()}`);
+    return receipt;
   }
 
   async sessionTxSuccess(tx: TransactionLike = {}) {
@@ -234,7 +243,7 @@ class SessionTester {
     await expect(provider.broadcastTransaction(signedTransaction)).to.be.reverted;
   };
 
-  getSession(session: PartialSession): SessionLib.SessionSpecStruct {
+    getSession(session: PartialSession): SessionLib.SessionSpecStruct {
     return {
       signer: this.sessionOwner.address,
       expiresAt: session.expiresAt ?? Math.floor(Date.now() / 1000) + 60 * 60 * 24,
@@ -260,7 +269,7 @@ class SessionTester {
     };
   }
 
-  async aaTxTemplate(periodIds?: number[]) {
+  async aaTxTemplate(periodIds?: number[], utilizeAllowed: boolean = false) {
     return {
       type: 113,
       from: this.proxyAccountAddress,
@@ -276,7 +285,7 @@ class SessionTester {
             ["bytes", "address", "bytes"],
             [
               ethers.zeroPadValue("0x1b", 65),
-              await fixtures.getSessionKeyModuleAddress(),
+              utilizeAllowed ? await fixtures.getAllowedSessionsContractAddress() : await fixtures.getSessionKeyModuleAddress(),
               abiCoder.encode(
                 [sessionSpecAbi, "uint64[]"],
                 [this.session, periodIds],
