@@ -212,6 +212,7 @@ contract WebAuthValidator is IWebAuthValidator {
   /// @inheritdoc IERC165
   function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
     return
+      interfaceId == type(IWebAuthValidator).interfaceId ||
       interfaceId == type(IERC165).interfaceId ||
       interfaceId == type(IModuleValidator).interfaceId ||
       interfaceId == type(IModule).interfaceId;

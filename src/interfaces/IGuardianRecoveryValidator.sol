@@ -114,7 +114,7 @@ interface IGuardianRecoveryValidator is IModuleValidator {
   function initRecovery(
     address accountToRecover,
     bytes32 hashedCredentialId,
-    bytes32[2] memory rawPublicKey,
+    bytes32[2] calldata rawPublicKey,
     bytes32 hashedOriginDomain
   ) external;
 

@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
@@ -12,7 +11,6 @@ import { IAllowedSessionsValidator } from "../interfaces/IAllowedSessionsValidat
 import { ISessionKeyValidator } from "../interfaces/ISessionKeyValidator.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
-import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SsoUtils } from "../helpers/SsoUtils.sol";
@@ -33,7 +31,7 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl, IAllowe
 
   /// @notice Mapping to track whether a session actions is allowed.
   /// @dev The key is the hash of session actions, and the value indicates if the actions are allowed.
-  mapping(bytes32 sessionActionsHash => bool active) public areSessionActionsAllowed;
+  mapping(bytes32 sessionActionsHash => bool allowed) public areSessionActionsAllowed;
 
   constructor() {
     _grantRole(SESSION_REGISTRY_MANAGER_ROLE, msg.sender);
@@ -97,10 +95,9 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl, IAllowe
     bytes4 interfaceId
   ) public pure override(SessionKeyValidator, AccessControl, IERC165) returns (bool) {
     return
-      interfaceId == type(IERC165).interfaceId ||
-      interfaceId == type(IModuleValidator).interfaceId ||
-      interfaceId == type(IModule).interfaceId ||
-      interfaceId == type(IAccessControl).interfaceId;
+      interfaceId == type(IAllowedSessionsValidator).interfaceId ||
+      interfaceId == type(IAccessControl).interfaceId ||
+      SessionKeyValidator.supportsInterface(interfaceId);
   }
 
   /// @notice Validate a session transaction for an account.
@@ -122,6 +119,6 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl, IAllowe
     if (!areSessionActionsAllowed[sessionActionsHash]) {
       revert Errors.SESSION_ACTIONS_NOT_ALLOWED(sessionActionsHash);
     }
-    return super.validateTransaction(signedHash, transaction);
+    return SessionKeyValidator.validateTransaction(signedHash, transaction);
   }
 }

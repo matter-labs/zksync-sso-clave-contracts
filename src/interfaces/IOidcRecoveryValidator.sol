@@ -33,6 +33,7 @@ interface IOidcRecoveryValidator is IModuleValidator {
   /// @param iss The OIDC issuer.
   /// @param readyToRecover Indicating if recovery is active (true after `startRecovery` and false once recovery is completed).
   /// @param pendingPasskeyHash The hash of the pending passkey.
+  /// @param recoveryStartedAt The timestamp when the recovery process was started.
   /// @param recoverNonce The value is used to build the jwt nonce, and gets incremented each time a zk proof is successfully verified to prevent replay attacks.
   /// @param addedOn The timestamp when the OIDC account was added.
   struct OidcData {
@@ -62,7 +63,6 @@ interface IOidcRecoveryValidator is IModuleValidator {
 
   /// @notice The data for starting a recovery process.
   /// @param zkProof The zk proof.
-  /// @param issHash The hash of the OIDC issuer.
   /// @param kid The key id (kid) of the OIDC key.
   /// @param pendingPasskeyHash The hash of the pending passkey to be added.
   /// @param timeLimit If the recovery process is started after this moment it will fail.
