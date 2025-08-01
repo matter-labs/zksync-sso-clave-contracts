@@ -12,7 +12,6 @@ import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SsoUtils } from "../helpers/SsoUtils.sol";
-import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 
 /// @title SessionKeyValidator
@@ -72,7 +71,7 @@ contract SessionKeyValidator is ISessionKeyValidator {
   /// @notice This module should not be used to validate signatures (including EIP-1271),
   /// as a signature by itself does not have enough information to validate it against a session.
   /// @return false
-  function validateSignature(bytes32, bytes memory) external pure returns (bool) {
+  function validateSignature(bytes32, bytes calldata) external pure returns (bool) {
     return false;
   }
 
