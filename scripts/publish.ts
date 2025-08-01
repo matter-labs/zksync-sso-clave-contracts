@@ -51,6 +51,7 @@ task("publish", "copies abi to a typescript file")
     createIndex(cmd.destPath, [
       copyContractAbiToTsPath("", "AAFactory", cmd.destPath),
       copyContractAbiToTsPath("", "SsoAccount", cmd.destPath),
+      copyContractAbiToTsPath("", "OidcKeyRegistry", cmd.destPath),
       copyContractAbiToTsPath("/validators", "SessionKeyValidator", cmd.destPath),
       copyContractAbiToTsPath("/validators", "WebAuthValidator", cmd.destPath),
       copyContractAbiToTsPath("/validators", "GuardianRecoveryValidator", cmd.destPath),
