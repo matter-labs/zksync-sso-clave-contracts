@@ -7,6 +7,7 @@ import { deployCmd, getArgs, getDeployer, GUARDIAN_RECOVERY_NAME } from "./deplo
 
 task("upgrade", "Upgrades ZKsync SSO contracts")
   .addParam("proxyfile", "location of the file with proxy contract addresses")
+  .addParam("keyregistryowner", "private key of the registry owner for OIDC key registry")
   .addOptionalParam("artifactname", "name of the artifact to upgrade to, if not upgrade all")
   .setAction(async (cmd, hre) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -23,7 +24,7 @@ task("upgrade", "Upgrades ZKsync SSO contracts")
 
     const wallet = new Wallet(privateKey, getProvider());
 
-    console.log("Deploying new implementation of", cmd.artifactName, "contract...");
+    console.log("Deploying new implementation of", cmd.artifactname, "contract...");
     const deployedContracts = await deployCmd(
       await hre.artifacts.readArtifact(GUARDIAN_RECOVERY_NAME),
       getArgs(cmd),
@@ -31,7 +32,10 @@ task("upgrade", "Upgrades ZKsync SSO contracts")
       cmd.artifactname,
       true,
       0,
-      "");
+      "",
+      cmd.keyregistryowner,
+      hre,
+    );
 
     for (const [contractName, contractAddress] of Object.entries(deployedContracts)) {
       console.log(`New ${contractName} implementation deployed at ${contractAddress}`);
@@ -42,7 +46,11 @@ task("upgrade", "Upgrades ZKsync SSO contracts")
 
       const proxyAddresses = JSON.parse(fs.readFileSync(cmd.proxyfile).toString());
       const proxyAddress = proxyAddresses[contractName];
-      console.log("Upgrading proxy at", proxyAddress);
+      if (!proxyAddress) {
+        console.warn(`No proxy address found for ${contractName} in ${cmd.proxyfile}`);
+        continue;
+      }
+      console.log("Upgrading", contractName, "proxy at", proxyAddress);
       const abi = ["function upgradeTo(address newImplementation)"];
       const proxy = new ethers.Contract(proxyAddress, abi, wallet);
       const tx = await proxy.upgradeTo(contractAddress);
