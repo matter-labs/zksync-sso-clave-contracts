@@ -100,6 +100,8 @@ contract SessionKeyValidator is ISessionKeyValidator {
 
   /// @notice Create a new session for an account
   /// @param sessionSpec The session specification to create a session with
+  /// @dev In the sessionSpec, callPolicies should not have duplicated instances of
+  /// (target, selector) pairs. Only the first one is considered when validating transactions.
   function createSession(SessionLib.SessionSpec memory sessionSpec) public virtual {
     bytes32 sessionHash = keccak256(abi.encode(sessionSpec));
     if (!isInitialized(msg.sender)) {

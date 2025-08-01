@@ -165,7 +165,7 @@ contract SsoAccount is
     _transaction.processPaymasterInput();
   }
 
-  /// @dev type(ISsoAccount).interfaceId indicates SSO accounts
+  /// @inheritdoc TokenCallbackHandler
   function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
     return
       interfaceId == type(IERC5267).interfaceId ||
@@ -173,7 +173,8 @@ contract SsoAccount is
       interfaceId == type(IAccount).interfaceId ||
       interfaceId == type(ISsoAccount).interfaceId ||
       interfaceId == type(IBatchCaller).interfaceId ||
-      interfaceId == type(INoHooksCaller).interfaceId;
+      interfaceId == type(INoHooksCaller).interfaceId ||
+      super.supportsInterface(interfaceId);
   }
 
   /// @notice Validates the provided transaction by validating signature of ECDSA k1 owner.
