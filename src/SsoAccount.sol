@@ -18,6 +18,9 @@ import { IERC5267 } from "@openzeppelin/contracts/interfaces/IERC5267.sol";
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 import { IBatchCaller } from "./interfaces/IBatchCaller.sol";
 import { INoHooksCaller } from "./interfaces/INoHooksCaller.sol";
+import { IHookManager } from "./interfaces/IHookManager.sol";
+import { IOwnerManager } from "./interfaces/IOwnerManager.sol";
+import { IValidatorManager } from "./interfaces/IValidatorManager.sol";
 
 import { HookManager } from "./managers/HookManager.sol";
 import { SsoUtils } from "./helpers/SsoUtils.sol";
@@ -174,6 +177,9 @@ contract SsoAccount is
       interfaceId == type(ISsoAccount).interfaceId ||
       interfaceId == type(IBatchCaller).interfaceId ||
       interfaceId == type(INoHooksCaller).interfaceId ||
+      interfaceId == type(IHookManager).interfaceId ||
+      interfaceId == type(IOwnerManager).interfaceId ||
+      interfaceId == type(IValidatorManager).interfaceId ||
       super.supportsInterface(interfaceId);
   }
 

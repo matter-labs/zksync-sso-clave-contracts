@@ -21,7 +21,7 @@ import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 contract SessionKeyValidator is ISessionKeyValidator {
   using SessionLib for SessionLib.SessionStorage;
 
-  mapping(address account => uint256 openSessions) __DEPRECATED__sessionCounter;
+  mapping(address account => uint256 openSessions) private __DEPRECATED__sessionCounter;
   mapping(bytes32 sessionHash => SessionLib.SessionStorage sessionState) internal sessions;
   mapping(address signer => bytes32 sessionHash) public sessionSigner;
 
