@@ -105,6 +105,17 @@ contract SessionKeyValidator is ISessionKeyValidator {
     if (!isInitialized(msg.sender)) {
       revert Errors.NOT_FROM_INITIALIZED_ACCOUNT(msg.sender);
     }
+
+    uint256 totalCallPolicies = sessionSpec.callPolicies.length;
+    for (uint256 i = 0; i < totalCallPolicies; i++) {
+      if (isBannedCall(sessionSpec.callPolicies[i].target, sessionSpec.callPolicies[i].selector)) {
+        revert Errors.SESSION_CALL_POLICY_BANNED(
+          sessionSpec.callPolicies[i].target,
+          sessionSpec.callPolicies[i].selector
+        );
+      }
+    }
+
     if (sessionSpec.signer == address(0)) {
       revert Errors.SESSION_ZERO_SIGNER();
     }
@@ -121,16 +132,6 @@ contract SessionKeyValidator is ISessionKeyValidator {
     // Sessions should expire in no less than 60 seconds.
     if (sessionSpec.expiresAt <= block.timestamp + 60) {
       revert Errors.SESSION_EXPIRES_TOO_SOON(sessionSpec.expiresAt);
-    }
-
-    uint256 totalCallPolicies = sessionSpec.callPolicies.length;
-    for (uint256 i = 0; i < totalCallPolicies; i++) {
-      if (isBannedCall(sessionSpec.callPolicies[i].target, sessionSpec.callPolicies[i].selector)) {
-        revert Errors.SESSION_CALL_POLICY_BANNED(
-          sessionSpec.callPolicies[i].target,
-          sessionSpec.callPolicies[i].selector
-        );
-      }
     }
 
     sessions[sessionHash].status[msg.sender] = SessionLib.Status.Active;
