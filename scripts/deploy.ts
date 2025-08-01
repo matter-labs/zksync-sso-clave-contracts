@@ -141,8 +141,8 @@ export async function deployCmd(
   noProxy: boolean,
   fund: number,
   file: string,
+  keyRegistryOwnerKey: string,
   hre: HardhatRuntimeEnvironment,
-  keyRegistryOwnerKey?: string,
 ) {
   if (!artifactName) {
     const keyRegistryOwner = getKeyRegistryOwner(keyRegistryOwnerKey);
@@ -206,7 +206,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       cmd.direct,
       cmd.fund,
       cmd.file,
-      hre,
       cmd.keyregistryowner,
+      hre,
     );
   });
