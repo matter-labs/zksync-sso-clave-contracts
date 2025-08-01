@@ -15,6 +15,10 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import { IERC5267 } from "@openzeppelin/contracts/interfaces/IERC5267.sol";
 
+import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
+import { IBatchCaller } from "./interfaces/IBatchCaller.sol";
+import { INoHooksCaller } from "./interfaces/INoHooksCaller.sol";
+
 import { HookManager } from "./managers/HookManager.sol";
 import { SsoUtils } from "./helpers/SsoUtils.sol";
 
@@ -167,7 +171,9 @@ contract SsoAccount is
       interfaceId == type(IERC5267).interfaceId ||
       interfaceId == type(IERC1271).interfaceId ||
       interfaceId == type(IAccount).interfaceId ||
-      super.supportsInterface(interfaceId);
+      interfaceId == type(ISsoAccount).interfaceId ||
+      interfaceId == type(IBatchCaller).interfaceId ||
+      interfaceId == type(INoHooksCaller).interfaceId;
   }
 
   /// @notice Validates the provided transaction by validating signature of ECDSA k1 owner.

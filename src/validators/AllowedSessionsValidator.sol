@@ -95,10 +95,9 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl, IAllowe
     bytes4 interfaceId
   ) public pure override(SessionKeyValidator, AccessControl, IERC165) returns (bool) {
     return
-      interfaceId == type(IERC165).interfaceId ||
-      interfaceId == type(IModuleValidator).interfaceId ||
-      interfaceId == type(IModule).interfaceId ||
-      interfaceId == type(IAccessControl).interfaceId;
+      interfaceId == type(IAllowedSessionsValidator).interfaceId ||
+      interfaceId == type(IAccessControl).interfaceId ||
+      SessionKeyValidator.supportsInterface(interfaceId);
   }
 
   /// @notice Validate a session transaction for an account.

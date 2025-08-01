@@ -148,8 +148,9 @@ contract SessionKeyValidator is ISessionKeyValidator {
   }
 
   /// @inheritdoc IERC165
-  function supportsInterface(bytes4 interfaceId) external pure virtual returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
     return
+      interfaceId == type(ISessionKeyValidator).interfaceId ||
       interfaceId == type(IERC165).interfaceId ||
       interfaceId == type(IModuleValidator).interfaceId ||
       interfaceId == type(IModule).interfaceId;
