@@ -15,6 +15,13 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import { IERC5267 } from "@openzeppelin/contracts/interfaces/IERC5267.sol";
 
+import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
+import { IBatchCaller } from "./interfaces/IBatchCaller.sol";
+import { INoHooksCaller } from "./interfaces/INoHooksCaller.sol";
+import { IHookManager } from "./interfaces/IHookManager.sol";
+import { IOwnerManager } from "./interfaces/IOwnerManager.sol";
+import { IValidatorManager } from "./interfaces/IValidatorManager.sol";
+
 import { HookManager } from "./managers/HookManager.sol";
 import { SsoUtils } from "./helpers/SsoUtils.sol";
 
@@ -161,12 +168,18 @@ contract SsoAccount is
     _transaction.processPaymasterInput();
   }
 
-  /// @dev type(ISsoAccount).interfaceId indicates SSO accounts
+  /// @inheritdoc TokenCallbackHandler
   function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
     return
       interfaceId == type(IERC5267).interfaceId ||
       interfaceId == type(IERC1271).interfaceId ||
       interfaceId == type(IAccount).interfaceId ||
+      interfaceId == type(ISsoAccount).interfaceId ||
+      interfaceId == type(IBatchCaller).interfaceId ||
+      interfaceId == type(INoHooksCaller).interfaceId ||
+      interfaceId == type(IHookManager).interfaceId ||
+      interfaceId == type(IOwnerManager).interfaceId ||
+      interfaceId == type(IValidatorManager).interfaceId ||
       super.supportsInterface(interfaceId);
   }
 

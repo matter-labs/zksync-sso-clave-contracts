@@ -154,6 +154,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
       if (!accountsRemovalSuccessful) {
         revert Errors.ACCOUNT_NOT_GUARDED_BY_ADDRESS(msg.sender, guardianToRemove);
       }
+
+      // In case an ongoing recovery was started by this guardian, discard it to prevent a potential
+      // account overtake by a second malicious guardian.
+      discardRecovery(hashedOriginDomain);
     }
 
     if (accountGuardians[hashedOriginDomain][msg.sender].length() == 0) {

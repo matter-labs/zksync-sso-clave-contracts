@@ -12,7 +12,6 @@ import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SsoUtils } from "../helpers/SsoUtils.sol";
-import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 
 /// @title SessionKeyValidator
@@ -22,8 +21,9 @@ import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 contract SessionKeyValidator is ISessionKeyValidator {
   using SessionLib for SessionLib.SessionStorage;
 
-  mapping(address signer => bytes32 sessionHash) public sessionSigner;
+  mapping(address account => uint256 openSessions) private __DEPRECATED__sessionCounter;
   mapping(bytes32 sessionHash => SessionLib.SessionStorage sessionState) internal sessions;
+  mapping(address signer => bytes32 sessionHash) public sessionSigner;
 
   /// @notice Get the session state for an account
   /// @param account The account to fetch the session state for
@@ -72,7 +72,7 @@ contract SessionKeyValidator is ISessionKeyValidator {
   /// @notice This module should not be used to validate signatures (including EIP-1271),
   /// as a signature by itself does not have enough information to validate it against a session.
   /// @return false
-  function validateSignature(bytes32, bytes memory) external pure returns (bool) {
+  function validateSignature(bytes32, bytes calldata) external pure returns (bool) {
     return false;
   }
 
@@ -100,11 +100,24 @@ contract SessionKeyValidator is ISessionKeyValidator {
 
   /// @notice Create a new session for an account
   /// @param sessionSpec The session specification to create a session with
+  /// @dev In the sessionSpec, callPolicies should not have duplicated instances of
+  /// (target, selector) pairs. Only the first one is considered when validating transactions.
   function createSession(SessionLib.SessionSpec memory sessionSpec) public virtual {
     bytes32 sessionHash = keccak256(abi.encode(sessionSpec));
     if (!isInitialized(msg.sender)) {
       revert Errors.NOT_FROM_INITIALIZED_ACCOUNT(msg.sender);
     }
+
+    uint256 totalCallPolicies = sessionSpec.callPolicies.length;
+    for (uint256 i = 0; i < totalCallPolicies; i++) {
+      if (isBannedCall(sessionSpec.callPolicies[i].target, sessionSpec.callPolicies[i].selector)) {
+        revert Errors.SESSION_CALL_POLICY_BANNED(
+          sessionSpec.callPolicies[i].target,
+          sessionSpec.callPolicies[i].selector
+        );
+      }
+    }
+
     if (sessionSpec.signer == address(0)) {
       revert Errors.SESSION_ZERO_SIGNER();
     }
@@ -123,16 +136,6 @@ contract SessionKeyValidator is ISessionKeyValidator {
       revert Errors.SESSION_EXPIRES_TOO_SOON(sessionSpec.expiresAt);
     }
 
-    uint256 totalCallPolicies = sessionSpec.callPolicies.length;
-    for (uint256 i = 0; i < totalCallPolicies; i++) {
-      if (isBannedCall(sessionSpec.callPolicies[i].target, sessionSpec.callPolicies[i].selector)) {
-        revert Errors.SESSION_CALL_POLICY_BANNED(
-          sessionSpec.callPolicies[i].target,
-          sessionSpec.callPolicies[i].selector
-        );
-      }
-    }
-
     sessions[sessionHash].status[msg.sender] = SessionLib.Status.Active;
     sessionSigner[sessionSpec.signer] = sessionHash;
     emit SessionCreated(msg.sender, sessionHash, sessionSpec);
@@ -147,8 +150,9 @@ contract SessionKeyValidator is ISessionKeyValidator {
   }
 
   /// @inheritdoc IERC165
-  function supportsInterface(bytes4 interfaceId) external pure virtual returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
     return
+      interfaceId == type(ISessionKeyValidator).interfaceId ||
       interfaceId == type(IERC165).interfaceId ||
       interfaceId == type(IModuleValidator).interfaceId ||
       interfaceId == type(IModule).interfaceId;
