@@ -51,10 +51,16 @@ async function deployKeyRegistry(deployer: Wallet, keyRegistryOwner: Wallet, hre
   return keyRegistry;
 }
 
-function getKeyRegistryOwner() {
+function getKeyRegistryOwner(customOwnerKey?: string) {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { LOCAL_RICH_WALLETS, getProvider } = require("../test/utils");
   const provider = getProvider();
+
+  if (customOwnerKey) {
+    console.log("Using custom key registry owner");
+    return new Wallet(customOwnerKey, provider);
+  }
+
   return new Wallet(LOCAL_RICH_WALLETS[1].privateKey, provider);
 }
 
@@ -95,6 +101,7 @@ interface DeployArgs {
   implementation?: string;
   factory?: string;
   sessions?: string;
+  keyRegistryOwner?: string;
 }
 
 export function getArgs(cmd: DeployArgs) {
@@ -119,8 +126,11 @@ export function getArgs(cmd: DeployArgs) {
     }
     return [cmd.factory, cmd.sessions];
   }
+  if (cmd.only == OIDC_KEY_REGISTRY_NAME) {
+    return [];
+  }
 
-  throw `Unsupported '${cmd.only}' contract name. Use: ${BEACON_NAME}, ${FACTORY_NAME}, ${PAYMASTER_NAME}`;
+  throw `Unsupported '${cmd.only}' contract name. Use: ${BEACON_NAME}, ${FACTORY_NAME}, ${PAYMASTER_NAME}, ${OIDC_KEY_REGISTRY_NAME}`;
 }
 
 export async function deployCmd(
@@ -131,10 +141,11 @@ export async function deployCmd(
   noProxy: boolean,
   fund: number,
   file: string,
+  keyRegistryOwnerKey: string,
   hre: HardhatRuntimeEnvironment,
 ) {
   if (!artifactName) {
-    const keyRegistryOwner = getKeyRegistryOwner();
+    const keyRegistryOwner = getKeyRegistryOwner(keyRegistryOwnerKey);
     const passkey = await deploy(WEBAUTH_NAME, deployer, !noProxy);
     const session = await deploy(SESSIONS_NAME, deployer, !noProxy);
     const implementation = await deploy(ACCOUNT_IMPL_NAME, deployer, false);
@@ -157,6 +168,12 @@ export async function deployCmd(
     }
     return deployedContracts;
   } else {
+    if (artifactName == OIDC_KEY_REGISTRY_NAME) {
+      const keyRegistryOwner = getKeyRegistryOwner(keyRegistryOwnerKey);
+      const oidcKeyRegistry = await deployKeyRegistry(deployer, keyRegistryOwner, hre, noProxy);
+      return { [OIDC_KEY_REGISTRY_NAME]: oidcKeyRegistry };
+    }
+
     const deployedContract = await deploy(artifactName, deployer, false, args);
 
     if (artifactName == PAYMASTER_NAME) {
@@ -176,6 +193,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
   .addOptionalParam("beacon", "address of the beacon to use in the factory")
   .addOptionalParam("fund", "amount of ETH to send to the paymaster", "0")
   .addOptionalParam("file", "where to save all contract locations (it not using only)")
+  .addOptionalParam("keyregistryowner", "private key of the custom key registry owner (for OIDC key registry)")
   .setAction(async (cmd, hre) => {
     const recoveryArtifact = await hre.artifacts.readArtifact(GUARDIAN_RECOVERY_NAME);
     const args = getArgs(cmd);
@@ -188,6 +206,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       cmd.direct,
       cmd.fund,
       cmd.file,
+      cmd.keyregistryowner,
       hre,
     );
   });
