@@ -4,6 +4,16 @@ import "@nomicfoundation/hardhat-chai-matchers";
 import "./scripts/deploy";
 import "./scripts/publish";
 import "./scripts/upgrade";
+import "./scripts/check-beacon-versions";
+import "./scripts/check-deployment-mismatch";
+import "./scripts/sync-beacon-implementations";
+import "./scripts/upgrade-factory-beacon";
+import "./scripts/check-factory-proxy-type";
+import "./scripts/deploy-new-factory";
+import "./scripts/deploy-new-paymaster";
+import "./scripts/fund-paymaster";
+import "./scripts/verify-paymaster-factory";
+import "./scripts/debug-paymaster-error";
 
 import { HardhatUserConfig } from "hardhat/config";
 
