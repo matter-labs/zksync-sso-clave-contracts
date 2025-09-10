@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { ACCOUNT_VALIDATION_SUCCESS_MAGIC } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IAccount.sol";
 import { IAccount } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IAccount.sol";
+import "hardhat/console.sol";
 import { Transaction, TransactionHelper } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { EfficientCall } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/EfficientCall.sol";
 import { NONCE_HOLDER_SYSTEM_CONTRACT, DEPLOYER_SYSTEM_CONTRACT } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
@@ -106,6 +107,9 @@ contract SsoAccount is
     // on the validation step to prevent paying fees for revertable transactions.
     uint256 requiredBalance = _transaction.totalRequiredBalance();
     if (requiredBalance > address(this).balance) {
+      console.log("Account validation failed: Insufficient funds");
+      console.log("Required balance:", requiredBalance);
+      console.log("Current balance:", address(this).balance);
       revert Errors.INSUFFICIENT_FUNDS(requiredBalance, address(this).balance);
     }
 
@@ -192,15 +196,21 @@ contract SsoAccount is
     // Run validation hooks
     bool hookSuccess = runValidationHooks(_signedHash, _transaction);
     if (!hookSuccess) {
+      console.log("Account validation failed: Validation hooks failed");
+      console.logBytes32(_signedHash);
       return bytes4(0);
     }
 
     if (_transaction.signature.length == 65) {
       (address signer, ECDSA.RecoverError err) = ECDSA.tryRecover(_signedHash, _transaction.signature);
-      return
-        signer == address(0) || err != ECDSA.RecoverError.NoError || !_isK1Owner(signer)
-          ? bytes4(0)
-          : ACCOUNT_VALIDATION_SUCCESS_MAGIC;
+      if (signer == address(0) || err != ECDSA.RecoverError.NoError || !_isK1Owner(signer)) {
+        console.log("Account validation failed: ECDSA signature validation failed");
+        console.log("Recovered signer:", signer);
+        console.log("Recovery error:", uint256(err));
+        console.log("Is K1 owner:", _isK1Owner(signer));
+        return bytes4(0);
+      }
+      return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
     }
 
     // Extract the signature and validator address from the _transaction.signature.
@@ -211,6 +221,9 @@ contract SsoAccount is
     bool validationSuccess = _isModuleValidator(validator) &&
       IModuleValidator(validator).validateTransaction(_signedHash, _transaction);
     if (!validationSuccess) {
+      console.log("Account validation failed: Module validator validation failed");
+      console.log("Validator address:", validator);
+      console.log("Is module validator:", _isModuleValidator(validator));
       return bytes4(0);
     }
 

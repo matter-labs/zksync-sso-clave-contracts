@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "hardhat/console.sol";
 
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IWebAuthValidator } from "../interfaces/IWebAuthValidator.sol";
@@ -158,11 +159,19 @@ contract WebAuthValidator is IWebAuthValidator {
 
     // prevent signature replay https://yondon.blog/2019/01/01/how-not-to-use-ecdsa/
     if (uint256(rs[0]) == 0 || rs[0] > HIGH_R_MAX || uint256(rs[1]) == 0 || rs[1] > LOW_S_MAX) {
+      console.log("WebAuth validation failed: Invalid signature range");
+      console.log("r value:", uint256(rs[0]));
+      console.log("s value:", uint256(rs[1]));
+      console.log("HIGH_R_MAX:", uint256(HIGH_R_MAX));
+      console.log("LOW_S_MAX:", uint256(LOW_S_MAX));
       return false;
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#attestedcredentialdata
     if (authenticatorData[32] & AUTH_DATA_MASK != AUTH_DATA_MASK) {
+      console.log("WebAuth validation failed: Invalid authenticator data flags");
+      console.log("Authenticator flags:", uint8(authenticatorData[32]));
+      console.log("Required mask:", uint8(AUTH_DATA_MASK));
       return false;
     }
 
@@ -172,15 +181,24 @@ contract WebAuthValidator is IWebAuthValidator {
     string memory challenge = root.at('"challenge"').value().decodeString();
     bytes memory challengeData = Base64.decode(challenge);
     if (challengeData.length != 32) {
+      console.log("WebAuth validation failed: Wrong challenge hash size");
+      console.log("Challenge data length:", challengeData.length);
       return false; // wrong hash size
     }
     if (bytes32(challengeData) != transactionHash) {
+      console.log("WebAuth validation failed: Challenge mismatch");
+      console.logBytes32(bytes32(challengeData));
+      console.logBytes32(transactionHash);
       return false;
     }
 
     // type ensures the signature was created from a validation request
     string memory webauthn_type = root.at('"type"').value().decodeString();
     if (WEBAUTHN_GET_HASH != keccak256(bytes(webauthn_type))) {
+      console.log("WebAuth validation failed: Invalid WebAuthn type");
+      console.log("Expected type hash:", uint256(WEBAUTHN_GET_HASH));
+      console.log("Actual type hash:", uint256(keccak256(bytes(webauthn_type))));
+      console.log("Type value:", webauthn_type);
       return false;
     }
 
@@ -189,6 +207,10 @@ contract WebAuthValidator is IWebAuthValidator {
     string memory origin = root.at('"origin"').value().decodeString();
     bytes32[2] memory publicKey = publicKeys[origin][credentialId][msg.sender];
     if (uint256(publicKey[0]) == 0 && uint256(publicKey[1]) == 0) {
+      console.log("WebAuth validation failed: No public key found");
+      console.log("Origin:", origin);
+      console.log("Account:", msg.sender);
+      console.logBytes(credentialId);
       // no key found!
       return false;
     }
@@ -201,6 +223,8 @@ contract WebAuthValidator is IWebAuthValidator {
     if (!crossOriginItem.isUndefined()) {
       string memory crossOrigin = crossOriginItem.value();
       if (FALSE_HASH != keccak256(bytes(crossOrigin))) {
+        console.log("WebAuth validation failed: Cross-origin requests not supported");
+        console.log("Cross-origin value:", crossOrigin);
         return false;
       }
     }
@@ -277,10 +301,17 @@ contract WebAuthValidator is IWebAuthValidator {
       assembly {
         returnValue := mload(add(data, 0x20))
       }
+      if (returnValue != 1) {
+        console.log("WebAuth validation failed: P256 signature verification failed");
+        console.log("Verifier return value:", returnValue);
+      }
       return returnValue == 1;
     }
 
     // Otherwise return false for the unsuccessful calls and invalid signatures
+    console.log("WebAuth validation failed: Verifier call failed");
+    console.log("Call success:", success);
+    console.log("Data length:", data.length);
     return false;
   }
 }
