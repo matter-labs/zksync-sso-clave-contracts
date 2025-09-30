@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Validator inspection helper for zkSync Era Sepolia.
+# Validator inspection helper for ZKSync Era Sepolia.
 #
 # Run from packages/contracts (recommended):
 #   cd packages/contracts
@@ -22,7 +22,7 @@ set -euo pipefail
 
 usage() {
   cat <<USAGE
-Usage: ./scripts/check-validators.sh [--init-guardian] [--init-oidc] [--deploy-verifier] [--simulate-only] [--compare-deploy-oidc]
+Usage: ./scripts/check-validators.sh [--init-guardian] [--init-oidc] [--deploy-verifier] [--simulate-only] [--compare-deploy-oidc] [--check-paymaster] [--ensure-paymaster]
 
 Without flags, prints validator addresses and checks installation.
 
@@ -32,9 +32,12 @@ Options:
   --deploy-verifier   When used with --init-oidc, deploy Groth16Verifier if none provided
   --simulate-only     Do not send txs; simulate initialize to check revert reason
   --compare-deploy-oidc  Deploy a fresh OIDC proxy with same params for comparison
+  --check-paymaster   Inspect current paymaster: code, module addresses, balance, whitelist (if supported)
+  --ensure-paymaster  If paymaster invalid (missing, wrong modules, low balance) deploy a new one via hardhat task
 
 Environment overrides:
-  RPC_URL, GUARDIAN_ADDR, OIDC_ADDR, ACCOUNT_ADDR, PASSKEY_ADDR, OIDC_KEY_REGISTRY_ADDR, OIDC_VERIFIER_ADDR
+  RPC_URL, GUARDIAN_ADDR, OIDC_ADDR, ACCOUNT_ADDR, PASSKEY_ADDR, OIDC_KEY_REGISTRY_ADDR, OIDC_VERIFIER_ADDR, PAYMASTER_ADDR,
+  MIN_PAYMASTER_BALANCE (in ETH, default 0.05), FACTORY_ADDR (override factory for paymaster), PROXY_FILE (defaults to era-sepolia.json)
 USAGE
 }
 
@@ -61,12 +64,18 @@ ACCOUNT_ADDR=${ACCOUNT_ADDR:-}
 PASSKEY_ADDR=${PASSKEY_ADDR:-}
 OIDC_KEY_REGISTRY_ADDR=${OIDC_KEY_REGISTRY_ADDR:-}
 OIDC_VERIFIER_ADDR=${OIDC_VERIFIER_ADDR:-}
+PAYMASTER_ADDR=${PAYMASTER_ADDR:-}
+MIN_PAYMASTER_BALANCE=${MIN_PAYMASTER_BALANCE:-0.05}
+FACTORY_ADDR=${FACTORY_ADDR:-}
+PROXY_FILE=${PROXY_FILE:-$ERA_JSON}
 
 INIT_GUARDIAN=false
 INIT_OIDC=false
 DEPLOY_VERIFIER=false
 SIMULATE_ONLY=false
 COMPARE_DEPLOY_OIDC=false
+CHECK_PAYMASTER=false
+ENSURE_PAYMASTER=false
 
 for arg in "$@"; do
   case "$arg" in
@@ -82,6 +91,10 @@ for arg in "$@"; do
       SIMULATE_ONLY=true ;;
     --compare-deploy-oidc)
       COMPARE_DEPLOY_OIDC=true ;;
+    --check-paymaster)
+      CHECK_PAYMASTER=true ;;
+    --ensure-paymaster)
+      ENSURE_PAYMASTER=true ;;
     *)
       echo "Unknown arg: $arg" >&2; usage; exit 1 ;;
   esac
@@ -123,6 +136,7 @@ fi
 echo "Using RPC_URL:      $RPC_URL"
 echo "Guardian Validator: ${GUARDIAN_ADDR:-<unset>}"
 echo "OIDC Validator:     ${OIDC_ADDR:-<unset>}"
+echo "Paymaster:          ${PAYMASTER_ADDR:-<unset>}"
 if [[ -n "$ACCOUNT_ADDR" ]]; then
   echo "SSO Account:        $ACCOUNT_ADDR"
 fi
@@ -188,6 +202,101 @@ read_oidc() {
 # Do the reads
 read_guardian
 read_oidc
+
+# ===================== Paymaster Inspection =====================
+paymaster_check() {
+  [[ -z "$PAYMASTER_ADDR" ]] && { echo "No PAYMASTER_ADDR provided; skipping paymaster check"; return 0; }
+  echo "=== Paymaster @ $PAYMASTER_ADDR ==="
+  if ! have_code "$PAYMASTER_ADDR"; then
+    echo "No code at paymaster address"; return 1; fi
+
+  # Query on-chain constants used as getters
+  local f s r p o
+  set +e
+  f=$(cast call --rpc-url "$RPC_URL" "$PAYMASTER_ADDR" "AA_FACTORY_CONTRACT_ADDRESS()(address)" 2>/dev/null)
+  s=$(cast call --rpc-url "$RPC_URL" "$PAYMASTER_ADDR" "SESSION_KEY_VALIDATOR_CONTRACT_ADDRESS()(address)" 2>/dev/null)
+  r=$(cast call --rpc-url "$RPC_URL" "$PAYMASTER_ADDR" "ACCOUNT_RECOVERY_VALIDATOR_CONTRACT_ADDRESS()(address)" 2>/dev/null)
+  p=$(cast call --rpc-url "$RPC_URL" "$PAYMASTER_ADDR" "WEB_AUTH_VALIDATOR_CONTRACT_ADDRESS()(address)" 2>/dev/null)
+  o=$(cast call --rpc-url "$RPC_URL" "$PAYMASTER_ADDR" "OIDC_RECOVERY_VALIDATOR_CONTRACT_ADDRESS()(address)" 2>/dev/null)
+  set -e
+  echo "Factory:        $f"
+  echo "Session:        $s"
+  echo "Recovery:       $r"
+  echo "Passkey:        $p"
+  echo "OIDC Recovery:  $o"
+
+  # Expected from proxy file if present
+  local expectedFactory expectedSession expectedRecovery expectedPasskey expectedOidc
+  if [[ -f "$PROXY_FILE" ]]; then
+    require_jq
+    expectedFactory=$(jq -r '.accountFactory // empty' "$PROXY_FILE")
+    expectedSession=$(jq -r '.session // empty' "$PROXY_FILE")
+    expectedRecovery=$(jq -r '.recovery // empty' "$PROXY_FILE")
+    expectedPasskey=$(jq -r '.passkey // empty' "$PROXY_FILE")
+    expectedOidc=$(jq -r '.recoveryOidc // empty' "$PROXY_FILE")
+    echo "Expected (from $PROXY_FILE):"
+    echo "  Factory:       ${expectedFactory:-<unset>}"
+    echo "  Session:       ${expectedSession:-<unset>}"
+    echo "  Recovery:      ${expectedRecovery:-<unset>}"
+    echo "  Passkey:       ${expectedPasskey:-<unset>}"
+    echo "  OIDC Recovery: ${expectedOidc:-<unset>}"
+  fi
+
+  local mismatch=false
+  [[ -n "$expectedFactory" && "${f,,}" != "${expectedFactory,,}" ]] && { echo "✗ Factory mismatch"; mismatch=true; }
+  [[ -n "$expectedSession" && "${s,,}" != "${expectedSession,,}" ]] && { echo "✗ Session mismatch"; mismatch=true; }
+  [[ -n "$expectedRecovery" && "${r,,}" != "${expectedRecovery,,}" ]] && { echo "✗ Recovery mismatch"; mismatch=true; }
+  [[ -n "$expectedPasskey" && "${p,,}" != "${expectedPasskey,,}" ]] && { echo "✗ Passkey mismatch"; mismatch=true; }
+  [[ -n "$expectedOidc" && "${o,,}" != "${expectedOidc,,}" ]] && { echo "✗ OIDC Recovery mismatch"; mismatch=true; }
+
+  # Balance check
+  local balanceWei balanceEth
+  balanceWei=$(cast balance --rpc-url "$RPC_URL" "$PAYMASTER_ADDR")
+  # Convert to ETH units
+  balanceEth=$(cast --from-wei "$balanceWei")
+  echo "Balance:        $balanceEth ETH";
+  # Compare as floats using bc if present
+  if command -v bc >/dev/null 2>&1; then
+    if [[ $(echo "$balanceEth < $MIN_PAYMASTER_BALANCE" | bc -l) == 1 ]]; then
+      echo "✗ Balance below threshold ($MIN_PAYMASTER_BALANCE ETH)"; mismatch=true;
+    fi
+  fi
+
+  if [[ "$mismatch" == true ]]; then
+    return 2
+  fi
+  echo "✓ Paymaster configuration looks consistent"
+  return 0
+}
+
+if [[ "$CHECK_PAYMASTER" == true || "$ENSURE_PAYMASTER" == true ]]; then
+  echo
+  echo "--- Paymaster Verification ---"
+  if paymaster_check; then
+    echo "Paymaster check completed.";
+  else
+    status=$?
+    if [[ $status -eq 1 ]]; then
+      echo "Paymaster absent or no code.";
+    elif [[ $status -eq 2 ]]; then
+      echo "Paymaster mismatch detected.";
+    fi
+    if [[ "$ENSURE_PAYMASTER" == true ]]; then
+      echo "Attempting new paymaster deployment (ensure mode).";
+      if [[ ! -f "$PROXY_FILE" ]]; then
+        echo "Cannot deploy new paymaster: proxy file $PROXY_FILE missing" >&2; exit 1; fi
+      require_jq
+      FACTORY_ADDR=${FACTORY_ADDR:-$(jq -r '.accountFactory // empty' "$PROXY_FILE")}
+      if [[ -z "$FACTORY_ADDR" ]]; then echo "Factory address missing for deployment"; exit 1; fi
+      echo "Deploying via hardhat task deploy-new-paymaster...";
+      (cd "$CONTRACTS_DIR" && npx hardhat deploy-new-paymaster \
+        --network zkSyncSepoliaTestnet \
+        --factory "$FACTORY_ADDR" \
+        --proxyfile "$PROXY_FILE" \
+        --fund 0.1 || { echo "Deployment failed"; exit 1; })
+    fi
+  fi
+fi
 
 cat <<'EOF'
 Hints:
